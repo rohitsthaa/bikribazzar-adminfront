@@ -2,7 +2,6 @@
 import { useRef, useState } from 'react';
 
 type Props = {
-  /** Current value shown in the URL input */
   value: string;
   onChange: (url: string) => void;
 };
@@ -10,6 +9,7 @@ type Props = {
 export default function ImageUploader({ value, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -29,24 +29,81 @@ export default function ImageUploader({ value, onChange }: Props) {
     }
   }
 
-  return (
-    <div className="space-y-2">
-      {/* Preview */}
-      {value && (
-        <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="Preview" className="w-full h-full object-cover" />
-        </div>
-      )}
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) handleFile(file);
+  }
 
-      {/* URL input + upload button */}
-      <div className="flex gap-2">
+  return (
+    <div className="space-y-3">
+      {/* Drop zone / preview */}
+      <div
+        onClick={() => !value && inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        className={`relative w-full rounded-xl border-2 transition-all overflow-hidden ${
+          value
+            ? 'border-gray-200 cursor-default'
+            : dragging
+            ? 'border-stone-400 bg-stone-50 cursor-copy'
+            : 'border-dashed border-gray-300 bg-gray-50 hover:border-stone-400 hover:bg-stone-50 cursor-pointer'
+        }`}
+        style={{ aspectRatio: '16/9' }}
+      >
+        {value ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={value} alt="Product preview" className="w-full h-full object-cover" />
+            {/* Overlay actions */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+                className="px-3 py-2 bg-white text-gray-800 text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onChange(''); }}
+                className="px-3 py-2 bg-white/20 text-white text-xs font-medium rounded-lg hover:bg-white/30 transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </>
+        ) : uploading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400">
+            <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            <span className="text-sm">Uploading…</span>
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400 select-none">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-600">Drop image here</p>
+              <p className="text-xs text-gray-400">or click to browse · JPG, PNG, WebP</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* URL input */}
+      <div className="flex gap-2 items-center">
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="/images/shelf.jpg or https://..."
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+          placeholder="Or paste image URL…"
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 text-gray-600"
         />
         <button
           type="button"
@@ -54,11 +111,10 @@ export default function ImageUploader({ value, onChange }: Props) {
           disabled={uploading}
           className="px-3 py-2 border border-gray-300 hover:border-stone-400 rounded-lg text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 transition-colors whitespace-nowrap"
         >
-          {uploading ? 'Uploading…' : '↑ Upload'}
+          ↑ Upload
         </button>
       </div>
 
-      {/* Hidden file input */}
       <input
         ref={inputRef}
         type="file"
