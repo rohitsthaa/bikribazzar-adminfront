@@ -52,6 +52,21 @@ export function updateProduct(id: string, data: Partial<Product>) {
   });
 }
 
+// ---- Testimonials ----
+
+export type Testimonial = { id: number; quote: string; author: string; sortOrder: number };
+
+export function getTestimonials() { return apiFetch<Testimonial[]>('/testimonials'); }
+export function createTestimonial(data: { quote: string; author: string; sortOrder?: number }) {
+  return apiFetch<Testimonial>('/testimonials', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateTestimonial(id: number, data: Partial<{ quote: string; author: string; sortOrder: number }>) {
+  return apiFetch<Testimonial>(`/testimonials/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+export function deleteTestimonial(id: number) {
+  return apiFetch(`/testimonials/${id}`, { method: 'DELETE' });
+}
+
 // ---- Materials ----
 
 export type Material = { id: number; label: string; sortOrder: number };

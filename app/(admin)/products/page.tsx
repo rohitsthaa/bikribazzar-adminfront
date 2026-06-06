@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Nav from '@/components/Nav';
 import { getProducts } from '@/lib/api';
 import { toggleAvailability } from './actions';
 
@@ -14,9 +13,7 @@ export default async function ProductsPage() {
   const products = await getProducts();
 
   return (
-    <>
-      <Nav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+    <main className="p-6 md:p-8 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
@@ -121,7 +118,6 @@ export default async function ProductsPage() {
             ))}
           </div>
         )}
-      </main>
-    </>
+    </main>
   );
 }

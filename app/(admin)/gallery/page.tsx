@@ -1,4 +1,3 @@
-import Nav from '@/components/Nav';
 import { getGalleryImages } from '@/lib/api';
 import { addGalleryImage, removeGalleryImage } from './actions';
 import AddGalleryForm from './AddGalleryForm';
@@ -10,9 +9,7 @@ export default async function GalleryPage() {
   const images = await getGalleryImages();
 
   return (
-    <>
-      <Nav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+    <main className="p-6 md:p-8 max-w-6xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-stone-900">Gallery</h1>
           <p className="text-sm text-stone-500 mt-0.5">
@@ -71,7 +68,6 @@ export default async function GalleryPage() {
             ))}
           </div>
         )}
-      </main>
-    </>
+    </main>
   );
 }

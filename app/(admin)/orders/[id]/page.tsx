@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import Nav from '@/components/Nav';
 import { getOrder } from '@/lib/api';
 import type { Order } from '@/lib/api';
 import { updateStatusAction } from '../actions';
@@ -49,9 +48,7 @@ export default async function OrderDetailPage({ params }: Props) {
   const isCancelled = order.status === 'cancelled';
 
   return (
-    <>
-      <Nav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-6">
+    <main className="p-6 md:p-8 max-w-6xl space-y-6">
 
         {/* ── Header ── */}
         <div>
@@ -296,7 +293,6 @@ export default async function OrderDetailPage({ params }: Props) {
 
           </div>
         </div>
-      </main>
-    </>
+    </main>
   );
 }
