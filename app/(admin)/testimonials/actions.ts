@@ -26,6 +26,7 @@ export async function editTestimonial(id: number, _: unknown, formData: FormData
     return { error: err instanceof Error ? err.message : 'Failed to update testimonial.' };
   }
   revalidatePath('/testimonials');
+  return { ok: true };
 }
 
 export async function removeTestimonial(id: number) {

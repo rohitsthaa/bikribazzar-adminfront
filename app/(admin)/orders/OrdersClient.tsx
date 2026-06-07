@@ -107,6 +107,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
             <tbody className="divide-y divide-stone-100">
               {filtered.map((order) => {
                 const date = new Date(order.createdAt).toLocaleDateString('en-US', {
+                  timeZone: 'Asia/Kathmandu',
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',

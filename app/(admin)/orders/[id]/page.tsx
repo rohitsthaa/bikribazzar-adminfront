@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getOrder } from '@/lib/api';
+import { getOrder, getProducts } from '@/lib/api';
 import type { Order } from '@/lib/api';
-import { updateStatusAction } from '../actions';
+import StatusUpdater from './StatusUpdater';
 
 interface Props { params: { id: string } }
 
@@ -40,6 +40,13 @@ export default async function OrderDetailPage({ params }: Props) {
   try { order = await getOrder(params.id); } catch { notFound(); }
   if (!order) notFound();
 
+  const products = await getProducts();
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  const TZ = 'Asia/Kathmandu';
+  const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+    d.toLocaleString('en-US', { timeZone: TZ, ...opts });
+
   const createdAt  = new Date(order.createdAt);
   const updatedAt  = new Date(order.updatedAt);
   const waText     = encodeURIComponent(`Hi ${order.customerName}, regarding your Soul Thread order #${order.id} — `);
@@ -70,7 +77,7 @@ export default async function OrderDetailPage({ params }: Props) {
             <div className="text-right">
               <p className="text-2xl font-bold text-stone-900">NPR {order.totalNpr.toLocaleString()}</p>
               <p className="text-xs text-stone-400 mt-0.5">
-                {createdAt.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {fmt(createdAt, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
@@ -129,28 +136,45 @@ export default async function OrderDetailPage({ params }: Props) {
                 </h2>
               </div>
               <div className="divide-y divide-stone-100">
-                {order.items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between px-6 py-4 hover:bg-stone-50/60 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center flex-shrink-0">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-stone-400">
-                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
-                        </svg>
+                {order.items.map((item, i) => {
+                  const product = productMap.get(item.productId);
+                  return (
+                    <div key={i} className="flex items-center justify-between px-6 py-4 hover:bg-stone-50/60 transition-colors">
+                      <div className="flex items-center gap-4">
+                        {/* Product image */}
+                        <div className="w-14 h-14 rounded-xl bg-stone-100 overflow-hidden flex-shrink-0">
+                          {product?.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`/api/image?src=${encodeURIComponent(product.image)}`}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-stone-300">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-stone-900">
+                            {product?.name ?? item.productId}
+                          </p>
+                          <p className="text-xs text-stone-400 mt-0.5">NPR {item.priceNpr.toLocaleString()} each</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-stone-900">{item.productId}</p>
-                        <p className="text-xs text-stone-400 mt-0.5">NPR {item.priceNpr.toLocaleString()} each</p>
+                      <div className="flex items-center gap-6 text-sm">
+                        <span className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600 font-medium text-xs">× {item.quantity}</span>
+                        <span className="font-semibold text-stone-900 w-28 text-right">
+                          NPR {(item.priceNpr * item.quantity).toLocaleString()}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 text-sm">
-                      <span className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600 font-medium text-xs">× {item.quantity}</span>
-                      <span className="font-semibold text-stone-900 w-28 text-right">
-                        NPR {(item.priceNpr * item.quantity).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="flex items-center justify-between px-6 py-4 bg-stone-50 border-t border-stone-100">
                 <span className="text-sm font-medium text-stone-500">Order total</span>
@@ -236,59 +260,42 @@ export default async function OrderDetailPage({ params }: Props) {
             {/* Change status */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
-              <form className="space-y-2">
-                {[...PIPELINE, { value: 'cancelled' as Order['status'], label: 'Cancelled', color: 'bg-red-400' }].map(({ value, label, color }) => {
-                  const isActive = value === order!.status;
-                  return (
-                    <button
-                      key={value}
-                      formAction={updateStatusAction.bind(null, params.id, value)}
-                      disabled={isActive}
-                      className={`w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-left flex items-center gap-3 ${
-                        isActive
-                          ? 'bg-stone-900 text-white cursor-default shadow-sm'
-                          : value === 'cancelled'
-                          ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isActive ? 'bg-white' : color}`} />
-                      {isActive ? `● ${label}` : label}
-                    </button>
-                  );
-                })}
-              </form>
+              <StatusUpdater orderId={params.id} currentStatus={order.status} />
             </div>
 
             {/* Timeline */}
-            <div className="bg-stone-50 rounded-2xl border border-stone-200 p-5 space-y-3 text-sm">
-              <h2 className="font-semibold text-stone-900 text-sm uppercase tracking-wide">Timeline</h2>
-              <div className="space-y-2.5">
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-stone-400 mt-1.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-stone-700 font-medium">Order placed</p>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      {createdAt.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {' · '}
-                      {createdAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-                {order.updatedAt !== order.createdAt && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-stone-800 mt-1.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-stone-700 font-medium">Last updated</p>
-                      <p className="text-xs text-stone-400 mt-0.5">
-                        {updatedAt.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {' · '}
-                        {updatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            <div className="bg-white rounded-2xl border border-stone-200 p-5">
+              <h2 className="font-semibold text-stone-900 text-sm uppercase tracking-wide mb-4">Timeline</h2>
+              <ol className="relative border-l border-stone-200 space-y-4 ml-1.5">
+                {/* Order placed — always first */}
+                <li className="pl-5">
+                  <span className="absolute -left-[5px] w-2.5 h-2.5 rounded-full bg-stone-300 border-2 border-white" />
+                  <p className="text-sm font-medium text-stone-700">Order placed</p>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    {fmt(createdAt, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </li>
+
+                {/* Status log entries */}
+                {(order.statusLog ?? []).map((entry, i) => {
+                  const dot = STATUS_DOT[entry.status] ?? 'bg-stone-400';
+                  const label = entry.status === 'new' ? 'Received'
+                    : entry.status.charAt(0).toUpperCase() + entry.status.slice(1);
+                  const at = new Date(entry.at);
+                  const isLatest = i === (order.statusLog.length - 1);
+                  return (
+                    <li key={i} className="pl-5">
+                      <span className={`absolute -left-[5px] w-2.5 h-2.5 rounded-full border-2 border-white ${isLatest ? dot : 'bg-stone-300'}`} />
+                      <p className={`text-sm font-medium ${isLatest ? 'text-stone-900' : 'text-stone-500'}`}>
+                        Marked as {label}
                       </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {fmt(at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
 
           </div>

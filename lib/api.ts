@@ -38,7 +38,7 @@ export type Product = {
   sortOrder: number;
 };
 
-export function getProducts() { return apiFetch<Product[]>('/products'); }
+export function getProducts() { return apiFetch<Product[]>('/products?all=1'); }
 export function getProduct(id: string) { return apiFetch<Product>(`/products/${encodeURIComponent(id)}`); }
 
 export function createProduct(data: Omit<Product, 'createdAt' | 'updatedAt'>) {
@@ -103,9 +103,24 @@ export type Order = {
   items: Array<{ productId: string; quantity: number; priceNpr: number }>;
   totalNpr: number;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  statusLog: Array<{ status: string; at: string }>;
   createdAt: string;
   updatedAt: string;
 };
+
+// ---- Settings ----
+
+export type SiteSettings = Record<string, string>;
+
+export function getSettings() { return apiFetch<SiteSettings>('/settings'); }
+export function updateSetting(key: string, value: string) {
+  return apiFetch<{ key: string; value: string }>(`/settings/${key}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ value }),
+  });
+}
+
+// ---- Orders ----
 
 export function getOrders() { return apiFetch<Order[]>('/orders'); }
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }

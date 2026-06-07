@@ -1,13 +1,40 @@
 'use client';
-import { useState, useActionState } from 'react';
+import { useState, useEffect } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import type { Testimonial } from '@/lib/api';
 
 type AddAction = (prev: unknown, formData: FormData) => Promise<{ error?: string } | undefined>;
-type EditAction = (id: number, prev: unknown, formData: FormData) => Promise<{ error?: string } | undefined>;
+type EditAction = (id: number, prev: unknown, formData: FormData) => Promise<{ error?: string; ok?: boolean } | undefined>;
 type RemoveAction = (id: number) => Promise<void>;
 
+function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex items-center gap-2 bg-stone-900 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-stone-700 disabled:opacity-50 transition-colors"
+    >
+      {pending ? pendingLabel : label}
+    </button>
+  );
+}
+
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="bg-stone-900 text-white text-xs font-medium px-3.5 py-2 rounded-lg hover:bg-stone-700 disabled:opacity-50 transition-colors"
+    >
+      {pending ? 'Saving…' : 'Save'}
+    </button>
+  );
+}
+
 function AddForm({ action }: { action: AddAction }) {
-  const [state, formAction, pending] = useActionState(action, null);
+  const [state, formAction] = useFormState(action, null);
   return (
     <form action={formAction} className="bg-white border border-stone-200 rounded-2xl px-6 py-5 mb-8">
       <h2 className="text-sm font-semibold text-stone-700 mb-4">Add testimonial</h2>
@@ -37,13 +64,7 @@ function AddForm({ action }: { action: AddAction }) {
             className="w-20 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-300"
           />
         </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center gap-2 bg-stone-900 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-stone-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? 'Adding…' : '+ Add'}
-        </button>
+        <SubmitButton label="+ Add" pendingLabel="Adding…" />
       </div>
     </form>
   );
@@ -60,18 +81,17 @@ function TestimonialRow({
 }) {
   const [editing, setEditing] = useState(false);
   const boundEdit = editAction.bind(null, testimonial.id);
-  const [state, formAction, pending] = useActionState(boundEdit, null);
+  const [state, formAction] = useFormState(boundEdit, null);
+
+  // Close edit form when save succeeds
+  useEffect(() => {
+    if (state?.ok) setEditing(false);
+  }, [state]);
 
   if (editing) {
     return (
       <li className="bg-white border border-stone-200 rounded-2xl px-5 py-4">
-        <form
-          action={async (fd: FormData) => {
-            await formAction(fd);
-            setEditing(false);
-          }}
-          className="space-y-3"
-        >
+        <form action={formAction} className="space-y-3">
           {state?.error && <p className="text-red-600 text-xs">{state.error}</p>}
           <textarea
             name="quote"
@@ -95,13 +115,7 @@ function TestimonialRow({
             />
           </div>
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={pending}
-              className="bg-stone-900 text-white text-xs font-medium px-3.5 py-2 rounded-lg hover:bg-stone-700 disabled:opacity-50 transition-colors"
-            >
-              {pending ? 'Saving…' : 'Save'}
-            </button>
+            <SaveButton />
             <button
               type="button"
               onClick={() => setEditing(false)}
@@ -160,7 +174,6 @@ export default function TestimonialsClient({
   return (
     <div>
       <AddForm action={addAction} />
-
       {testimonials.length === 0 ? (
         <p className="text-center text-stone-400 py-16 text-sm">No testimonials yet.</p>
       ) : (
