@@ -1,5 +1,7 @@
-function Sk({ className }: { className?: string }) {
-  return <div className={`animate-pulse bg-stone-100 rounded-lg ${className ?? ''}`} />;
+import React from 'react';
+
+function Sk({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={`animate-pulse bg-stone-100 rounded-lg ${className ?? ''}`} style={style} />;
 }
 
 export default function OrdersLoading() {
@@ -13,8 +15,8 @@ export default function OrdersLoading() {
       {/* Tabs + export row */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
         <div className="flex gap-1 flex-wrap">
-          {[80, 60, 72, 64, 68, 72].map((w, i) => (
-            <Sk key={i} className={`h-8 w-${w === 80 ? '20' : w === 60 ? '16' : w === 72 ? '20' : '16'} rounded-lg`} style={{ width: w }} />
+          {['w-16', 'w-14', 'w-20', 'w-16', 'w-16', 'w-20'].map((w, i) => (
+            <Sk key={i} className={`h-8 ${w} rounded-lg`} />
           ))}
         </div>
         <Sk className="h-8 w-28 rounded-lg" />

@@ -15,8 +15,8 @@ export default function ProductsLoading() {
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-6 bg-stone-100 rounded-xl p-1 w-fit">
-        {[64, 48, 52].map((w, i) => (
-          <Sk key={i} className="h-8 rounded-lg" style={{ width: w }} />
+        {['w-16', 'w-12', 'w-14'].map((w, i) => (
+          <Sk key={i} className={`h-8 ${w} rounded-lg`} />
         ))}
       </div>
 
