@@ -1,4 +1,4 @@
-import { getOrders, type Order } from '@/lib/api';
+import { getOrders, getSettings, type Order } from '@/lib/api';
 import OrdersClient from './OrdersClient';
 
 export const metadata = {
@@ -8,9 +8,13 @@ export const metadata = {
 export default async function OrdersPage() {
   let orders: Order[] = [];
   let error: string | null = null;
+  let currency = 'NPR';
 
   try {
-    orders = await getOrders();
+    [orders] = await Promise.all([
+      getOrders(),
+      getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
+    ]);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load orders';
   }
@@ -35,7 +39,7 @@ export default async function OrdersPage() {
         </div>
       )}
 
-      <OrdersClient orders={orders} />
+      <OrdersClient orders={orders} currency={currency} />
     </main>
   );
 }

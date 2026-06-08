@@ -21,6 +21,7 @@ export default async function SettingsPage() {
         initialContactEmail={settings.contact_email ?? ''}
         initialLocation={settings.contact_location ?? ''}
         initialCategories={settings.product_categories ?? ''}
+        initialCurrency={settings.currency_symbol ?? 'NPR'}
       />
     </main>
   );

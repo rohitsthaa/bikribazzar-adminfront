@@ -14,7 +14,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 type Filter = 'all' | 'live' | 'hidden';
 
-function ProductCard({ p }: { p: Product }) {
+function ProductCard({ p, currency }: { p: Product; currency: string }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState('');
@@ -96,7 +96,7 @@ function ProductCard({ p }: { p: Product }) {
             {p.priceNpr === 0 ? (
               <span className="text-gray-400 font-normal">On request</span>
             ) : (
-              <>NPR {p.priceNpr.toLocaleString()}</>
+              <>{currency} {p.priceNpr.toLocaleString()}</>
             )}
           </span>
 
@@ -152,7 +152,7 @@ function ProductCard({ p }: { p: Product }) {
   );
 }
 
-export default function ProductsClient({ products }: { products: Product[] }) {
+export default function ProductsClient({ products, currency = 'NPR' }: { products: Product[]; currency?: string }) {
   const [filter, setFilter] = useState<Filter>('all');
 
   const filtered = products.filter(p => {
@@ -210,7 +210,7 @@ export default function ProductsClient({ products }: { products: Product[] }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((p) => (
-            <ProductCard key={p.id} p={p} />
+            <ProductCard key={p.id} p={p} currency={currency} />
           ))}
         </div>
       )}

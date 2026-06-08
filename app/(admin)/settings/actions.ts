@@ -36,3 +36,8 @@ export async function saveCategories(categories: Array<{ key: string; label: str
   await updateSetting('product_categories', JSON.stringify(categories));
   revalidatePath('/settings');
 }
+
+export async function saveCurrency(symbol: string) {
+  await updateSetting('currency_symbol', symbol.trim() || 'NPR');
+  revalidatePath('/settings');
+}

@@ -1,9 +1,13 @@
 import Link from 'next/link';
-import { getProducts } from '@/lib/api';
+import { getProducts, getSettings } from '@/lib/api';
 import ProductsClient from './ProductsClient';
 
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const [products, settings] = await Promise.all([
+    getProducts(),
+    getSettings().catch(() => ({} as Record<string, string>)),
+  ]);
+  const currency = settings.currency_symbol || 'NPR';
 
   return (
     <main className="p-6 md:p-8 max-w-6xl">
@@ -20,7 +24,7 @@ export default async function ProductsPage() {
         </Link>
       </div>
 
-      <ProductsClient products={products} />
+      <ProductsClient products={products} currency={currency} />
     </main>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import ImageUploader from '@/components/ImageUploader';
-import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCategories } from './actions';
+import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCategories, saveCurrency } from './actions';
 
 const DEFAULT_CATEGORIES = [
   { key: 'shelf', label: 'Hanging Shelves' },
@@ -84,6 +84,7 @@ export default function SettingsClient({
   initialContactEmail,
   initialLocation,
   initialCategories,
+  initialCurrency,
 }: {
   initialAboutImage: string;
   initialPaymentQr: string;
@@ -95,6 +96,7 @@ export default function SettingsClient({
   initialContactEmail: string;
   initialLocation: string;
   initialCategories: string;
+  initialCurrency: string;
 }) {
   // About image
   const [aboutImage, setAboutImage] = useState(initialAboutImage);
@@ -120,6 +122,19 @@ export default function SettingsClient({
   const [location, setLocation] = useState(initialLocation || 'Budanilkantha, Kathmandu · Kathmandu Valley, Nepal');
   const [contactSaved, setContactSaved] = useState(false);
   const [contactPending, startContactTransition] = useTransition();
+
+  // Currency
+  const [currency, setCurrency] = useState(initialCurrency || 'NPR');
+  const [currencySaved, setCurrencySaved] = useState(false);
+  const [currencyPending, startCurrencyTransition] = useTransition();
+
+  function handleCurrencySave() {
+    startCurrencyTransition(async () => {
+      await saveCurrency(currency);
+      setCurrencySaved(true);
+      setTimeout(() => setCurrencySaved(false), 2000);
+    });
+  }
 
   // Categories
   const parsedInitial = (() => {
@@ -225,6 +240,24 @@ export default function SettingsClient({
           value={location}
           onChange={setLocation}
           placeholder="Budanilkantha, Kathmandu"
+        />
+      </SettingCard>
+
+      {/* Currency */}
+      <SettingCard
+        title="Currency"
+        description="Symbol displayed next to all prices on the storefront, order confirmation, emails, and admin pages."
+        onSave={handleCurrencySave}
+        isPending={currencyPending}
+        saved={currencySaved}
+      >
+        <Field
+          label="Currency symbol"
+          value={currency}
+          onChange={setCurrency}
+          placeholder="NPR"
+          mono
+          hint='e.g. NPR, $, €, £, ₹. Just the symbol — it appears before the amount.'
         />
       </SettingCard>
 

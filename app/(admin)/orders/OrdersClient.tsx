@@ -40,7 +40,7 @@ function exportCsv(orders: Order[], label: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function OrdersClient({ orders }: { orders: Order[] }) {
+export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Order[]; currency?: string }) {
   const [tab, setTab] = useState<Tab>('all');
 
   const counts: Record<Tab, number> = {
@@ -123,7 +123,7 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
                       {order.email}
                     </td>
                     <td className="px-5 py-3 text-right font-medium text-stone-900">
-                      NPR {order.totalNpr.toLocaleString()}
+                      {currency} {order.totalNpr.toLocaleString()}
                     </td>
                     <td className="px-5 py-3">
                       <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium capitalize ${color}`}>

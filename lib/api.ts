@@ -108,6 +108,8 @@ export type Order = {
   notes?: string;
   items: Array<{ productId: string; quantity: number; priceNpr: number }>;
   totalNpr: number;
+  advanceNpr: number; // expected advance from product settings
+  paidNpr: number;    // actual amount received (recorded by admin)
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
   createdAt: string;
@@ -134,5 +136,11 @@ export function updateOrderStatus(id: string, status: Order['status']) {
   return apiFetch<Order>(`/orders/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
+  });
+}
+export function recordPayment(id: string, paidNpr: number) {
+  return apiFetch<Order>(`/orders/${id}/payment`, {
+    method: 'PATCH',
+    body: JSON.stringify({ paidNpr }),
   });
 }

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getOrders, getProducts, type Order } from '@/lib/api';
+import { getOrders, getProducts, getSettings, type Order } from '@/lib/api';
 
 export const metadata = { title: 'Dashboard — Soul Thread Admin' };
 
@@ -22,11 +22,15 @@ export default async function DashboardPage() {
   let orders: Order[] = [];
   let productsCount = 0;
 
+  let currency = 'NPR';
   try {
     [orders] = await Promise.all([
       getOrders().catch(() => [] as Order[]),
       getProducts()
         .then((p) => { productsCount = p.length; })
+        .catch(() => {}),
+      getSettings()
+        .then((s) => { currency = s.currency_symbol || 'NPR'; })
         .catch(() => {}),
     ]);
   } catch {
@@ -75,7 +79,7 @@ export default async function DashboardPage() {
     },
     {
       label: 'Total Revenue',
-      value: `NPR ${totalRevenue.toLocaleString()}`,
+      value: `${currency} ${totalRevenue.toLocaleString()}`,
       iconBg: 'bg-green-100',
       iconColor: 'text-green-600',
       accent: 'border-b-green-400',
@@ -175,7 +179,7 @@ export default async function DashboardPage() {
                       <td className="px-5 py-3 font-medium text-stone-900">#{order.id}</td>
                       <td className="px-5 py-3 text-stone-700">{order.customerName}</td>
                       <td className="px-5 py-3 text-right text-stone-900 font-medium">
-                        NPR {order.totalNpr.toLocaleString()}
+                        {currency} {order.totalNpr.toLocaleString()}
                       </td>
                       <td className="px-5 py-3">
                         <span

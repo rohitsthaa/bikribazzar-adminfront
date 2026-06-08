@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getOrder, getProducts } from '@/lib/api';
+import { getOrder, getProducts, getSettings } from '@/lib/api';
 import type { Order } from '@/lib/api';
 import StatusUpdater from './StatusUpdater';
+import PaymentRecorder from './PaymentRecorder';
 
 interface Props { params: { id: string } }
 
@@ -40,7 +41,11 @@ export default async function OrderDetailPage({ params }: Props) {
   try { order = await getOrder(params.id); } catch { notFound(); }
   if (!order) notFound();
 
-  const products = await getProducts();
+  const [products, settings] = await Promise.all([
+    getProducts(),
+    getSettings().catch(() => ({} as Record<string, string>)),
+  ]);
+  const currency = settings.currency_symbol || 'NPR';
   const productMap = new Map(products.map((p) => [p.id, p]));
 
   const TZ = 'Asia/Kathmandu';
@@ -75,7 +80,7 @@ export default async function OrderDetailPage({ params }: Props) {
               </span>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-stone-900">NPR {order.totalNpr.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-stone-900">{currency} {order.totalNpr.toLocaleString()}</p>
               <p className="text-xs text-stone-400 mt-0.5">
                 {fmt(createdAt, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
@@ -163,13 +168,13 @@ export default async function OrderDetailPage({ params }: Props) {
                           <p className="text-sm font-medium text-stone-900">
                             {product?.name ?? item.productId}
                           </p>
-                          <p className="text-xs text-stone-400 mt-0.5">NPR {item.priceNpr.toLocaleString()} each</p>
+                          <p className="text-xs text-stone-400 mt-0.5">{currency} {item.priceNpr.toLocaleString()} each</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6 text-sm">
                         <span className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600 font-medium text-xs">× {item.quantity}</span>
                         <span className="font-semibold text-stone-900 w-28 text-right">
-                          NPR {(item.priceNpr * item.quantity).toLocaleString()}
+                          {currency} {(item.priceNpr * item.quantity).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -178,7 +183,7 @@ export default async function OrderDetailPage({ params }: Props) {
               </div>
               <div className="flex items-center justify-between px-6 py-4 bg-stone-50 border-t border-stone-100">
                 <span className="text-sm font-medium text-stone-500">Order total</span>
-                <span className="text-lg font-bold text-stone-900">NPR {order.totalNpr.toLocaleString()}</span>
+                <span className="text-lg font-bold text-stone-900">{currency} {order.totalNpr.toLocaleString()}</span>
               </div>
             </div>
 
@@ -261,6 +266,52 @@ export default async function OrderDetailPage({ params }: Props) {
             <div className="bg-white rounded-2xl border border-stone-200 p-5">
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
               <StatusUpdater orderId={params.id} currentStatus={order.status} />
+            </div>
+
+            {/* Payment */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-5">
+              <h2 className="font-semibold text-stone-900 mb-4 text-sm uppercase tracking-wide">Payment</h2>
+
+              {/* Summary rows */}
+              <div className="space-y-1.5 mb-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Order total</span>
+                  <span className="font-medium text-stone-800">{currency} {order.totalNpr.toLocaleString()}</span>
+                </div>
+                {order.advanceNpr > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Advance expected</span>
+                    <span className="font-medium text-amber-700">{currency} {order.advanceNpr.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Received so far</span>
+                  <span className={`font-semibold ${order.paidNpr > 0 ? 'text-green-700' : 'text-stone-400'}`}>
+                    {order.paidNpr > 0 ? `${currency} ${order.paidNpr.toLocaleString()}` : '—'}
+                  </span>
+                </div>
+                {order.paidNpr < order.totalNpr && (
+                  <div className="flex justify-between pt-1.5 border-t border-stone-100">
+                    <span className="font-medium text-stone-700">Remaining</span>
+                    <span className="font-bold text-stone-900">{currency} {(order.totalNpr - order.paidNpr).toLocaleString()}</span>
+                  </div>
+                )}
+                {order.paidNpr >= order.totalNpr && (
+                  <div className="flex justify-between pt-1.5 border-t border-stone-100">
+                    <span className="font-medium text-green-700">Fully paid</span>
+                    <span className="font-bold text-green-700">✓</span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-2">Record payment</p>
+              <PaymentRecorder
+                orderId={params.id}
+                totalNpr={order.totalNpr}
+                advanceNpr={order.advanceNpr}
+                paidNpr={order.paidNpr}
+                currency={currency}
+              />
             </div>
 
             {/* Timeline */}
