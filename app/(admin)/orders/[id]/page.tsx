@@ -22,6 +22,26 @@ const STATUS_BADGE: Record<string, string> = {
   cancelled: 'bg-red-50 text-red-600 ring-red-200',
 };
 
+const SOURCE_META: Record<string, { label: string; color: string; icon: string }> = {
+  website:   { label: 'Website',   color: 'bg-stone-100 text-stone-600',   icon: '🌐' },
+  tiktok:    { label: 'TikTok',    color: 'bg-pink-50 text-pink-700',      icon: '🎵' },
+  instagram: { label: 'Instagram', color: 'bg-purple-50 text-purple-700',  icon: '📸' },
+  whatsapp:  { label: 'WhatsApp',  color: 'bg-green-50 text-green-700',    icon: '💬' },
+  phone:     { label: 'Phone',     color: 'bg-blue-50 text-blue-700',      icon: '📞' },
+  walkin:    { label: 'Walk-in',   color: 'bg-amber-50 text-amber-700',    icon: '🚶' },
+  other:     { label: 'Other',     color: 'bg-stone-100 text-stone-600',   icon: '📋' },
+};
+
+function SourceBadge({ source }: { source: string }) {
+  const meta = SOURCE_META[source] ?? SOURCE_META.other;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${meta.color}`}>
+      <span className="text-[11px]">{meta.icon}</span>
+      {meta.label}
+    </span>
+  );
+}
+
 const STATUS_DOT: Record<string, string> = {
   new: 'bg-blue-500', confirmed: 'bg-amber-500', shipped: 'bg-purple-500',
   delivered: 'bg-green-500', cancelled: 'bg-red-400',
@@ -72,12 +92,15 @@ export default async function OrderDetailPage({ params }: Props) {
           </Link>
 
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Order #{order.id}</h1>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ring-1 capitalize ${STATUS_BADGE[order.status] ?? STATUS_BADGE.new}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[order.status] ?? STATUS_DOT.new}`} />
                 {order.status === 'new' ? 'New order' : order.status}
               </span>
+              {order.source && order.source !== 'website' && (
+                <SourceBadge source={order.source} />
+              )}
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-stone-900">{currency} {order.totalNpr.toLocaleString()}</p>

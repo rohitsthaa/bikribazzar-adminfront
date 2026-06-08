@@ -1,8 +1,9 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { updateOrderStatus, recordPayment } from '@/lib/api';
-import type { Order } from '@/lib/api';
+import { updateOrderStatus, recordPayment, createAdminOrder } from '@/lib/api';
+import type { Order, CreateAdminOrderPayload } from '@/lib/api';
 
 export async function updateStatusAction(orderId: string, status: Order['status']) {
   await updateOrderStatus(orderId, status);
@@ -19,4 +20,18 @@ export async function recordPaymentAction(orderId: string, paidNpr: number): Pro
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to record payment' };
   }
+}
+
+export async function createAdminOrderAction(
+  data: CreateAdminOrderPayload
+): Promise<{ error: string } | void> {
+  let orderId: number;
+  try {
+    const order = await createAdminOrder(data);
+    orderId = order.id;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to create order' };
+  }
+  revalidatePath('/orders');
+  redirect(`/orders/${orderId}`);
 }

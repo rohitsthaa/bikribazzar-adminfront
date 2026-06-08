@@ -3,6 +3,16 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { Order } from '@/lib/api';
 
+const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
+  website:   { label: 'Web',       icon: '🌐', color: 'bg-stone-100 text-stone-500' },
+  tiktok:    { label: 'TikTok',    icon: '🎵', color: 'bg-pink-50 text-pink-600' },
+  instagram: { label: 'Instagram', icon: '📸', color: 'bg-purple-50 text-purple-600' },
+  whatsapp:  { label: 'WhatsApp',  icon: '💬', color: 'bg-green-50 text-green-700' },
+  phone:     { label: 'Phone',     icon: '📞', color: 'bg-blue-50 text-blue-600' },
+  walkin:    { label: 'Walk-in',   icon: '🚶', color: 'bg-amber-50 text-amber-700' },
+  other:     { label: 'Other',     icon: '📋', color: 'bg-stone-100 text-stone-500' },
+};
+
 const ALL_TABS = ['all', 'new', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
 type Tab = (typeof ALL_TABS)[number];
 
@@ -100,6 +110,7 @@ export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Ord
                 <th className="text-left px-5 py-3 font-medium text-stone-500 hidden md:table-cell">Email</th>
                 <th className="text-right px-5 py-3 font-medium text-stone-500">Total</th>
                 <th className="text-left px-5 py-3 font-medium text-stone-500">Status</th>
+                <th className="text-left px-5 py-3 font-medium text-stone-500 hidden lg:table-cell">Source</th>
                 <th className="text-left px-5 py-3 font-medium text-stone-500 hidden sm:table-cell">Date</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -129,6 +140,17 @@ export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Ord
                       <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium capitalize ${color}`}>
                         {order.status}
                       </span>
+                    </td>
+                    <td className="px-5 py-3 hidden lg:table-cell">
+                      {(() => {
+                        const s = SOURCE_META[order.source ?? 'website'] ?? SOURCE_META.other;
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>
+                            <span className="text-[10px]">{s.icon}</span>
+                            {s.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-5 py-3 text-stone-500 text-xs hidden sm:table-cell">{date}</td>
                     <td className="px-5 py-3 text-right">
