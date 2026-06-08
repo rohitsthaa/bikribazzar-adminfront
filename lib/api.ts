@@ -99,6 +99,8 @@ export function deleteGalleryImage(id: number) {
 
 // ---- Orders ----
 
+export type OrderSource = 'website' | 'tiktok' | 'instagram' | 'whatsapp' | 'phone' | 'walkin' | 'other';
+
 export type Order = {
   id: number;
   customerName: string;
@@ -106,15 +108,30 @@ export type Order = {
   phone: string;
   address?: string;
   notes?: string;
-  items: Array<{ productId: string; quantity: number; priceNpr: number }>;
+  source: OrderSource;
+  items: Array<{ productId: string; quantity: number; priceNpr: number; name?: string }>;
   totalNpr: number;
-  advanceNpr: number; // expected advance from product settings
-  paidNpr: number;    // actual amount received (recorded by admin)
+  advanceNpr: number;
+  paidNpr: number;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
   createdAt: string;
   updatedAt: string;
 };
+
+export type CreateAdminOrderPayload = {
+  customerName: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  source: OrderSource;
+  items: Array<{ productId: string; quantity: number; priceNpr?: number }>;
+};
+
+export function createAdminOrder(data: CreateAdminOrderPayload) {
+  return apiFetch<Order>('/orders/admin', { method: 'POST', body: JSON.stringify(data) });
+}
 
 // ---- Settings ----
 

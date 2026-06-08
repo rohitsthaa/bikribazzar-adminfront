@@ -5,6 +5,18 @@ import { logout } from '@/app/login/actions';
 
 const navItems = [
   {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
     href: '/orders',
     label: 'Orders',
     icon: (
@@ -76,7 +88,7 @@ export default function Sidebar() {
     <aside className="fixed inset-y-0 left-0 w-64 z-30 flex flex-col bg-white border-r border-stone-200">
       {/* Logo */}
       <div className="px-5 pt-6 pb-5">
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/dashboard" className="flex items-center gap-3 group">
           <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#c96a3a] text-white text-sm font-bold tracking-tight flex-shrink-0 shadow-sm">
             ST
           </span>
