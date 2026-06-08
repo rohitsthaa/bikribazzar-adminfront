@@ -17,6 +17,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
     details: (formData.get('details') as string) || null,
     tag: (formData.get('tag') as string) || null,
     image: (formData.get('image') as string) || '',
+    images: JSON.parse((formData.get('images') as string) || '[]') as string[],
     available: formData.get('available') === 'true',
     sortOrder: Number(formData.get('sortOrder') ?? 0),
     prepaymentType: (formData.get('prepaymentType') as 'none' | 'percentage' | 'fixed') || 'none',
@@ -55,10 +56,10 @@ export async function deleteProduct(id: string): Promise<{ error: string } | { o
 }
 
 export async function restockAction(
-  productId: string, qty: number, notes?: string
+  productId: string, qty: number, notes?: string, batchDate?: string
 ): Promise<{ error: string } | { ok: true }> {
   try {
-    await restockProduct(productId, qty, notes);
+    await restockProduct(productId, qty, notes, batchDate);
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Failed to restock.' };
   }

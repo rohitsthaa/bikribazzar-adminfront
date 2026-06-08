@@ -28,6 +28,41 @@ const navItems = [
     ),
   },
   {
+    href: '/customers',
+    label: 'Customers',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87" />
+        <path d="M16 3.13a4 4 0 010 7.75" />
+      </svg>
+    ),
+  },
+  {
+    href: '/delivery',
+    label: 'Delivery',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="3" width="15" height="13" rx="1" />
+        <path d="M16 8h4l3 4v4h-7V8z" />
+        <circle cx="5.5" cy="18.5" r="2.5" />
+        <circle cx="18.5" cy="18.5" r="2.5" />
+      </svg>
+    ),
+  },
+  {
+    href: '/coupons',
+    label: 'Coupons',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+        <path d="M12 2l9 9" />
+      </svg>
+    ),
+  },
+  {
     href: '/products',
     label: 'Products',
     icon: (

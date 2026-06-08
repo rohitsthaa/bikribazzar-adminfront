@@ -34,6 +34,7 @@ export type Product = {
   details: string | null;
   tag: string | null;
   image: string;
+  images: string[];          // additional gallery images
   available: boolean;
   sortOrder: number;
   prepaymentType: 'none' | 'percentage' | 'fixed';
@@ -48,6 +49,7 @@ export type InventoryLog = {
   delta: number;
   reason: 'sale' | 'restock' | 'adjustment' | 'cancelled';
   notes: string | null;
+  batchDate: string | null; // YYYY-MM-DD, set on restock entries
   orderId: number | null;
   createdAt: string;
 };
@@ -74,10 +76,10 @@ export function getInventoryLog(productId: string) {
   return apiFetch<InventoryLog[]>(`/products/${encodeURIComponent(productId)}/inventory-log`);
 }
 
-export function restockProduct(productId: string, qty: number, notes?: string) {
+export function restockProduct(productId: string, qty: number, notes?: string, batchDate?: string) {
   return apiFetch<Product>(`/products/${encodeURIComponent(productId)}/restock`, {
     method: 'POST',
-    body: JSON.stringify({ qty, notes }),
+    body: JSON.stringify({ qty, notes, batchDate }),
   });
 }
 
@@ -137,12 +139,16 @@ export type Order = {
   email: string;
   phone: string;
   address?: string;
+  deliveryArea?: string;     // e.g. "Thamel", "Patan / Lalitpur"
   notes?: string;
+  adminNotes?: string;       // internal admin-only notes
   source: OrderSource;
   items: Array<{ productId: string; quantity: number; priceNpr: number; name?: string }>;
   totalNpr: number;
   advanceNpr: number;
   paidNpr: number;
+  discountCode?: string;
+  discountNpr: number;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
   createdAt: string;
@@ -154,6 +160,7 @@ export type CreateAdminOrderPayload = {
   email?: string;
   phone?: string;
   address?: string;
+  deliveryArea?: string;
   notes?: string;
   source: OrderSource;
   items: Array<{ productId: string; quantity: number; priceNpr?: number }>;
@@ -190,4 +197,41 @@ export function recordPayment(id: string, paidNpr: number) {
     method: 'PATCH',
     body: JSON.stringify({ paidNpr }),
   });
+}
+
+export function updateOrderNotes(id: string, adminNotes: string) {
+  return apiFetch<Order>(`/orders/${id}/notes`, {
+    method: 'PATCH',
+    body: JSON.stringify({ adminNotes }),
+  });
+}
+
+// ---- Coupons ----
+
+export type Coupon = {
+  code: string;          // uppercase
+  type: 'percentage' | 'fixed';
+  value: number;         // percent (1-100) or NPR amount
+  usesLeft: number | null;  // null = unlimited
+  minOrderNpr: number;
+  expiresAt: string | null;
+  active: boolean;
+  createdAt: string;
+};
+
+export function getCoupons() { return apiFetch<Coupon[]>('/coupons'); }
+
+export function createCoupon(data: Omit<Coupon, 'createdAt'>) {
+  return apiFetch<Coupon>('/coupons', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateCoupon(code: string, data: Partial<Omit<Coupon, 'code' | 'createdAt'>>) {
+  return apiFetch<Coupon>(`/coupons/${encodeURIComponent(code)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteCoupon(code: string) {
+  return apiFetch<{ ok: boolean }>(`/coupons/${encodeURIComponent(code)}`, { method: 'DELETE' });
 }

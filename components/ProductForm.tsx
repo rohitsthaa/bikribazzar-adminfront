@@ -37,6 +37,7 @@ function Submit({ isNew }: { isNew: boolean }) {
 export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES }: Props) {
   const [state, formAction] = useFormState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
+  const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
   const [prepaymentType, setPrepaymentType] = useState<PrepaymentType>(
     (product?.prepaymentType as PrepaymentType) ?? 'none'
   );
@@ -50,9 +51,50 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
         {/* Left: Image panel */}
         <div className="lg:w-80 shrink-0 space-y-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Product image</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Primary image</h2>
+            <p className="text-xs text-gray-400 mb-3">Shown on product cards, emails, and SEO.</p>
             <ImageUploader value={image} onChange={setImage} />
             <input type="hidden" name="image" value={image} />
+          </div>
+
+          {/* Gallery images */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Gallery images</h2>
+            <p className="text-xs text-gray-400 mb-4">Extra angles shown in the product detail carousel.</p>
+            <input type="hidden" name="images" value={JSON.stringify(galleryImages)} />
+            <div className="space-y-3">
+              {galleryImages.map((url, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <ImageUploader
+                      value={url}
+                      onChange={(newUrl) => {
+                        const next = [...galleryImages];
+                        next[i] = newUrl;
+                        setGalleryImages(next);
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGalleryImages(galleryImages.filter((_, j) => j !== i))}
+                    className="shrink-0 p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                    title="Remove"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setGalleryImages([...galleryImages, ''])}
+                className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-stone-300 hover:text-gray-600 transition-colors"
+              >
+                + Add image
+              </button>
+            </div>
           </div>
 
           {/* Availability + Sort */}

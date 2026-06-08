@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { updateOrderStatus, recordPayment, createAdminOrder } from '@/lib/api';
+import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes } from '@/lib/api';
 import type { Order, CreateAdminOrderPayload } from '@/lib/api';
 
 export async function updateStatusAction(orderId: string, status: Order['status']) {
@@ -19,6 +19,18 @@ export async function recordPaymentAction(orderId: string, paidNpr: number): Pro
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to record payment' };
+  }
+}
+
+export async function saveAdminNotesAction(
+  orderId: string, adminNotes: string
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await updateOrderNotes(orderId, adminNotes);
+    revalidatePath(`/orders/${orderId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to save notes' };
   }
 }
 

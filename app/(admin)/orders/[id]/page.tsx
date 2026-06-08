@@ -4,6 +4,7 @@ import { getOrder, getProducts, getSettings } from '@/lib/api';
 import type { Order } from '@/lib/api';
 import StatusUpdater from './StatusUpdater';
 import PaymentRecorder from './PaymentRecorder';
+import AdminNotes from './AdminNotes';
 
 interface Props { params: { id: string } }
 
@@ -94,6 +95,17 @@ export default async function OrderDetailPage({ params }: Props) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Order #{order.id}</h1>
+              <a
+                href={`/orders/${params.id}/print`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-medium transition-colors"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                </svg>
+                Print slip
+              </a>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ring-1 capitalize ${STATUS_BADGE[order.status] ?? STATUS_BADGE.new}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[order.status] ?? STATUS_DOT.new}`} />
                 {order.status === 'new' ? 'New order' : order.status}
@@ -233,19 +245,24 @@ export default async function OrderDetailPage({ params }: Props) {
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4 text-sm pt-4 border-t border-stone-100">
-                {order.address && (
+                {(order.deliveryArea || order.address) && (
                   <div>
-                    <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Delivery address</p>
-                    <p className="text-stone-700">{order.address}</p>
+                    <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Delivery</p>
+                    {order.deliveryArea && (
+                      <p className="text-stone-900 font-medium">{order.deliveryArea}</p>
+                    )}
+                    {order.address && (
+                      <p className="text-stone-600 mt-0.5">{order.address}</p>
+                    )}
                   </div>
                 )}
                 {order.notes && (
-                  <div className={order.address ? '' : 'sm:col-span-2'}>
-                    <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Notes</p>
+                  <div className={(order.deliveryArea || order.address) ? '' : 'sm:col-span-2'}>
+                    <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Customer notes</p>
                     <p className="text-stone-700 leading-relaxed">{order.notes}</p>
                   </div>
                 )}
-                {!order.address && !order.notes && (
+                {!order.deliveryArea && !order.address && !order.notes && (
                   <p className="text-sm text-stone-400 sm:col-span-2">No delivery address or notes.</p>
                 )}
               </div>
@@ -301,6 +318,12 @@ export default async function OrderDetailPage({ params }: Props) {
                   <span className="text-stone-500">Order total</span>
                   <span className="font-medium text-stone-800">{currency} {order.totalNpr.toLocaleString()}</span>
                 </div>
+                {(order.discountNpr ?? 0) > 0 && (
+                  <div className="flex justify-between text-[#c96a3a]">
+                    <span>Discount {order.discountCode ? `(${order.discountCode})` : ''}</span>
+                    <span>− {currency} {(order.discountNpr ?? 0).toLocaleString()}</span>
+                  </div>
+                )}
                 {order.advanceNpr > 0 && (
                   <div className="flex justify-between">
                     <span className="text-stone-500">Advance expected</span>
@@ -336,6 +359,9 @@ export default async function OrderDetailPage({ params }: Props) {
                 currency={currency}
               />
             </div>
+
+            {/* Internal notes */}
+            <AdminNotes orderId={params.id} initialNotes={order.adminNotes ?? ''} />
 
             {/* Timeline */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">

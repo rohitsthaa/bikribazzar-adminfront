@@ -29,6 +29,7 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
   const [logs, setLogs] = useState<InventoryLog[]>(initialLogs);
   const [restockQty, setRestockQty] = useState('');
   const [restockNote, setRestockNote] = useState('');
+  const [restockBatchDate, setRestockBatchDate] = useState('');
   const [adjDelta, setAdjDelta] = useState('');
   const [adjNote, setAdjNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -46,10 +47,11 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
     if (!qty || qty <= 0) { setError('Enter a valid quantity.'); return; }
     setError(null);
     startRestock(async () => {
-      const res = await restockAction(product.id, qty, restockNote || undefined);
+      const res = await restockAction(product.id, qty, restockNote || undefined, restockBatchDate || undefined);
       if ('error' in res) { setError(res.error); return; }
       setRestockQty('');
       setRestockNote('');
+      setRestockBatchDate('');
       // Reload page to get fresh data
       window.location.reload();
     });
@@ -134,13 +136,25 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
                 {isPendingRestock ? '…' : '+ Add'}
               </button>
             </div>
-            <input
-              type="text"
-              value={restockNote}
-              onChange={e => setRestockNote(e.target.value)}
-              placeholder="Note (optional)"
-              className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-            />
+            <div>
+              <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1 ml-1">Batch date</label>
+              <input
+                type="date"
+                value={restockBatchDate}
+                onChange={e => setRestockBatchDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1 ml-1">Batch notes</label>
+              <input
+                type="text"
+                value={restockNote}
+                onChange={e => setRestockNote(e.target.value)}
+                placeholder="e.g. Undyed cotton · June weave · 3mm cord"
+                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+            </div>
           </div>
         )}
 
@@ -199,6 +213,11 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
                       <a href={`/orders/${log.orderId}`} className="ml-1.5 text-stone-400 hover:text-stone-700 transition-colors">
                         order #{log.orderId}
                       </a>
+                    )}
+                    {log.batchDate && (
+                      <span className="ml-1.5 text-stone-400 font-medium">
+                        batch: {log.batchDate}
+                      </span>
                     )}
                     {log.notes && <span className="ml-1.5 text-stone-400 truncate">{log.notes}</span>}
                     <p className="text-stone-300 mt-0.5">{fmt(log.createdAt)}</p>
