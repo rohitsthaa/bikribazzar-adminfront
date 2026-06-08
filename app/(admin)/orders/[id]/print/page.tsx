@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getOrder, getProducts, getSettings } from '@/lib/api';
+import PrintButton from './PrintButton';
 
 interface Props { params: { id: string } }
 
@@ -25,13 +26,7 @@ export default async function PrintPackSlip({ params }: Props) {
         <a href={`/orders/${params.id}`} className="text-sm text-stone-500 hover:text-stone-900 transition-colors">
           ← Back to order
         </a>
-        <button
-          onClick={() => window.print()}
-          // rendered as inline script for SSR
-          className="px-4 py-2 bg-stone-800 text-white text-sm rounded-lg hover:bg-stone-700 transition-colors"
-        >
-          Print
-        </button>
+        <PrintButton />
       </div>
 
       {/* Pack slip */}
