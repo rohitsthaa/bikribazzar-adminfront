@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, updateProduct } from '@/lib/api';
+import { createProduct, updateProduct, deleteProduct as apiDeleteProduct } from '@/lib/api';
 
 export async function saveProduct(_: unknown, formData: FormData) {
   const id = (formData.get('id') as string).trim().toLowerCase().replace(/\s+/g, '-');
@@ -12,7 +12,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
     name: formData.get('name') as string,
     description: formData.get('description') as string,
     priceNpr: Number(formData.get('priceNpr') ?? 0),
-    category: formData.get('category') as 'shelf' | 'hanger' | 'wall' | 'custom',
+    category: formData.get('category') as string,
     details: (formData.get('details') as string) || null,
     tag: (formData.get('tag') as string) || null,
     image: (formData.get('image') as string) || '',
@@ -37,4 +37,14 @@ export async function saveProduct(_: unknown, formData: FormData) {
 export async function toggleAvailability(id: string, available: boolean) {
   await updateProduct(id, { available });
   revalidatePath('/products');
+}
+
+export async function deleteProduct(id: string): Promise<{ error: string } | { ok: true }> {
+  try {
+    await apiDeleteProduct(id);
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Failed to delete product.' };
+  }
+  revalidatePath('/products');
+  return { ok: true };
 }

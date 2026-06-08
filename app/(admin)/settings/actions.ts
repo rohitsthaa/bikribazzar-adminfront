@@ -21,3 +21,18 @@ export async function saveBankDetails(bankName: string, accountName: string, acc
   ]);
   revalidatePath('/settings');
 }
+
+export async function saveContactInfo(whatsapp: string, instagram: string, email: string, location: string) {
+  await Promise.all([
+    updateSetting('contact_whatsapp', whatsapp),
+    updateSetting('contact_instagram', instagram),
+    updateSetting('contact_email', email),
+    updateSetting('contact_location', location),
+  ]);
+  revalidatePath('/settings');
+}
+
+export async function saveCategories(categories: Array<{ key: string; label: string }>) {
+  await updateSetting('product_categories', JSON.stringify(categories));
+  revalidatePath('/settings');
+}

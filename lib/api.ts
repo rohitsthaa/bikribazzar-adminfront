@@ -30,7 +30,7 @@ export type Product = {
   name: string;
   description: string;
   priceNpr: number;
-  category: 'shelf' | 'hanger' | 'wall' | 'custom';
+  category: string; // dynamic — managed in admin settings
   details: string | null;
   tag: string | null;
   image: string;
@@ -50,6 +50,10 @@ export function updateProduct(id: string, data: Partial<Product>) {
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+}
+
+export function deleteProduct(id: string) {
+  return apiFetch<{ ok: boolean }>(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 // ---- Testimonials ----

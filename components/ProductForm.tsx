@@ -4,9 +4,19 @@ import { useState } from 'react';
 import type { Product } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 
+type Category = { key: string; label: string };
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { key: 'shelf',  label: 'Hanging Shelves' },
+  { key: 'hanger', label: 'Plant Hangers' },
+  { key: 'wall',   label: 'Wall Hangings' },
+  { key: 'custom', label: 'Custom Orders' },
+];
+
 type Props = {
   product?: Product;
   action: (state: unknown, formData: FormData) => Promise<{ error: string } | undefined>;
+  categories?: Category[];
 };
 
 function Submit({ isNew }: { isNew: boolean }) {
@@ -22,9 +32,7 @@ function Submit({ isNew }: { isNew: boolean }) {
   );
 }
 
-const CATEGORIES = ['shelf', 'hanger', 'wall', 'custom'] as const;
-
-export default function ProductForm({ product, action }: Props) {
+export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES }: Props) {
   const [state, formAction] = useFormState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const isNew = !product;
@@ -129,8 +137,8 @@ export default function ProductForm({ product, action }: Props) {
                   defaultValue={product?.category ?? 'shelf'}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
                 >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  {categories.map((c) => (
+                    <option key={c.key} value={c.key}>{c.label}</option>
                   ))}
                 </select>
               </div>
