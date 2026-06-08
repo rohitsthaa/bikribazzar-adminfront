@@ -36,6 +36,8 @@ export type Product = {
   image: string;
   available: boolean;
   sortOrder: number;
+  prepaymentType: 'none' | 'percentage' | 'fixed';
+  prepaymentValue: number;
 };
 
 export function getProducts() { return apiFetch<Product[]>('/products?all=1'); }

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import type { Product } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 
+type PrepaymentType = 'none' | 'percentage' | 'fixed';
+
 type Category = { key: string; label: string };
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -35,6 +37,9 @@ function Submit({ isNew }: { isNew: boolean }) {
 export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES }: Props) {
   const [state, formAction] = useFormState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
+  const [prepaymentType, setPrepaymentType] = useState<PrepaymentType>(
+    (product?.prepaymentType as PrepaymentType) ?? 'none'
+  );
   const isNew = !product;
 
   return (
@@ -180,6 +185,59 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
               />
               <p className="text-xs text-gray-400 mt-1">Shown as a badge on the product card.</p>
             </div>
+          </div>
+
+          {/* Prepayment */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700">Advance payment</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Require a partial payment before production begins.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
+              <select
+                name="prepaymentType"
+                value={prepaymentType}
+                onChange={(e) => setPrepaymentType(e.target.value as PrepaymentType)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
+              >
+                <option value="none">No advance required</option>
+                <option value="percentage">Percentage of price</option>
+                <option value="fixed">Fixed NPR amount</option>
+              </select>
+            </div>
+
+            {prepaymentType !== 'none' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                  {prepaymentType === 'percentage' ? 'Percentage (%)' : 'Amount (NPR)'}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
+                    {prepaymentType === 'percentage' ? '%' : 'NPR'}
+                  </span>
+                  <input
+                    name="prepaymentValue"
+                    type="number"
+                    min={0}
+                    max={prepaymentType === 'percentage' ? 100 : undefined}
+                    defaultValue={product?.prepaymentValue ?? (prepaymentType === 'percentage' ? 10 : 0)}
+                    className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {prepaymentType === 'percentage'
+                    ? 'Customer will be shown this % of the product price as the advance amount.'
+                    : 'Customer will be shown this fixed NPR amount as the advance payment.'}
+                </p>
+              </div>
+            )}
+
+            {/* Always send value=0 when type=none so the form still submits the field */}
+            {prepaymentType === 'none' && (
+              <input type="hidden" name="prepaymentValue" value="0" />
+            )}
           </div>
 
           {state?.error && (

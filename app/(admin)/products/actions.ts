@@ -18,6 +18,8 @@ export async function saveProduct(_: unknown, formData: FormData) {
     image: (formData.get('image') as string) || '',
     available: formData.get('available') === 'true',
     sortOrder: Number(formData.get('sortOrder') ?? 0),
+    prepaymentType: (formData.get('prepaymentType') as 'none' | 'percentage' | 'fixed') || 'none',
+    prepaymentValue: Number(formData.get('prepaymentValue') ?? 0),
   };
 
   try {
