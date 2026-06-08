@@ -1,9 +1,14 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated()) redirect('/login');
+  const pathname = headers().get('x-pathname') ?? '';
+  if (pathname.endsWith('/print')) {
+    return <>{children}</>;
+  }
   return (
     <div className="flex min-h-screen bg-stone-50">
       <Sidebar />

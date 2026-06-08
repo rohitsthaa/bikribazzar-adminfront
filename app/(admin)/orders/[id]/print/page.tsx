@@ -7,9 +7,10 @@ interface Props { params: { id: string } }
 export default async function PrintPackSlip({ params }: Props) {
   let order;
   try { order = await getOrder(params.id); } catch { notFound(); }
+  if (!order) notFound();
 
   const [products, settings] = await Promise.all([
-    getProducts(),
+    getProducts().catch(() => []),
     getSettings().catch(() => ({} as Record<string, string>)),
   ]);
   const currency = settings.currency_symbol || 'NPR';
