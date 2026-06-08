@@ -4,7 +4,12 @@ import CouponsClient from './CouponsClient';
 export const metadata = { title: 'Coupons — Soul Thread Admin' };
 
 export default async function CouponsPage() {
-  const coupons = await getCoupons();
+  let coupons: Awaited<ReturnType<typeof getCoupons>> = [];
+  try {
+    coupons = await getCoupons();
+  } catch {
+    // API unavailable or migration not yet run — show empty state
+  }
 
   return (
     <main className="p-6 md:p-8 max-w-4xl">

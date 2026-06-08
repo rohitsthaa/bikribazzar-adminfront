@@ -1,8 +1,22 @@
 'use client';
 
-import { useActionState, useTransition } from 'react';
+import { useTransition } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import type { Coupon } from '@/lib/api';
 import { addCoupon, toggleCoupon, removeCoupon } from './actions';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="px-5 py-2 rounded-lg bg-[#c96a3a] text-white text-sm font-medium hover:bg-[#b85f33] transition-colors disabled:opacity-50"
+    >
+      {pending ? 'Creating…' : 'Create coupon'}
+    </button>
+  );
+}
 
 type Props = {
   coupons: Coupon[];
@@ -22,7 +36,7 @@ function isExpired(iso: string | null) {
 }
 
 export default function CouponsClient({ coupons }: Props) {
-  const [state, formAction, pending] = useActionState(addCoupon, INITIAL);
+  const [state, formAction] = useFormState(addCoupon, INITIAL);
   const [, startTransition] = useTransition();
 
   return (
@@ -106,13 +120,7 @@ export default function CouponsClient({ coupons }: Props) {
 
           {/* Submit + error */}
           <div className="col-span-2 sm:col-span-3 flex items-center gap-4">
-            <button
-              type="submit"
-              disabled={pending}
-              className="px-5 py-2 rounded-lg bg-[#c96a3a] text-white text-sm font-medium hover:bg-[#b85f33] transition-colors disabled:opacity-50"
-            >
-              {pending ? 'Creating…' : 'Create coupon'}
-            </button>
+            <SubmitButton />
             {state?.error && (
               <p className="text-sm text-red-600">{state.error}</p>
             )}
