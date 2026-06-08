@@ -30,7 +30,7 @@ export type Product = {
   name: string;
   description: string;
   priceNpr: number;
-  category: string; // dynamic — managed in admin settings
+  category: string;
   details: string | null;
   tag: string | null;
   image: string;
@@ -38,6 +38,18 @@ export type Product = {
   sortOrder: number;
   prepaymentType: 'none' | 'percentage' | 'fixed';
   prepaymentValue: number;
+  stockQty: number | null;   // null = unlimited
+  reorderPoint: number;
+};
+
+export type InventoryLog = {
+  id: number;
+  productId: string;
+  delta: number;
+  reason: 'sale' | 'restock' | 'adjustment' | 'cancelled';
+  notes: string | null;
+  orderId: number | null;
+  createdAt: string;
 };
 
 export function getProducts() { return apiFetch<Product[]>('/products?all=1'); }
@@ -56,6 +68,24 @@ export function updateProduct(id: string, data: Partial<Product>) {
 
 export function deleteProduct(id: string) {
   return apiFetch<{ ok: boolean }>(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function getInventoryLog(productId: string) {
+  return apiFetch<InventoryLog[]>(`/products/${encodeURIComponent(productId)}/inventory-log`);
+}
+
+export function restockProduct(productId: string, qty: number, notes?: string) {
+  return apiFetch<Product>(`/products/${encodeURIComponent(productId)}/restock`, {
+    method: 'POST',
+    body: JSON.stringify({ qty, notes }),
+  });
+}
+
+export function adjustStock(productId: string, delta: number, notes?: string) {
+  return apiFetch<Product>(`/products/${encodeURIComponent(productId)}/adjust`, {
+    method: 'POST',
+    body: JSON.stringify({ delta, notes }),
+  });
 }
 
 // ---- Testimonials ----

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getOrders, getProducts, getSettings, type Order } from '@/lib/api';
+import { getOrders, getProducts, getSettings, type Order, type Product } from '@/lib/api';
 import { RevenueChart, StatusDonut, TopProductsChart } from './DashboardCharts';
 import type { RevenueDay, StatusCount, TopProduct } from './DashboardCharts';
 
@@ -24,16 +24,20 @@ function arrow(curr: number, prev: number) {
 
 export default async function DashboardPage() {
   let orders: Order[] = [];
-  let productsCount = 0;
+  let allProducts: Product[] = [];
   let currency = 'NPR';
 
   try {
     await Promise.all([
       getOrders().then((o) => { orders = o; }).catch(() => {}),
-      getProducts().then((p) => { productsCount = p.length; }).catch(() => {}),
+      getProducts().then((p) => { allProducts = p; }).catch(() => {}),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
   } catch { /* show zeros */ }
+
+  const productsCount = allProducts.length;
+  const oosProducts  = allProducts.filter(p => p.stockQty !== null && p.stockQty === 0);
+  const lowProducts  = allProducts.filter(p => p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint);
 
   const now = new Date();
   const TZ = 'Asia/Kathmandu';
@@ -278,6 +282,57 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Inventory alerts */}
+      {(oosProducts.length > 0 || lowProducts.length > 0) && (
+        <div className="grid sm:grid-cols-2 gap-6">
+
+          {oosProducts.length > 0 && (
+            <div className="bg-white rounded-2xl border border-red-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                <h2 className="font-semibold text-stone-900">Out of stock</h2>
+                <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600">{oosProducts.length}</span>
+              </div>
+              <div className="space-y-2">
+                {oosProducts.map(p => (
+                  <Link
+                    key={p.id}
+                    href={`/products/${p.id}`}
+                    className="flex items-center justify-between hover:bg-stone-50 rounded-xl px-2 py-1.5 -mx-2 transition-colors group"
+                  >
+                    <span className="text-sm text-stone-800 group-hover:text-stone-900">{p.name}</span>
+                    <span className="text-xs text-red-500 font-medium">Restock →</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {lowProducts.length > 0 && (
+            <div className="bg-white rounded-2xl border border-amber-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <h2 className="font-semibold text-stone-900">Low stock</h2>
+                <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{lowProducts.length}</span>
+              </div>
+              <div className="space-y-2">
+                {lowProducts.map(p => (
+                  <Link
+                    key={p.id}
+                    href={`/products/${p.id}`}
+                    className="flex items-center justify-between hover:bg-stone-50 rounded-xl px-2 py-1.5 -mx-2 transition-colors group"
+                  >
+                    <span className="text-sm text-stone-800 group-hover:text-stone-900">{p.name}</span>
+                    <span className="text-xs text-amber-600 font-medium">{p.stockQty} left →</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
 
     </main>
   );

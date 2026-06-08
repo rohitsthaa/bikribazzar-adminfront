@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ProductForm from '@/components/ProductForm';
-import { getProduct, getSettings } from '@/lib/api';
+import { getProduct, getSettings, getInventoryLog } from '@/lib/api';
 import { saveProduct } from '../actions';
+import InventoryPanel from './InventoryPanel';
 
 const DEFAULT_CATEGORIES = [
   { key: 'shelf',  label: 'Hanging Shelves' },
@@ -12,13 +13,15 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export default async function EditProductPage({ params }: { params: { id: string } }) {
-  const [product, settings] = await Promise.all([
+  const [product, settings, logs] = await Promise.all([
     getProduct(params.id).catch(() => { notFound(); }),
     getSettings().catch(() => ({} as Record<string, string>)),
+    getInventoryLog(params.id).catch(() => []),
   ]);
 
   if (!product) notFound();
 
+  const currency = settings.currency_symbol || 'NPR';
   const categories = (() => {
     try { return settings.product_categories ? JSON.parse(settings.product_categories) : DEFAULT_CATEGORIES; }
     catch { return DEFAULT_CATEGORIES; }
@@ -32,7 +35,18 @@ export default async function EditProductPage({ params }: { params: { id: string
         </Link>
         <h1 className="text-xl font-semibold mt-2">Edit product</h1>
       </div>
-      <ProductForm product={product} action={saveProduct} categories={categories} />
+
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* Main form */}
+        <div className="flex-1 min-w-0">
+          <ProductForm product={product} action={saveProduct} categories={categories} />
+        </div>
+
+        {/* Inventory sidebar */}
+        <div className="xl:w-72 shrink-0">
+          <InventoryPanel product={product} logs={logs} currency={currency} />
+        </div>
+      </div>
     </main>
   );
 }

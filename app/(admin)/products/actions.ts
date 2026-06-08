@@ -1,12 +1,13 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, updateProduct, deleteProduct as apiDeleteProduct } from '@/lib/api';
+import { createProduct, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock } from '@/lib/api';
 
 export async function saveProduct(_: unknown, formData: FormData) {
   const id = (formData.get('id') as string).trim().toLowerCase().replace(/\s+/g, '-');
   const isNew = formData.get('_isNew') === '1';
 
+  const stockQtyRaw = formData.get('stockQty') as string;
   const data = {
     id,
     name: formData.get('name') as string,
@@ -20,6 +21,8 @@ export async function saveProduct(_: unknown, formData: FormData) {
     sortOrder: Number(formData.get('sortOrder') ?? 0),
     prepaymentType: (formData.get('prepaymentType') as 'none' | 'percentage' | 'fixed') || 'none',
     prepaymentValue: Number(formData.get('prepaymentValue') ?? 0),
+    stockQty: stockQtyRaw === '' || stockQtyRaw === null ? null : Number(stockQtyRaw),
+    reorderPoint: Number(formData.get('reorderPoint') ?? 0),
   };
 
   try {
@@ -47,6 +50,32 @@ export async function deleteProduct(id: string): Promise<{ error: string } | { o
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Failed to delete product.' };
   }
+  revalidatePath('/products');
+  return { ok: true };
+}
+
+export async function restockAction(
+  productId: string, qty: number, notes?: string
+): Promise<{ error: string } | { ok: true }> {
+  try {
+    await restockProduct(productId, qty, notes);
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Failed to restock.' };
+  }
+  revalidatePath(`/products/${productId}`);
+  revalidatePath('/products');
+  return { ok: true };
+}
+
+export async function adjustStockAction(
+  productId: string, delta: number, notes?: string
+): Promise<{ error: string } | { ok: true }> {
+  try {
+    await adjustStock(productId, delta, notes);
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Failed to adjust stock.' };
+  }
+  revalidatePath(`/products/${productId}`);
   revalidatePath('/products');
   return { ok: true };
 }

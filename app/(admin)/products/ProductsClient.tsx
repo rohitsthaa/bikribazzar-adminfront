@@ -12,7 +12,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   custom: 'bg-rose-100 text-rose-700',
 };
 
-type Filter = 'all' | 'live' | 'hidden';
+type Filter = 'all' | 'live' | 'hidden' | 'low' | 'oos';
 
 function ProductCard({ p, currency }: { p: Product; currency: string }) {
   const [confirming, setConfirming] = useState(false);
@@ -91,6 +91,30 @@ function ProductCard({ p, currency }: { p: Product; currency: string }) {
           <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-1">{p.details}</p>
         )}
 
+        {/* Stock badge */}
+        {p.stockQty !== null && (() => {
+          const isOOS = p.stockQty === 0;
+          const isLow = !isOOS && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint;
+          if (isOOS) return (
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              Out of stock
+            </span>
+          );
+          if (isLow) return (
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Low: {p.stockQty} left
+            </span>
+          );
+          return (
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              {p.stockQty} in stock
+            </span>
+          );
+        })()}
+
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
           <span className="text-sm font-semibold text-gray-900">
             {p.priceNpr === 0 ? (
@@ -158,19 +182,28 @@ export default function ProductsClient({ products, currency = 'NPR' }: { product
   const filtered = products.filter(p => {
     if (filter === 'live') return p.available;
     if (filter === 'hidden') return !p.available;
+    if (filter === 'oos') return p.stockQty !== null && p.stockQty === 0;
+    if (filter === 'low') return p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint;
     return true;
   });
+
+  const lowCount = products.filter(p => p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint).length;
+  const oosCount = products.filter(p => p.stockQty !== null && p.stockQty === 0).length;
 
   const counts = {
     all: products.length,
     live: products.filter(p => p.available).length,
     hidden: products.filter(p => !p.available).length,
+    low: lowCount,
+    oos: oosCount,
   };
 
-  const tabs: { key: Filter; label: string }[] = [
+  const tabs: { key: Filter; label: string; alert?: boolean }[] = [
     { key: 'all', label: 'All' },
     { key: 'live', label: 'Live' },
     { key: 'hidden', label: 'Hidden' },
+    ...(oosCount > 0 ? [{ key: 'oos' as Filter, label: 'Out of stock', alert: true }] : []),
+    ...(lowCount > 0 ? [{ key: 'low' as Filter, label: 'Low stock', alert: true }] : []),
   ];
 
   return (
@@ -183,13 +216,13 @@ export default function ProductsClient({ products, currency = 'NPR' }: { product
             onClick={() => setFilter(t.key)}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
               filter === t.key
-                ? 'bg-[#c96a3a] text-white shadow-sm'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
+                ? t.alert ? 'bg-red-500 text-white shadow-sm' : 'bg-[#c96a3a] text-white shadow-sm'
+                : t.alert ? 'text-red-600 hover:bg-red-50' : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
             }`}
           >
             {t.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              filter === t.key ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-600'
+              filter === t.key ? 'bg-white/20 text-white' : t.alert ? 'bg-red-100 text-red-600' : 'bg-stone-200 text-stone-600'
             }`}>
               {counts[t.key]}
             </span>

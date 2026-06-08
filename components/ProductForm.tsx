@@ -187,6 +187,39 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             </div>
           </div>
 
+          {/* Inventory */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700">Inventory</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Leave stock blank to allow unlimited orders.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Stock qty</label>
+                <input
+                  name="stockQty"
+                  type="number"
+                  min={0}
+                  defaultValue={product?.stockQty ?? ''}
+                  placeholder="Unlimited"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Reorder point</label>
+                <input
+                  name="reorderPoint"
+                  type="number"
+                  min={0}
+                  defaultValue={product?.reorderPoint ?? 0}
+                  placeholder="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                />
+                <p className="text-xs text-gray-400 mt-1">Alert when stock ≤ this.</p>
+              </div>
+            </div>
+          </div>
+
           {/* Prepayment */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
             <div>
