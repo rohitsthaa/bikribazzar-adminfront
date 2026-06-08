@@ -113,6 +113,11 @@ export default async function OrderDetailPage({ params }: Props) {
               {order.source && order.source !== 'website' && (
                 <SourceBadge source={order.source} />
               )}
+              {order.isNationwide && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-700">
+                  🚚 Nationwide
+                </span>
+              )}
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-stone-900">{currency} {order.totalNpr.toLocaleString()}</p>
@@ -313,47 +318,71 @@ export default async function OrderDetailPage({ params }: Props) {
               <h2 className="font-semibold text-stone-900 mb-4 text-sm uppercase tracking-wide">Payment</h2>
 
               {/* Summary rows */}
-              <div className="space-y-1.5 mb-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Order total</span>
-                  <span className="font-medium text-stone-800">{currency} {order.totalNpr.toLocaleString()}</span>
-                </div>
-                {(order.discountNpr ?? 0) > 0 && (
-                  <div className="flex justify-between text-[#c96a3a]">
-                    <span>Discount {order.discountCode ? `(${order.discountCode})` : ''}</span>
-                    <span>− {currency} {(order.discountNpr ?? 0).toLocaleString()}</span>
+              {(() => {
+                const grandTotal = order.totalNpr + (order.deliveryFeeNpr ?? 0);
+                const remaining = grandTotal - order.paidNpr;
+                const fullyPaid = order.paidNpr >= grandTotal;
+                return (
+                  <div className="space-y-1.5 mb-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-stone-500">Items subtotal</span>
+                      <span className="font-medium text-stone-800">{currency} {order.totalNpr.toLocaleString()}</span>
+                    </div>
+                    {(order.discountNpr ?? 0) > 0 && (
+                      <div className="flex justify-between text-[#c96a3a]">
+                        <span>Discount {order.discountCode ? `(${order.discountCode})` : ''}</span>
+                        <span>− {currency} {(order.discountNpr ?? 0).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {(order.deliveryFeeNpr ?? 0) > 0 ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Delivery fee</span>
+                          <span className="font-medium text-stone-800">{currency} {(order.deliveryFeeNpr ?? 0).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between pt-1.5 border-t border-stone-100">
+                          <span className="font-medium text-stone-700">Order total</span>
+                          <span className="font-bold text-stone-900">{currency} {grandTotal.toLocaleString()}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between text-stone-400 text-xs italic">
+                        <span>Delivery fee</span>
+                        <span>Set on confirm</span>
+                      </div>
+                    )}
+                    {order.advanceNpr > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-stone-500">Advance expected</span>
+                        <span className="font-medium text-amber-700">{currency} {order.advanceNpr.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-stone-500">Received so far</span>
+                      <span className={`font-semibold ${order.paidNpr > 0 ? 'text-green-700' : 'text-stone-400'}`}>
+                        {order.paidNpr > 0 ? `${currency} ${order.paidNpr.toLocaleString()}` : '—'}
+                      </span>
+                    </div>
+                    {!fullyPaid && (
+                      <div className="flex justify-between pt-1.5 border-t border-stone-100">
+                        <span className="font-medium text-stone-700">Remaining</span>
+                        <span className="font-bold text-stone-900">{currency} {Math.max(remaining, 0).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {fullyPaid && (
+                      <div className="flex justify-between pt-1.5 border-t border-stone-100">
+                        <span className="font-medium text-green-700">Fully paid</span>
+                        <span className="font-bold text-green-700">✓</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {order.advanceNpr > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Advance expected</span>
-                    <span className="font-medium text-amber-700">{currency} {order.advanceNpr.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Received so far</span>
-                  <span className={`font-semibold ${order.paidNpr > 0 ? 'text-green-700' : 'text-stone-400'}`}>
-                    {order.paidNpr > 0 ? `${currency} ${order.paidNpr.toLocaleString()}` : '—'}
-                  </span>
-                </div>
-                {order.paidNpr < order.totalNpr && (
-                  <div className="flex justify-between pt-1.5 border-t border-stone-100">
-                    <span className="font-medium text-stone-700">Remaining</span>
-                    <span className="font-bold text-stone-900">{currency} {(order.totalNpr - order.paidNpr).toLocaleString()}</span>
-                  </div>
-                )}
-                {order.paidNpr >= order.totalNpr && (
-                  <div className="flex justify-between pt-1.5 border-t border-stone-100">
-                    <span className="font-medium text-green-700">Fully paid</span>
-                    <span className="font-bold text-green-700">✓</span>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
 
               <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-2">Record payment</p>
               <PaymentRecorder
                 orderId={params.id}
-                totalNpr={order.totalNpr}
+                totalNpr={order.totalNpr + (order.deliveryFeeNpr ?? 0)}
                 advanceNpr={order.advanceNpr}
                 paidNpr={order.paidNpr}
                 currency={currency}

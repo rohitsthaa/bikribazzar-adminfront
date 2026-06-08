@@ -17,11 +17,12 @@ const PIPELINE: Array<{
   { value: 'cancelled', label: 'Cancelled', dot: 'bg-red-400',    activeClass: 'bg-red-50 text-red-600 ring-1 ring-red-200'        },
 ];
 
-const STATUS_META: Partial<Record<Order['status'], { icon: string; description: string; confirmLabel: string; danger?: boolean }>> = {
+const STATUS_META: Partial<Record<Order['status'], { icon: string; description: string; confirmLabel: string; danger?: boolean; showDeliveryFee?: boolean }>> = {
   confirmed: {
     icon: '✓',
     description: 'Customer will be notified that their order is confirmed and being prepared.',
     confirmLabel: 'Yes, confirm order',
+    showDeliveryFee: true,
   },
   shipped: {
     icon: '→',
@@ -48,12 +49,20 @@ function ConfirmDialog({
   isPending,
 }: {
   status: Order['status'];
-  onConfirm: () => void;
+  onConfirm: (deliveryFeeNpr?: number) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const pipeline = PIPELINE.find((p) => p.value === status)!;
   const meta = STATUS_META[status];
+  const [feeInput, setFeeInput] = useState('');
+
+  const handleConfirm = () => {
+    const fee = meta?.showDeliveryFee && feeInput.trim() !== ''
+      ? parseInt(feeInput, 10)
+      : undefined;
+    onConfirm(isNaN(fee as number) ? undefined : fee);
+  };
 
   return (
     <>
@@ -83,6 +92,28 @@ function ConfirmDialog({
             <p className="text-sm text-stone-500 leading-relaxed">
               {meta?.description ?? `Status will be updated to "${pipeline.label}".`}
             </p>
+
+            {/* Delivery fee input — only on confirm */}
+            {meta?.showDeliveryFee && (
+              <div className="mt-4 pt-4 border-t border-stone-100">
+                <label className="block text-xs font-medium text-stone-500 mb-1.5">
+                  Delivery fee (NPR) <span className="text-stone-400 font-normal">— leave blank if free</span>
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={10}
+                  value={feeInput}
+                  onChange={(e) => setFeeInput(e.target.value)}
+                  placeholder="e.g. 150"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  autoFocus
+                />
+                <p className="text-[11px] text-stone-400 mt-1">
+                  This will be shown to the customer in their confirmation email.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -95,7 +126,7 @@ function ConfirmDialog({
               Keep current
             </button>
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               disabled={isPending}
               className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 ${
                 meta?.danger
@@ -127,11 +158,11 @@ export default function StatusUpdater({
     setPendingStatus(newStatus);
   }
 
-  function handleConfirm() {
+  function handleConfirm(deliveryFeeNpr?: number) {
     if (!pendingStatus) return;
     const toSet = pendingStatus;
     setPendingStatus(null);
-    startTransition(() => updateStatusAction(orderId, toSet));
+    startTransition(() => updateStatusAction(orderId, toSet, deliveryFeeNpr));
   }
 
   return (

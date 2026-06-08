@@ -149,6 +149,8 @@ export type Order = {
   paidNpr: number;
   discountCode?: string;
   discountNpr: number;
+  deliveryFeeNpr: number;
+  isNationwide: boolean;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
   createdAt: string;
@@ -186,10 +188,10 @@ export function updateSetting(key: string, value: string) {
 
 export function getOrders() { return apiFetch<Order[]>('/orders'); }
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }
-export function updateOrderStatus(id: string, status: Order['status']) {
+export function updateOrderStatus(id: string, status: Order['status'], deliveryFeeNpr?: number) {
   return apiFetch<Order>(`/orders/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(deliveryFeeNpr !== undefined ? { status, deliveryFeeNpr } : { status }),
   });
 }
 export function recordPayment(id: string, paidNpr: number) {

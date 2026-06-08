@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes } from '@/lib/api';
 import type { Order, CreateAdminOrderPayload } from '@/lib/api';
 
-export async function updateStatusAction(orderId: string, status: Order['status']) {
-  await updateOrderStatus(orderId, status);
+export async function updateStatusAction(orderId: string, status: Order['status'], deliveryFeeNpr?: number) {
+  await updateOrderStatus(orderId, status, deliveryFeeNpr);
   revalidatePath(`/orders/${orderId}`);
   revalidatePath('/orders');
 }
