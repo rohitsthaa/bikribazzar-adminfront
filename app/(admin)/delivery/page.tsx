@@ -79,55 +79,55 @@ export default async function DeliveryPage() {
                   </span>
                 </div>
                 <div className="divide-y divide-stone-100">
-                  {areaOrders.map((order) => (
-                    <Link
-                      key={order.id}
-                      href={`/orders/${order.id}`}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50 transition-colors group"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-stone-900 group-hover:text-[#c96a3a] transition-colors">
-                            {order.customerName}
+                  {areaOrders.map((order) => {
+                    const itemCount = (order.items as Array<{ quantity: number }>)
+                      ?.reduce((s, i) => s + i.quantity, 0) ?? 0;
+                    return (
+                      <div key={order.id} className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50 transition-colors group">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Link
+                              href={`/orders/${order.id}`}
+                              className="font-medium text-stone-900 hover:text-[#c96a3a] transition-colors"
+                            >
+                              {order.customerName}
+                            </Link>
+                            <span className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_BADGE[order.status] ?? 'bg-stone-100 text-stone-500'}`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-stone-400 flex-wrap">
+                            <span>#{order.id}</span>
+                            <span>·</span>
+                            <span>{fmt(order.createdAt)}</span>
+                            {order.phone && (
+                              <>
+                                <span>·</span>
+                                <a
+                                  href={`tel:${order.phone}`}
+                                  className="hover:text-stone-700 transition-colors"
+                                >
+                                  {order.phone}
+                                </a>
+                              </>
+                            )}
+                            {order.address && (
+                              <>
+                                <span>·</span>
+                                <span className="truncate max-w-xs">{order.address}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-semibold text-stone-800">{currency} {order.totalNpr.toLocaleString()}</p>
+                          <p className="text-xs text-stone-400 mt-0.5">
+                            {itemCount} item{itemCount !== 1 ? 's' : ''}
                           </p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_BADGE[order.status] ?? 'bg-stone-100 text-stone-500'}`}>
-                            {order.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-stone-400 flex-wrap">
-                          <span>#{order.id}</span>
-                          <span>·</span>
-                          <span>{fmt(order.createdAt)}</span>
-                          {order.phone && (
-                            <>
-                              <span>·</span>
-                              <a
-                                href={`tel:${order.phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="hover:text-stone-700 transition-colors"
-                              >
-                                {order.phone}
-                              </a>
-                            </>
-                          )}
-                          {order.address && (
-                            <>
-                              <span>·</span>
-                              <span className="truncate max-w-xs">{order.address}</span>
-                            </>
-                          )}
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-stone-800">{currency} {order.totalNpr.toLocaleString()}</p>
-                        <p className="text-xs text-stone-400 mt-0.5">
-                          {(order.items as Array<{ quantity: number }>).reduce((s, i) => s + i.quantity, 0)} item{
-                            (order.items as Array<{ quantity: number }>).reduce((s, i) => s + i.quantity, 0) !== 1 ? 's' : ''
-                          }
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
