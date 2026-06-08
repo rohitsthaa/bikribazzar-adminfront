@@ -136,7 +136,7 @@ export default function StatusUpdater({
 
   return (
     <>
-      <div className="space-y-2">
+      <div className={`space-y-2 transition-opacity ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
         {PIPELINE.map(({ value, label, dot, activeClass }) => {
           const isActive = value === currentStatus;
           return (
@@ -152,7 +152,14 @@ export default function StatusUpdater({
                   : 'bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-900 disabled:opacity-40'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
+              {isPending && isActive ? (
+                <svg className="w-2 h-2 flex-shrink-0 animate-spin text-current" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+                </svg>
+              ) : (
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
+              )}
               {isPending && isActive ? 'Updating…' : label}
             </button>
           );
