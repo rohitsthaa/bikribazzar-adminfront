@@ -80,6 +80,19 @@ export default async function OrderDetailPage({ params }: Props) {
   const pipelineIdx = PIPELINE.findIndex(s => s.value === order!.status);
   const isCancelled = order.status === 'cancelled';
 
+  // Break the single paidNpr figure down by source. Online payments are itemized
+  // in the payments table; anything recorded beyond them was taken manually.
+  const completedPayments = (order.payments ?? []).filter(p => p.status === 'complete');
+  const sumBy = (provider: string) =>
+    completedPayments.filter(p => p.provider === provider).reduce((sum, p) => sum + p.amountNpr, 0);
+  const esewaPaidNpr = sumBy('esewa');
+  const khaltiPaidNpr = sumBy('khalti');
+  const onlinePaidNpr = esewaPaidNpr + khaltiPaidNpr;
+  const manualPaidNpr = Math.max(0, order.paidNpr - onlinePaidNpr);
+  // payments come newest-first from the API
+  const latestEsewaRef = completedPayments.find(p => p.provider === 'esewa')?.refId ?? null;
+  const latestKhaltiRef = completedPayments.find(p => p.provider === 'khalti')?.refId ?? null;
+
   return (
     <main className="p-6 md:p-8 max-w-6xl space-y-6">
 
@@ -357,12 +370,46 @@ export default async function OrderDetailPage({ params }: Props) {
                         <span className="font-medium text-amber-700">{currency} {order.advanceNpr.toLocaleString()}</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Received so far</span>
-                      <span className={`font-semibold ${order.paidNpr > 0 ? 'text-green-700' : 'text-stone-400'}`}>
-                        {order.paidNpr > 0 ? `${currency} ${order.paidNpr.toLocaleString()}` : '—'}
-                      </span>
-                    </div>
+                    {/* Payment breakdown by source */}
+                    {order.paidNpr > 0 ? (
+                      <div className="pt-1.5 mt-1 border-t border-stone-100 space-y-1.5">
+                        {esewaPaidNpr > 0 && (
+                          <div className="flex justify-between">
+                            <span className="inline-flex items-center gap-1.5 text-stone-500">
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#60BB46' }} />
+                              Paid via eSewa
+                              {latestEsewaRef && <span className="font-mono text-[11px] text-stone-400">· {latestEsewaRef}</span>}
+                            </span>
+                            <span className="font-medium text-green-700">{currency} {esewaPaidNpr.toLocaleString()}</span>
+                          </div>
+                        )}
+                        {khaltiPaidNpr > 0 && (
+                          <div className="flex justify-between">
+                            <span className="inline-flex items-center gap-1.5 text-stone-500">
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#5C2D91' }} />
+                              Paid via Khalti
+                              {latestKhaltiRef && <span className="font-mono text-[11px] text-stone-400">· {latestKhaltiRef}</span>}
+                            </span>
+                            <span className="font-medium text-purple-700">{currency} {khaltiPaidNpr.toLocaleString()}</span>
+                          </div>
+                        )}
+                        {manualPaidNpr > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-stone-500">Recorded manually</span>
+                            <span className="font-medium text-stone-700">{currency} {manualPaidNpr.toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="font-medium text-stone-700">Total received</span>
+                          <span className="font-semibold text-green-700">{currency} {order.paidNpr.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between">
+                        <span className="text-stone-500">Received so far</span>
+                        <span className="font-semibold text-stone-400">—</span>
+                      </div>
+                    )}
                     {!fullyPaid && (
                       <div className="flex justify-between pt-1.5 border-t border-stone-100">
                         <span className="font-medium text-stone-700">Remaining</span>
@@ -385,6 +432,7 @@ export default async function OrderDetailPage({ params }: Props) {
                 totalNpr={order.totalNpr + (order.deliveryFeeNpr ?? 0)}
                 advanceNpr={order.advanceNpr}
                 paidNpr={order.paidNpr}
+                onlinePaidNpr={onlinePaidNpr}
                 currency={currency}
               />
             </div>

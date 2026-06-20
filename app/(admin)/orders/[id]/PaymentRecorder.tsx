@@ -8,18 +8,19 @@ interface Props {
   totalNpr: number;
   advanceNpr: number;
   paidNpr: number;
+  onlinePaidNpr?: number;  // already collected online (eSewa/Khalti) — manual total can't go below this
   currency?: string;
 }
 
-export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr, currency = 'NPR' }: Props) {
+export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr, onlinePaidNpr = 0, currency = 'NPR' }: Props) {
   const [value, setValue] = useState(paidNpr.toString());
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const chips = [
-    { label: 'None', amount: 0 },
-    ...(advanceNpr > 0 ? [{ label: `Advance (${currency} ${advanceNpr.toLocaleString()})`, amount: advanceNpr }] : []),
+    { label: onlinePaidNpr > 0 ? `Online only (${currency} ${onlinePaidNpr.toLocaleString()})` : 'None', amount: onlinePaidNpr },
+    ...(advanceNpr > onlinePaidNpr ? [{ label: `Advance (${currency} ${advanceNpr.toLocaleString()})`, amount: advanceNpr }] : []),
     { label: `Full (${currency} ${totalNpr.toLocaleString()})`, amount: totalNpr },
   ];
 
@@ -27,6 +28,7 @@ export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr
     const amount = parseInt(value, 10);
     if (isNaN(amount) || amount < 0) { setError('Enter a valid amount'); return; }
     if (amount > totalNpr) { setError('Cannot exceed order total'); return; }
+    if (amount < onlinePaidNpr) { setError(`Can't be below the ${currency} ${onlinePaidNpr.toLocaleString()} already paid online`); return; }
     setError('');
     setSaved(false);
     startTransition(async () => {
@@ -63,13 +65,20 @@ export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr
         ))}
       </div>
 
+      {onlinePaidNpr > 0 && (
+        <p className="text-xs text-stone-500">
+          This is the <strong>total received</strong> — it already includes {currency} {onlinePaidNpr.toLocaleString()} paid online.
+          Increase it to record any additional cash/transfer collected.
+        </p>
+      )}
+
       {/* Custom amount input */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 font-medium">{currency}</span>
           <input
             type="number"
-            min={0}
+            min={onlinePaidNpr}
             max={totalNpr}
             value={value}
             onChange={(e) => { setValue(e.target.value); setError(''); setSaved(false); }}

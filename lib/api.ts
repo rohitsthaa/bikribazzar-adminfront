@@ -153,6 +153,20 @@ export type Order = {
   isNationwide: boolean;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
+  paymentMethod?: string | null;          // null | 'esewa' — how recorded payment was taken
+  payments?: Payment[];                    // all payment attempts (detail endpoint only)
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Payment = {
+  id: number;
+  orderId: number;
+  provider: string;          // 'esewa'
+  transactionUuid: string;
+  amountNpr: number;
+  status: 'initiated' | 'complete' | 'failed';
+  refId: string | null;      // eSewa reference id once complete
   createdAt: string;
   updatedAt: string;
 };

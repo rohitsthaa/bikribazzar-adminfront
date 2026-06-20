@@ -25,7 +25,7 @@ const statusColors: Record<string, string> = {
 };
 
 function exportCsv(orders: Order[], label: string) {
-  const header = ['Order ID', 'Customer', 'Email', 'Phone', 'Address', 'Notes', 'Items', 'Total (NPR)', 'Status', 'Date'];
+  const header = ['Order ID', 'Customer', 'Email', 'Phone', 'Address', 'Notes', 'Items', 'Total (NPR)', 'Paid (NPR)', 'Payment method', 'Status', 'Date'];
   const rows = orders.map((o) => [
     `#${o.id}`,
     o.customerName,
@@ -35,6 +35,8 @@ function exportCsv(orders: Order[], label: string) {
     o.notes ?? '',
     o.items.map((i) => `${i.productId} ×${i.quantity}`).join('; '),
     o.totalNpr,
+    o.paidNpr ?? 0,
+    o.paymentMethod ?? '',
     o.status,
     new Date(o.createdAt).toLocaleDateString('en-US'),
   ]);
@@ -135,6 +137,12 @@ export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Ord
                     </td>
                     <td className="px-5 py-3 text-right font-medium text-stone-900">
                       {currency} {order.totalNpr.toLocaleString()}
+                      {order.paymentMethod === 'esewa' && (
+                        <span className="block mt-0.5 text-[10px] font-medium text-green-600">● Paid · eSewa</span>
+                      )}
+                      {order.paymentMethod === 'khalti' && (
+                        <span className="block mt-0.5 text-[10px] font-medium text-purple-600">● Paid · Khalti</span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium capitalize ${color}`}>
