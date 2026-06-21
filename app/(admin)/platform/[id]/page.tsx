@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getStore, getStorePaymentConfig } from '@/lib/api';
 import { updateStoreAction, updatePaymentConfigAction } from '../actions';
-import { TEMPLATES } from '../page';
+import { TEMPLATES } from '../templates';
 
 export const dynamic = 'force-dynamic';
 

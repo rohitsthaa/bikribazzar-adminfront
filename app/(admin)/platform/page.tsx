@@ -1,13 +1,9 @@
 import Link from 'next/link';
 import { getStores } from '@/lib/api';
 import { createStoreAction } from './actions';
+import { TEMPLATES } from './templates';
 
 export const dynamic = 'force-dynamic';
-
-export const TEMPLATES = [
-  { id: 'soulthread', name: 'Soul Thread (warm / artisan)' },
-  { id: 'aurora', name: 'Aurora (modern / minimal)' },
-];
 
 export default async function PlatformPage() {
   const stores = await getStores().catch(() => []);
