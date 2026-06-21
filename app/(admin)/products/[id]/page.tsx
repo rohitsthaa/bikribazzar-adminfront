@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ProductForm from '@/components/ProductForm';
 import { getProduct, getSettings, getInventoryLog } from '@/lib/api';
+import { getAdmin, can } from '@/lib/auth';
 import { saveProduct } from '../actions';
 import InventoryPanel from './InventoryPanel';
 
@@ -22,6 +23,7 @@ export default async function EditProductPage({ params }: { params: { id: string
   if (!product) notFound();
 
   const currency = settings.currency_symbol || 'NPR';
+  const canSetPrice = can((await getAdmin())?.role, 'setPrice');
   const categories = (() => {
     try { return settings.product_categories ? JSON.parse(settings.product_categories) : DEFAULT_CATEGORIES; }
     catch { return DEFAULT_CATEGORIES; }
@@ -39,7 +41,7 @@ export default async function EditProductPage({ params }: { params: { id: string
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Main form */}
         <div className="flex-1 min-w-0">
-          <ProductForm product={product} action={saveProduct} categories={categories} />
+          <ProductForm product={product} action={saveProduct} categories={categories} canSetPrice={canSetPrice} />
         </div>
 
         {/* Inventory sidebar */}

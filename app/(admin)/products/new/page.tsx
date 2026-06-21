@@ -2,6 +2,7 @@ import Link from 'next/link';
 import ProductForm from '@/components/ProductForm';
 import { saveProduct } from '../actions';
 import { getSettings } from '@/lib/api';
+import { getAdmin, can } from '@/lib/auth';
 
 const DEFAULT_CATEGORIES = [
   { key: 'shelf',  label: 'Hanging Shelves' },
@@ -12,6 +13,7 @@ const DEFAULT_CATEGORIES = [
 
 export default async function NewProductPage() {
   const settings = await getSettings().catch(() => ({} as Record<string, string>));
+  const canSetPrice = can((await getAdmin())?.role, 'setPrice');
   const categories = (() => {
     try { return settings.product_categories ? JSON.parse(settings.product_categories) : DEFAULT_CATEGORIES; }
     catch { return DEFAULT_CATEGORIES; }
@@ -25,7 +27,7 @@ export default async function NewProductPage() {
         </Link>
         <h1 className="text-xl font-semibold mt-2">Add product</h1>
       </div>
-      <ProductForm action={saveProduct} categories={categories} />
+      <ProductForm action={saveProduct} categories={categories} canSetPrice={canSetPrice} />
     </main>
   );
 }

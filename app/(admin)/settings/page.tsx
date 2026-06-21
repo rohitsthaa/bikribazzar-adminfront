@@ -1,8 +1,12 @@
+import { redirect } from 'next/navigation';
 import { getSettings } from '@/lib/api';
+import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
 import SettingsClient from './SettingsClient';
 
 export default async function SettingsPage() {
+  const admin = await getAdmin();
+  if (!can(admin?.role, 'settings')) redirect('/dashboard'); // staff can't change store settings
   const settings = await getSettings();
   const storeId = await currentStoreId();
 

@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getStores } from '@/lib/api';
+import { getStores, getPlatformOverview } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import { createStoreAction } from './actions';
+import PlatformOverview from './PlatformOverview';
 import { TEMPLATES } from './templates';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,10 @@ export const dynamic = 'force-dynamic';
 export default async function PlatformPage() {
   const admin = await getAdmin();
   if (admin?.role !== 'super') redirect('/dashboard'); // platform console is super-only
-  const stores = await getStores().catch(() => []);
+  const [stores, overview] = await Promise.all([
+    getStores().catch(() => []),
+    getPlatformOverview().catch(() => null),
+  ]);
 
   return (
     <main className="p-6 md:p-8 max-w-5xl space-y-8">
@@ -18,6 +22,8 @@ export default async function PlatformPage() {
         <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Platform</h1>
         <p className="text-stone-500 mt-1">Provision and manage stores on this platform.</p>
       </div>
+
+      {overview && <PlatformOverview data={overview} />}
 
       {/* Stores list */}
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">

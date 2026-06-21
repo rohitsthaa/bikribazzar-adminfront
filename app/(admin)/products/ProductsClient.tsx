@@ -14,7 +14,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 type Filter = 'all' | 'live' | 'hidden' | 'low' | 'oos';
 
-function ProductCard({ p, currency }: { p: Product; currency: string }) {
+function ProductCard({ p, currency, canDelete }: { p: Product; currency: string; canDelete: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState('');
@@ -125,8 +125,8 @@ function ProductCard({ p, currency }: { p: Product; currency: string }) {
           </span>
 
           <div className="flex items-center gap-2">
-            {/* Delete — inline confirm */}
-            {confirming ? (
+            {/* Delete — inline confirm (owners only; hidden from staff) */}
+            {canDelete && (confirming ? (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-gray-400">Delete?</span>
                 <button
@@ -156,7 +156,7 @@ function ProductCard({ p, currency }: { p: Product; currency: string }) {
                   <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
                 </svg>
               </button>
-            )}
+            ))}
 
             <Link
               href={`/products/${p.id}`}
@@ -176,7 +176,7 @@ function ProductCard({ p, currency }: { p: Product; currency: string }) {
   );
 }
 
-export default function ProductsClient({ products, currency = 'NPR' }: { products: Product[]; currency?: string }) {
+export default function ProductsClient({ products, currency = 'NPR', canDelete = true }: { products: Product[]; currency?: string; canDelete?: boolean }) {
   const [filter, setFilter] = useState<Filter>('all');
 
   const filtered = products.filter(p => {
@@ -243,7 +243,7 @@ export default function ProductsClient({ products, currency = 'NPR' }: { product
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((p) => (
-            <ProductCard key={p.id} p={p} currency={currency} />
+            <ProductCard key={p.id} p={p} currency={currency} canDelete={canDelete} />
           ))}
         </div>
       )}

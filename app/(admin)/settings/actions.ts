@@ -2,18 +2,28 @@
 
 import { revalidatePath } from 'next/cache';
 import { updateSetting } from '@/lib/api';
+import { getAdmin, can } from '@/lib/auth';
+
+/** Settings are owner-only (super + store-admin); staff are blocked. */
+async function assertCanSettings() {
+  const me = await getAdmin();
+  if (!can(me?.role, 'settings')) throw new Error('Forbidden');
+}
 
 export async function saveAboutImage(url: string) {
+  await assertCanSettings();
   await updateSetting('about_image', url);
   revalidatePath('/settings');
 }
 
 export async function savePaymentQr(url: string) {
+  await assertCanSettings();
   await updateSetting('payment_qr', url);
   revalidatePath('/settings');
 }
 
 export async function saveBankDetails(bankName: string, accountName: string, accountNo: string) {
+  await assertCanSettings();
   await Promise.all([
     updateSetting('payment_bank_name', bankName),
     updateSetting('payment_account_name', accountName),
@@ -23,6 +33,7 @@ export async function saveBankDetails(bankName: string, accountName: string, acc
 }
 
 export async function saveContactInfo(whatsapp: string, instagram: string, email: string, location: string) {
+  await assertCanSettings();
   await Promise.all([
     updateSetting('contact_whatsapp', whatsapp),
     updateSetting('contact_instagram', instagram),
@@ -33,11 +44,13 @@ export async function saveContactInfo(whatsapp: string, instagram: string, email
 }
 
 export async function saveCategories(categories: Array<{ key: string; label: string }>) {
+  await assertCanSettings();
   await updateSetting('product_categories', JSON.stringify(categories));
   revalidatePath('/settings');
 }
 
 export async function saveCurrency(symbol: string) {
+  await assertCanSettings();
   await updateSetting('currency_symbol', symbol.trim() || 'NPR');
   revalidatePath('/settings');
 }

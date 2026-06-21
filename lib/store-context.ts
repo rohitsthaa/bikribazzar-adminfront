@@ -13,8 +13,9 @@ export const DEFAULT_STORE = 'soul-thread';
 
 export async function currentStoreId(): Promise<string> {
   const admin = await getAdmin();
-  // Store-admins are pinned to their own store regardless of any cookie.
-  if (admin?.role === 'store' && admin.storeId) return admin.storeId;
+  // Store-scoped roles (store-admin, staff) are pinned to their own store
+  // regardless of any cookie.
+  if (admin && admin.role !== 'super' && admin.storeId) return admin.storeId;
   // Super-admins (and legacy) may switch.
   return cookies().get(STORE_COOKIE)?.value || DEFAULT_STORE;
 }

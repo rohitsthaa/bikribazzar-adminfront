@@ -2,10 +2,13 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createProduct, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock } from '@/lib/api';
+import { getAdmin, can } from '@/lib/auth';
 
 export async function saveProduct(_: unknown, formData: FormData) {
   const id = (formData.get('id') as string).trim().toLowerCase().replace(/\s+/g, '-');
   const isNew = formData.get('_isNew') === '1';
+  const role = (await getAdmin())?.role;
+  const canPrice = can(role, 'setPrice'); // staff can't set/change price
 
   const stockQtyRaw = formData.get('stockQty') as string;
   const data = {
@@ -28,9 +31,15 @@ export async function saveProduct(_: unknown, formData: FormData) {
 
   try {
     if (isNew) {
+      // Staff may create products, but price stays owner-controlled (defaults to
+      // 0 = "price on request" until an owner sets it).
+      if (!canPrice) data.priceNpr = 0;
       await createProduct(data);
     } else {
-      await updateProduct(id, data);
+      // On edit, staff cannot change price: omit it so the API preserves the
+      // existing value (PATCH is a partial update).
+      const { priceNpr, ...rest } = data;
+      await updateProduct(id, canPrice ? data : rest);
     }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Failed to save product.' };
@@ -47,6 +56,9 @@ export async function toggleAvailability(id: string, available: boolean) {
 
 export async function deleteProduct(id: string): Promise<{ error: string } | { ok: true }> {
   try {
+    if (!can((await getAdmin())?.role, 'deleteProduct')) {
+      return { error: 'You do not have permission to delete products.' };
+    }
     await apiDeleteProduct(id);
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Failed to delete product.' };

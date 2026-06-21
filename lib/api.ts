@@ -228,16 +228,31 @@ export function updateStorePaymentConfig(id: string, data: Record<string, unknow
   return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/payment-config`, { method: 'PUT', body: JSON.stringify(data) });
 }
 
+// ---- Platform overview (super-admin) ----
+export type PlatformOverview = {
+  totals: { stores: number; active: number; suspended: number; orders: number; revenue: number };
+  stores: Array<{
+    id: string; name: string; status: string; templateId: string;
+    orderCount: number; revenue: number; pending: number;
+    lastOrderAt: string | null; lowStock: number; hasPaymentConfig: boolean;
+  }>;
+  recent: Array<{ id: number; storeId: string; customerName: string; totalNpr: number; status: string; createdAt: string }>;
+};
+
+export function getPlatformOverview() {
+  return apiFetch<PlatformOverview>('/stores/overview');
+}
+
 // ---- Admin users (super-admin manages store logins) ----
 export type AdminUserView = { id: number; email: string; role: 'super' | 'store'; storeId: string | null };
 
 export function getStoreAdmins(storeId: string) {
   return apiFetch<AdminUserView[]>(`/admin-auth/users?storeId=${encodeURIComponent(storeId)}`);
 }
-export function createStoreAdmin(data: { email: string; password: string; storeId: string }) {
+export function createStoreAdmin(data: { email: string; password: string; storeId: string; role?: 'store' | 'staff' }) {
   return apiFetch<AdminUserView>('/admin-auth/users', {
     method: 'POST',
-    body: JSON.stringify({ ...data, role: 'store' }),
+    body: JSON.stringify({ ...data, role: data.role ?? 'store' }),
   });
 }
 export function deleteAdminUser(id: number) {

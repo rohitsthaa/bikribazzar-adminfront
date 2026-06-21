@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAdmin } from '@/lib/auth';
+import { getAdmin, can } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
 import StoreSwitcher from '@/components/StoreSwitcher';
 import { getStores } from '@/lib/api';
@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen bg-stone-50">
-      <Sidebar isSuper={isSuper} />
+      <Sidebar isSuper={isSuper} canSettings={can(admin.role, 'settings')} />
       <div className="flex-1 min-w-0 ml-64">
         {showBar && (
           <div className="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-2">

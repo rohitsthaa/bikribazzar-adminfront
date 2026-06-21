@@ -67,11 +67,11 @@ export async function updatePaymentConfigAction(fd: FormData) {
 }
 
 export async function createStoreAdminAction(
-  storeId: string, email: string, password: string
+  storeId: string, email: string, password: string, role: 'store' | 'staff' = 'store'
 ): Promise<{ ok: true } | { error: string }> {
   try {
     await assertSuper();
-    await createStoreAdmin({ storeId, email: email.trim().toLowerCase(), password });
+    await createStoreAdmin({ storeId, email: email.trim().toLowerCase(), password, role });
     revalidatePath(`/platform/${storeId}`);
     return { ok: true };
   } catch (e) {

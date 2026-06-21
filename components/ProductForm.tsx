@@ -19,6 +19,7 @@ type Props = {
   product?: Product;
   action: (state: unknown, formData: FormData) => Promise<{ error: string } | undefined>;
   categories?: Category[];
+  canSetPrice?: boolean; // staff can't set/change price
 };
 
 function Submit({ isNew }: { isNew: boolean }) {
@@ -34,7 +35,7 @@ function Submit({ isNew }: { isNew: boolean }) {
   );
 }
 
-export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES }: Props) {
+export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES, canSetPrice = true }: Props) {
   const [state, formAction] = useFormState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
@@ -200,10 +201,13 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                     min={0}
                     defaultValue={product?.priceNpr ?? 0}
                     placeholder="0"
-                    className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                    disabled={!canSetPrice}
+                    className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 disabled:bg-gray-100 disabled:text-gray-400"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Set 0 for "price on request".</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {canSetPrice ? 'Set 0 for "price on request".' : 'Price is managed by the store owner.'}
+                </p>
               </div>
             </div>
 

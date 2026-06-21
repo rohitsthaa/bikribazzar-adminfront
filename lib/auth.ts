@@ -11,13 +11,33 @@ const LEGACY_COOKIE = 'st_admin';
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 
-export type AdminRole = 'super' | 'store';
+export type AdminRole = 'super' | 'store' | 'staff';
 export type AdminIdentity = {
   id: number | null;
   email: string;
   role: AdminRole;
   storeId: string | null;
 };
+
+// Capability map. Staff is a store-scoped role that can run the shop day-to-day
+// (orders, inventory, products, marketing content) but NOT change store settings
+// (payments, contact, categories). Super + store-admin can do everything for
+// their scope. Platform console stays super-only (checked separately).
+export function can(
+  role: AdminRole | undefined,
+  action: 'settings' | 'manageAdmins' | 'deleteProduct' | 'setPrice',
+): boolean {
+  switch (action) {
+    case 'settings':
+    case 'deleteProduct': // staff can't delete catalog items
+    case 'setPrice':      // staff can't change pricing
+      return role === 'super' || role === 'store';
+    case 'manageAdmins':
+      return role === 'super';
+    default:
+      return false;
+  }
+}
 
 /**
  * Resolve the current admin from the request cookies. Returns null when not

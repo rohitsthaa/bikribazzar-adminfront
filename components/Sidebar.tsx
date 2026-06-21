@@ -114,10 +114,14 @@ const navItems = [
   },
 ];
 
-export default function Sidebar({ isSuper = true }: { isSuper?: boolean }) {
+export default function Sidebar({ isSuper = true, canSettings = true }: { isSuper?: boolean; canSettings?: boolean }) {
   const pathname = usePathname();
-  // The Platform console is super-admin only; store-admins never see it.
-  const items = isSuper ? navItems : navItems.filter((i) => i.href !== '/platform');
+  // Platform console is super-only; Settings is owner-only (hidden from staff).
+  const items = navItems.filter((i) => {
+    if (i.href === '/platform' && !isSuper) return false;
+    if (i.href === '/settings' && !canSettings) return false;
+    return true;
+  });
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 z-30 flex flex-col bg-white border-r border-stone-200">

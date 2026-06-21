@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { getProducts, getSettings } from '@/lib/api';
+import { getAdmin, can } from '@/lib/auth';
 import ProductsClient from './ProductsClient';
 
 export default async function ProductsPage() {
-  const [products, settings] = await Promise.all([
+  const [products, settings, admin] = await Promise.all([
     getProducts(),
     getSettings().catch(() => ({} as Record<string, string>)),
+    getAdmin(),
   ]);
   const currency = settings.currency_symbol || 'NPR';
+  const canDelete = can(admin?.role, 'deleteProduct');
 
   return (
     <main className="p-6 md:p-8 max-w-6xl">
@@ -24,7 +27,7 @@ export default async function ProductsPage() {
         </Link>
       </div>
 
-      <ProductsClient products={products} currency={currency} />
+      <ProductsClient products={products} currency={currency} canDelete={canDelete} />
     </main>
   );
 }
