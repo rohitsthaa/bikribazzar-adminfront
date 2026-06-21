@@ -55,8 +55,12 @@ export default function ImageUploader({ value, onChange }: Props) {
       >
         {value ? (
           <>
+            {/* Route through the /api/image proxy (like the product cards) so the
+                preview resolves against the current API host regardless of what
+                host the URL was stored with. A raw <img src={value}> breaks when
+                the stored URL points at an old/different API host. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={value} alt="Product preview" className="w-full h-full object-cover" />
+            <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="Product preview" className="w-full h-full object-cover" />
             {/* Overlay actions */}
             <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
               <button

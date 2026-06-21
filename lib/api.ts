@@ -108,18 +108,6 @@ export function deleteTestimonial(id: number) {
   return apiFetch(`/testimonials/${id}`, { method: 'DELETE' });
 }
 
-// ---- Materials ----
-
-export type Material = { id: number; label: string; sortOrder: number };
-
-export function getMaterials() { return apiFetch<Material[]>('/materials'); }
-export function createMaterial(data: { label: string; sortOrder?: number }) {
-  return apiFetch<Material>('/materials', { method: 'POST', body: JSON.stringify(data) });
-}
-export function deleteMaterial(id: number) {
-  return apiFetch(`/materials/${id}`, { method: 'DELETE' });
-}
-
 // ---- Gallery ----
 
 export type GalleryImage = { id: number; url: string; alt: string; sortOrder: number };

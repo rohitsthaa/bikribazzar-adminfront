@@ -379,7 +379,7 @@ export default function SettingsClient({
           <div className="mt-3 flex justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={paymentQr}
+              src={`/api/image?src=${encodeURIComponent(paymentQr)}`}
               alt="Payment QR preview"
               className="w-40 h-40 object-contain border border-gray-200 rounded-xl bg-white p-2"
             />
