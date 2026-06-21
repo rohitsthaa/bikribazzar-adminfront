@@ -211,9 +211,33 @@ export type StoreSummary = {
   status: string;
   templateId: string;
   theme: Record<string, unknown>;
+  customDomain: string | null;
+};
+
+export type StorePaymentConfigView = {
+  esewaEnabled: boolean;
+  esewaMode: 'test' | 'production';
+  esewaProductCode: string;
+  hasEsewaSecret: boolean;
+  khaltiEnabled: boolean;
+  khaltiMode: 'test' | 'production';
+  hasKhaltiSecret: boolean;
 };
 
 export function getStores() { return apiFetch<StoreSummary[]>('/stores'); }
+export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`); }
+export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null }) {
+  return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null }>) {
+  return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+export function getStorePaymentConfig(id: string) {
+  return apiFetch<StorePaymentConfigView>(`/stores/${encodeURIComponent(id)}/payment-config`);
+}
+export function updateStorePaymentConfig(id: string, data: Record<string, unknown>) {
+  return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/payment-config`, { method: 'PUT', body: JSON.stringify(data) });
+}
 
 export function getOrders() { return apiFetch<Order[]>('/orders'); }
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }
