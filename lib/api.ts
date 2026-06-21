@@ -3,6 +3,8 @@
  * Attaches the internal token for write operations.
  */
 
+import { currentStoreId } from './store-context';
+
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 
@@ -13,6 +15,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       'x-internal-token': TOKEN,
+      'x-store-id': currentStoreId(),  // scope every admin call to the selected store
       ...(init.headers ?? {}),
     },
   });
@@ -199,6 +202,18 @@ export function updateSetting(key: string, value: string) {
 }
 
 // ---- Orders ----
+
+// ---- Stores (platform) ----
+
+export type StoreSummary = {
+  id: string;
+  name: string;
+  status: string;
+  templateId: string;
+  theme: Record<string, unknown>;
+};
+
+export function getStores() { return apiFetch<StoreSummary[]>('/stores'); }
 
 export function getOrders() { return apiFetch<Order[]>('/orders'); }
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }
