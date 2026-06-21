@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes } from '@/lib/api';
+import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes, updateOrderDelivery } from '@/lib/api';
 import type { Order, CreateAdminOrderPayload } from '@/lib/api';
 
 export async function updateStatusAction(orderId: string, status: Order['status'], deliveryFeeNpr?: number) {
@@ -31,6 +31,19 @@ export async function saveAdminNotesAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to save notes' };
+  }
+}
+
+export async function saveDeliveryAction(
+  orderId: string, data: { deliveryArea: string; address: string }
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await updateOrderDelivery(orderId, data);
+    revalidatePath(`/orders/${orderId}`);
+    revalidatePath('/orders');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to save delivery' };
   }
 }
 

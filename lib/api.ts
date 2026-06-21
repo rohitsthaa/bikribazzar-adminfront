@@ -203,6 +203,7 @@ export type StoreSummary = {
 };
 
 export type StorePaymentConfigView = {
+  usingDefaults: boolean; // true when the store has no saved override (inheriting platform defaults)
   esewaEnabled: boolean;
   esewaMode: 'test' | 'production';
   esewaProductCode: string;
@@ -246,6 +247,13 @@ export function updateOrderNotes(id: string, adminNotes: string) {
   return apiFetch<Order>(`/orders/${id}/notes`, {
     method: 'PATCH',
     body: JSON.stringify({ adminNotes }),
+  });
+}
+
+export function updateOrderDelivery(id: string, data: { deliveryArea?: string; address?: string }) {
+  return apiFetch<Order>(`/orders/${id}/delivery`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   });
 }
 

@@ -68,6 +68,12 @@ export default async function StoreManagePage({ params }: Props) {
       <form action={updatePaymentConfigAction} className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4">
         <h2 className="font-semibold text-stone-900">Payment credentials</h2>
         <input type="hidden" name="id" value={store.id} />
+        {pay?.usingDefaults && (
+          <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+            This store has no saved payment config — it’s inheriting platform defaults
+            (eSewa test mode). Saving this form creates a per-store override.
+          </p>
+        )}
 
         <div className="rounded-xl border border-stone-100 p-4 space-y-3">
           <label className="flex items-center gap-2 text-sm font-medium text-stone-800">

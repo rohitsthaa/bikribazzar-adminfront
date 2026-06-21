@@ -124,7 +124,7 @@ export default async function CustomersPage() {
             {customers.map((c) => (
               <Link
                 key={c.email || c.phone}
-                href={`/orders?q=${encodeURIComponent(c.email || c.phone)}`}
+                href={`/customers/${encodeURIComponent(c.email || c.phone)}`}
                 className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50 transition-colors group"
               >
                 {/* Avatar */}

@@ -5,6 +5,7 @@ import type { Order } from '@/lib/api';
 import StatusUpdater from './StatusUpdater';
 import PaymentRecorder from './PaymentRecorder';
 import AdminNotes from './AdminNotes';
+import DeliveryEditor from './DeliveryEditor';
 
 interface Props { params: { id: string } }
 
@@ -263,25 +264,28 @@ export default async function OrderDetailPage({ params }: Props) {
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4 text-sm pt-4 border-t border-stone-100">
-                {(order.deliveryArea || order.address) && (
-                  <div>
-                    <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Delivery</p>
-                    {order.deliveryArea && (
-                      <p className="text-stone-900 font-medium">{order.deliveryArea}</p>
-                    )}
-                    {order.address && (
-                      <p className="text-stone-600 mt-0.5">{order.address}</p>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Delivery</p>
+                  {order.deliveryArea && (
+                    <p className="text-stone-900 font-medium">{order.deliveryArea}</p>
+                  )}
+                  {order.address && (
+                    <p className="text-stone-600 mt-0.5">{order.address}</p>
+                  )}
+                  {!order.deliveryArea && !order.address && (
+                    <p className="text-stone-400">No delivery address yet.</p>
+                  )}
+                  <DeliveryEditor
+                    orderId={params.id}
+                    initialArea={order.deliveryArea ?? ''}
+                    initialAddress={order.address ?? ''}
+                  />
+                </div>
                 {order.notes && (
-                  <div className={(order.deliveryArea || order.address) ? '' : 'sm:col-span-2'}>
+                  <div>
                     <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-1">Customer notes</p>
                     <p className="text-stone-700 leading-relaxed">{order.notes}</p>
                   </div>
-                )}
-                {!order.deliveryArea && !order.address && !order.notes && (
-                  <p className="text-sm text-stone-400 sm:col-span-2">No delivery address or notes.</p>
                 )}
               </div>
 
