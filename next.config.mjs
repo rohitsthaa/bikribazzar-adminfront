@@ -1,20 +1,27 @@
+// Derive the image host from the configured API base URL so next/image always
+// allows whatever host uploads are served from. The platform API host moved to
+// api-store.helloworldnepal.com; read it from env rather than hardcoding.
+function apiImageHostname() {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+  if (base) {
+    try { return new URL(base).hostname; } catch { /* fall through */ }
+  }
+  return 'api-store.helloworldnepal.com';
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        // Allow images served from the production API
-        protocol: 'https',
-        hostname: 'api.soulthreadktm.com',
-        pathname: '/uploads/**',
-      },
-      {
-        // Allow images in local development
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3001',
-        pathname: '/uploads/**',
-      },
+      // Platform API host (current)
+      { protocol: 'https', hostname: 'api-store.helloworldnepal.com', pathname: '/uploads/**' },
+      // Derived from the configured API base URL (per-deployment safety net)
+      { protocol: 'https', hostname: apiImageHostname(), pathname: '/uploads/**' },
+      // Soul Thread's own / legacy API host
+      { protocol: 'https', hostname: 'api.soulthreadktm.com', pathname: '/uploads/**' },
+      // Local development
+      { protocol: 'http', hostname: 'localhost', port: '3001', pathname: '/uploads/**' },
+      { protocol: 'http', hostname: 'api', port: '3000', pathname: '/uploads/**' },
     ],
   },
 };
