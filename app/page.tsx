@@ -1,4 +1,9 @@
 import { redirect } from 'next/navigation';
-export default function Home() {
-  redirect('/dashboard');
+import { getAdmin } from '@/lib/auth';
+
+export default async function Home() {
+  // Super-admins land in the platform lobby; store-admins/staff go straight to
+  // their store dashboard.
+  const admin = await getAdmin();
+  redirect(admin?.role === 'super' ? '/platform' : '/dashboard');
 }

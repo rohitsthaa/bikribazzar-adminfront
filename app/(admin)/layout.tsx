@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAdmin, can } from '@/lib/auth';
@@ -20,9 +21,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const current = await currentStoreId();
   const currentStore = stores.find((s) => s.id === current);
 
-  // Show the top bar (Managing badge) whenever there's a notion of multiple
-  // stores OR the admin is store-scoped (so they always see which store).
-  const showBar = isSuper ? stores.length > 1 : true;
+  // Always show the level bar: supers get the Platform ▸ store breadcrumb (so
+  // they can always pop back to the lobby), store-scoped admins see their store.
+  const showBar = true;
 
   return (
     <div className="flex min-h-screen bg-stone-50">
@@ -30,10 +31,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex-1 min-w-0 ml-64">
         {showBar && (
           <div className="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-2">
-            {/* Make it obvious which tenant is being edited — every product /
-                setting change lands on this store. */}
+            {/* Level indicator: for a super-admin show Platform ▸ <store> so they
+                always know which level they're on and can pop back up. Every
+                product/setting change lands on the highlighted store. */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-xs uppercase tracking-wide text-stone-400">Managing</span>
+              {isSuper && (
+                <>
+                  <Link href="/platform" className="text-stone-500 hover:text-stone-900 font-medium">Platform</Link>
+                  <span className="text-stone-300">▸</span>
+                </>
+              )}
+              {!isSuper && <span className="text-xs uppercase tracking-wide text-stone-400">Managing</span>}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1 font-medium text-stone-800">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 {currentStore?.name ?? current}

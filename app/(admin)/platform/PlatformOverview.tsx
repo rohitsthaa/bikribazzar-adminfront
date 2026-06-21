@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { PlatformOverview as Data } from '@/lib/api';
+import { enterStore } from '../store-actions';
 
 const TZ = 'Asia/Kathmandu';
 const fmtDate = (d: string | null) =>
@@ -63,12 +64,19 @@ export default function PlatformOverview({ data }: { data: Data }) {
                 return (
                   <tr key={s.id} className="hover:bg-stone-50">
                     <td className="px-5 py-3">
-                      <Link href={`/platform/${s.id}`} className="font-medium text-stone-900 hover:text-[#c96a3a]">
-                        {s.name}
-                      </Link>
+                      {/* Primary action: ENTER the store (sets context → its dashboard). */}
+                      <form action={enterStore.bind(null, s.id)} className="inline">
+                        <button type="submit" className="font-medium text-stone-900 hover:text-[#c96a3a]">
+                          {s.name}
+                        </button>
+                      </form>
                       {s.status !== 'active' && (
                         <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">{s.status}</span>
                       )}
+                      {/* Secondary: provisioning (templates, payments, admins). */}
+                      <Link href={`/platform/${s.id}`} className="ml-2 text-xs text-stone-400 hover:text-stone-700">
+                        settings
+                      </Link>
                     </td>
                     <td className="px-3 py-3 text-right text-stone-700">{s.orderCount.toLocaleString()}</td>
                     <td className="px-3 py-3 text-right font-medium text-stone-800">{money(s.revenue)}</td>
