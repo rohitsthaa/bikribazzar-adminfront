@@ -15,7 +15,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       'x-internal-token': TOKEN,
-      'x-store-id': currentStoreId(),  // scope every admin call to the selected store
+      'x-store-id': await currentStoreId(),  // scope every admin call to the selected store
       ...(init.headers ?? {}),
     },
   });
@@ -226,6 +226,22 @@ export function getStorePaymentConfig(id: string) {
 }
 export function updateStorePaymentConfig(id: string, data: Record<string, unknown>) {
   return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/payment-config`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+// ---- Admin users (super-admin manages store logins) ----
+export type AdminUserView = { id: number; email: string; role: 'super' | 'store'; storeId: string | null };
+
+export function getStoreAdmins(storeId: string) {
+  return apiFetch<AdminUserView[]>(`/admin-auth/users?storeId=${encodeURIComponent(storeId)}`);
+}
+export function createStoreAdmin(data: { email: string; password: string; storeId: string }) {
+  return apiFetch<AdminUserView>('/admin-auth/users', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, role: 'store' }),
+  });
+}
+export function deleteAdminUser(id: number) {
+  return apiFetch<{ ok: boolean }>(`/admin-auth/users/${id}`, { method: 'DELETE' });
 }
 
 export function getOrders() { return apiFetch<Order[]>('/orders'); }

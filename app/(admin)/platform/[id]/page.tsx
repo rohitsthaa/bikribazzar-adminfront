@@ -1,7 +1,9 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { getStore, getStorePaymentConfig } from '@/lib/api';
+import { notFound, redirect } from 'next/navigation';
+import { getStore, getStorePaymentConfig, getStoreAdmins } from '@/lib/api';
+import { getAdmin } from '@/lib/auth';
 import { updateStoreAction, updatePaymentConfigAction } from '../actions';
+import StoreAdmins from './StoreAdmins';
 import { TEMPLATES } from '../templates';
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +13,13 @@ interface Props { params: { id: string } }
 type ThemeShape = { colors?: { primary?: string; accent?: string; bg?: string }; fonts?: { display?: string; body?: string } };
 
 export default async function StoreManagePage({ params }: Props) {
+  const me = await getAdmin();
+  if (me?.role !== 'super') redirect('/dashboard'); // platform console is super-only
   let store;
   try { store = await getStore(params.id); } catch { notFound(); }
   if (!store) notFound();
   const pay = await getStorePaymentConfig(params.id).catch(() => null);
+  const admins = await getStoreAdmins(params.id).catch(() => []);
 
   const theme = (store.theme ?? {}) as ThemeShape;
   const input = 'mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm';
@@ -106,6 +111,9 @@ export default async function StoreManagePage({ params }: Props) {
         <button className="rounded-lg bg-stone-800 text-white px-4 py-2 text-sm font-medium hover:bg-stone-700">Save payment config</button>
         <p className="text-xs text-stone-400">Secrets are encrypted at rest and never shown again.</p>
       </form>
+
+      {/* Store admins — logins scoped to this store only */}
+      <StoreAdmins storeId={store.id} storeName={store.name} admins={admins} />
     </main>
   );
 }

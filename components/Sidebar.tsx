@@ -114,8 +114,10 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isSuper = true }: { isSuper?: boolean }) {
   const pathname = usePathname();
+  // The Platform console is super-admin only; store-admins never see it.
+  const items = isSuper ? navItems : navItems.filter((i) => i.href !== '/platform');
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 z-30 flex flex-col bg-white border-r border-stone-200">
@@ -137,7 +139,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

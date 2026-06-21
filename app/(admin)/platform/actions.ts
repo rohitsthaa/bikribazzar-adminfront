@@ -1,10 +1,17 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser } from '@/lib/api';
+import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
   return (fd.get(key)?.toString() ?? '').trim();
+}
+
+/** Guard: these platform actions are super-admin only. */
+async function assertSuper() {
+  const me = await getAdmin();
+  if (me?.role !== 'super') throw new Error('Forbidden');
 }
 
 export async function createStoreAction(fd: FormData) {
@@ -57,4 +64,30 @@ export async function updatePaymentConfigAction(fd: FormData) {
 
   await updateStorePaymentConfig(id, data);
   revalidatePath(`/platform/${id}`);
+}
+
+export async function createStoreAdminAction(
+  storeId: string, email: string, password: string
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await createStoreAdmin({ storeId, email: email.trim().toLowerCase(), password });
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to create admin' };
+  }
+}
+
+export async function deleteStoreAdminAction(
+  storeId: string, adminId: number
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await deleteAdminUser(adminId);
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to delete admin' };
+  }
 }

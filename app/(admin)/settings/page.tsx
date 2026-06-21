@@ -4,7 +4,7 @@ import SettingsClient from './SettingsClient';
 
 export default async function SettingsPage() {
   const settings = await getSettings();
-  const storeId = currentStoreId();
+  const storeId = await currentStoreId();
 
   return (
     <main className="p-6 md:p-8 max-w-3xl">

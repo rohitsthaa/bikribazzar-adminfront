@@ -1,11 +1,15 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getStores } from '@/lib/api';
+import { getAdmin } from '@/lib/auth';
 import { createStoreAction } from './actions';
 import { TEMPLATES } from './templates';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformPage() {
+  const admin = await getAdmin();
+  if (admin?.role !== 'super') redirect('/dashboard'); // platform console is super-only
   const stores = await getStores().catch(() => []);
 
   return (

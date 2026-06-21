@@ -1,27 +1,34 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
+import { getAdmin } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
 import StoreSwitcher from '@/components/StoreSwitcher';
 import { getStores } from '@/lib/api';
 import { currentStoreId } from '@/lib/store-context';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  if (!isAuthenticated()) redirect('/login');
+  const admin = await getAdmin();
+  if (!admin) redirect('/login');
   const pathname = headers().get('x-pathname') ?? '';
   if (pathname.endsWith('/print')) {
     return <>{children}</>;
   }
 
-  const stores = await getStores().catch(() => []);
-  const current = currentStoreId();
+  const isSuper = admin.role === 'super';
+  // Super-admins can list/switch stores; store-admins only ever see their own.
+  const stores = isSuper ? await getStores().catch(() => []) : [];
+  const current = await currentStoreId();
   const currentStore = stores.find((s) => s.id === current);
+
+  // Show the top bar (Managing badge) whenever there's a notion of multiple
+  // stores OR the admin is store-scoped (so they always see which store).
+  const showBar = isSuper ? stores.length > 1 : true;
 
   return (
     <div className="flex min-h-screen bg-stone-50">
-      <Sidebar />
+      <Sidebar isSuper={isSuper} />
       <div className="flex-1 min-w-0 ml-64">
-        {stores.length > 1 && (
+        {showBar && (
           <div className="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-2">
             {/* Make it obvious which tenant is being edited — every product /
                 setting change lands on this store. */}
@@ -32,7 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 {currentStore?.name ?? current}
               </span>
             </div>
-            <StoreSwitcher stores={stores} current={current} />
+            {isSuper && stores.length > 1 && <StoreSwitcher stores={stores} current={current} />}
           </div>
         )}
         {children}
