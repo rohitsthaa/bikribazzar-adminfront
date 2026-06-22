@@ -28,6 +28,15 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 // ---- Products ----
 
+export type ProductVariant = {
+  id?: string;
+  label: string;
+  priceNpr: number | null;   // null = inherit product price
+  stockQty: number | null;   // null = unlimited
+  sku: string | null;
+  sortOrder?: number;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -44,6 +53,7 @@ export type Product = {
   prepaymentValue: number;
   stockQty: number | null;   // null = unlimited
   reorderPoint: number;
+  variants?: ProductVariant[];
 };
 
 export type InventoryLog = {
@@ -134,7 +144,7 @@ export type Order = {
   notes?: string;
   adminNotes?: string;       // internal admin-only notes
   source: OrderSource;
-  items: Array<{ productId: string; quantity: number; priceNpr: number; name?: string }>;
+  items: Array<{ productId: string; quantity: number; priceNpr: number; name?: string; variantId?: string; variantLabel?: string }>;
   totalNpr: number;
   advanceNpr: number;
   paidNpr: number;

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import ImageUploader from '@/components/ImageUploader';
-import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCategories, saveCurrency } from './actions';
+import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCategories, saveCurrency, saveBranding } from './actions';
 
 const DEFAULT_CATEGORIES = [
   { key: 'shelf', label: 'Hanging Shelves' },
@@ -85,6 +85,11 @@ export default function SettingsClient({
   initialLocation,
   initialCategories,
   initialCurrency,
+  initialTagline,
+  initialMetaDescription,
+  initialFontFamily,
+  initialLogoUrl,
+  initialOgImage,
 }: {
   initialAboutImage: string;
   initialPaymentQr: string;
@@ -97,6 +102,11 @@ export default function SettingsClient({
   initialLocation: string;
   initialCategories: string;
   initialCurrency: string;
+  initialTagline: string;
+  initialMetaDescription: string;
+  initialFontFamily: string;
+  initialLogoUrl: string;
+  initialOgImage: string;
 }) {
   // About image
   const [aboutImage, setAboutImage] = useState(initialAboutImage);
@@ -115,13 +125,30 @@ export default function SettingsClient({
   const [bankSaved, setBankSaved] = useState(false);
   const [bankPending, startBankTransition] = useTransition();
 
-  // Contact info
-  const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '9779845422250');
-  const [instagram, setInstagram] = useState(initialInstagram || 'https://www.instagram.com/soulthreadktm/');
-  const [contactEmail, setContactEmail] = useState(initialContactEmail || 'hello@soulthreadktm.com');
-  const [location, setLocation] = useState(initialLocation || 'Budanilkantha, Kathmandu · Kathmandu Valley, Nepal');
+  // Contact info — no Soul-Thread placeholders; each store sets its own.
+  const [whatsapp, setWhatsapp] = useState(initialWhatsapp);
+  const [instagram, setInstagram] = useState(initialInstagram);
+  const [contactEmail, setContactEmail] = useState(initialContactEmail);
+  const [location, setLocation] = useState(initialLocation);
   const [contactSaved, setContactSaved] = useState(false);
   const [contactPending, startContactTransition] = useTransition();
+
+  // Branding & SEO
+  const [tagline, setTagline] = useState(initialTagline);
+  const [metaDescription, setMetaDescription] = useState(initialMetaDescription);
+  const [fontFamily, setFontFamily] = useState(initialFontFamily);
+  const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
+  const [ogImage, setOgImage] = useState(initialOgImage);
+  const [brandingSaved, setBrandingSaved] = useState(false);
+  const [brandingPending, startBrandingTransition] = useTransition();
+
+  function handleBrandingSave() {
+    startBrandingTransition(async () => {
+      await saveBranding({ tagline, metaDescription, fontFamily, logoUrl, ogImage });
+      setBrandingSaved(true);
+      setTimeout(() => setBrandingSaved(false), 2000);
+    });
+  }
 
   // Currency
   const [currency, setCurrency] = useState(initialCurrency || 'NPR');
@@ -241,6 +268,45 @@ export default function SettingsClient({
           onChange={setLocation}
           placeholder="Budanilkantha, Kathmandu"
         />
+      </SettingCard>
+
+      {/* Branding & SEO */}
+      <SettingCard
+        title="Branding & SEO"
+        description="Your store's tagline, search/social description, logo, and font. Shown in the browser tab, Google results, and social shares."
+        onSave={handleBrandingSave}
+        isPending={brandingPending}
+        saved={brandingSaved}
+      >
+        <Field
+          label="Tagline"
+          value={tagline}
+          onChange={setTagline}
+          placeholder="e.g. Handmade goods, delivered with care"
+          hint="Appears after your store name in the title and hero/footer."
+        />
+        <Field
+          label="Search description (meta description)"
+          value={metaDescription}
+          onChange={setMetaDescription}
+          placeholder="One or two sentences describing your store."
+          hint="Used by Google and social previews. Falls back to your tagline."
+        />
+        <Field
+          label="Font (Google Fonts family name)"
+          value={fontFamily}
+          onChange={setFontFamily}
+          placeholder="e.g. Poppins, Playfair Display"
+          hint="Optional. Must match a Google Fonts family name exactly."
+        />
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5 font-medium">Logo / favicon</label>
+          <ImageUploader value={logoUrl} onChange={setLogoUrl} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5 font-medium">Social share image (Open Graph)</label>
+          <ImageUploader value={ogImage} onChange={setOgImage} />
+        </div>
       </SettingCard>
 
       {/* Currency */}

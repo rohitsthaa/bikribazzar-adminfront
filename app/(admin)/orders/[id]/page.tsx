@@ -221,6 +221,7 @@ export default async function OrderDetailPage({ params }: Props) {
                         <div>
                           <p className="text-sm font-medium text-stone-900">
                             {product?.name ?? item.productId}
+                            {item.variantLabel ? <span className="text-stone-400 font-normal"> · {item.variantLabel}</span> : null}
                           </p>
                           <p className="text-xs text-stone-400 mt-0.5">{currency} {item.priceNpr.toLocaleString()} each</p>
                         </div>

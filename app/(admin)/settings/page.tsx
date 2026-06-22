@@ -31,6 +31,11 @@ export default async function SettingsPage() {
         initialLocation={settings.contact_location ?? ''}
         initialCategories={settings.product_categories ?? ''}
         initialCurrency={settings.currency_symbol ?? 'NPR'}
+        initialTagline={settings.tagline ?? ''}
+        initialMetaDescription={settings.meta_description ?? ''}
+        initialFontFamily={settings.font_family ?? ''}
+        initialLogoUrl={settings.logo_url ?? ''}
+        initialOgImage={settings.og_image ?? ''}
       />
     </main>
   );

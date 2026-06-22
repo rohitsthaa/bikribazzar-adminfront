@@ -29,17 +29,29 @@ export async function saveProduct(_: unknown, formData: FormData) {
     reorderPoint: Number(formData.get('reorderPoint') ?? 0),
   };
 
+  // Variants (optional). Parsed from the hidden JSON field. Staff can't set
+  // prices, so strip per-variant price overrides for them.
+  let variants: Array<{ id?: string; label: string; priceNpr: number | null; stockQty: number | null; sku: string | null; sortOrder: number }> | undefined;
+  const variantsRaw = formData.get('variants') as string | null;
+  if (variantsRaw != null) {
+    try {
+      const parsed = JSON.parse(variantsRaw) as typeof variants;
+      variants = (parsed ?? []).map((v) => ({ ...v, priceNpr: canPrice ? v.priceNpr : null }));
+    } catch { variants = undefined; }
+  }
+
   try {
     if (isNew) {
       // Staff may create products, but price stays owner-controlled (defaults to
       // 0 = "price on request" until an owner sets it).
       if (!canPrice) data.priceNpr = 0;
-      await createProduct(data);
+      await createProduct({ ...data, ...(variants !== undefined ? { variants } : {}) });
     } else {
       // On edit, staff cannot change price: omit it so the API preserves the
       // existing value (PATCH is a partial update).
       const { priceNpr, ...rest } = data;
-      await updateProduct(id, canPrice ? data : rest);
+      const base = canPrice ? data : rest;
+      await updateProduct(id, { ...base, ...(variants !== undefined ? { variants } : {}) });
     }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Failed to save product.' };

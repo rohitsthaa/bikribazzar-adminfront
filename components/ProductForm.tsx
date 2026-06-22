@@ -42,6 +42,34 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
   const [prepaymentType, setPrepaymentType] = useState<PrepaymentType>(
     (product?.prepaymentType as PrepaymentType) ?? 'none'
   );
+  type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string };
+  const [variants, setVariants] = useState<VariantRow[]>(
+    (product?.variants ?? []).map((v) => ({
+      id: v.id,
+      label: v.label,
+      priceNpr: v.priceNpr == null ? '' : String(v.priceNpr),
+      stockQty: v.stockQty == null ? '' : String(v.stockQty),
+      sku: v.sku ?? '',
+    })),
+  );
+  function addVariant() { setVariants([...variants, { label: '', priceNpr: '', stockQty: '', sku: '' }]); }
+  function removeVariant(idx: number) { setVariants(variants.filter((_, i) => i !== idx)); }
+  function updateVariant(idx: number, patch: Partial<VariantRow>) {
+    setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
+  }
+  // Serialized for the form action: empty price/stock → null (inherit / unlimited).
+  const variantsPayload = JSON.stringify(
+    variants
+      .filter((v) => v.label.trim())
+      .map((v, i) => ({
+        id: v.id,
+        label: v.label.trim(),
+        priceNpr: v.priceNpr.trim() === '' ? null : Number(v.priceNpr),
+        stockQty: v.stockQty.trim() === '' ? null : Number(v.stockQty),
+        sku: v.sku.trim() || null,
+        sortOrder: i,
+      })),
+  );
   const isNew = !product;
 
   return (
@@ -316,6 +344,70 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             {/* Always send value=0 when type=none so the form still submits the field */}
             {prepaymentType === 'none' && (
               <input type="hidden" name="prepaymentValue" value="0" />
+            )}
+          </div>
+
+          {/* Variants — optional. When present, each variant has its own stock
+              (and optional price); product-level price/stock act as the default. */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <input type="hidden" name="variants" value={variantsPayload} />
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-semibold text-gray-700">Variants</h2>
+              <button type="button" onClick={addVariant} className="text-xs font-medium text-stone-600 hover:text-stone-900">
+                + Add variant
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              e.g. sizes or colors. Leave empty for a single-option product. Blank price = use product price; blank stock = unlimited.
+            </p>
+
+            {variants.length === 0 ? (
+              <p className="text-xs text-gray-300">No variants. This product is sold as one option.</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="hidden sm:grid grid-cols-[1fr_90px_80px_90px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
+                  <span>Label</span><span>Price</span><span>Stock</span><span>SKU</span><span />
+                </div>
+                {variants.map((v, idx) => (
+                  <div key={idx} className="grid grid-cols-2 sm:grid-cols-[1fr_90px_80px_90px_28px] gap-2">
+                    <input
+                      value={v.label}
+                      onChange={(e) => updateVariant(idx, { label: e.target.value })}
+                      placeholder="e.g. Red / L"
+                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm"
+                    />
+                    <input
+                      value={v.priceNpr}
+                      onChange={(e) => updateVariant(idx, { priceNpr: e.target.value })}
+                      placeholder="price"
+                      inputMode="numeric"
+                      disabled={!canSetPrice}
+                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm disabled:bg-gray-100"
+                    />
+                    <input
+                      value={v.stockQty}
+                      onChange={(e) => updateVariant(idx, { stockQty: e.target.value })}
+                      placeholder="stock"
+                      inputMode="numeric"
+                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm"
+                    />
+                    <input
+                      value={v.sku}
+                      onChange={(e) => updateVariant(idx, { sku: e.target.value })}
+                      placeholder="SKU"
+                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(idx)}
+                      title="Remove variant"
+                      className="text-gray-300 hover:text-red-500 text-lg leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
