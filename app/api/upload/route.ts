@@ -31,13 +31,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // Guard: API may return an HTML error page (nginx 502/504) — don't call .json() blindly.
+    // Map well-known nginx/proxy error codes to user-friendly messages.
+    if (upstream.status === 413) {
+      return NextResponse.json(
+        { error: 'File is too large. Please upload an image under 1 MB.' },
+        { status: 413 },
+      );
+    }
+    if (upstream.status === 502 || upstream.status === 503 || upstream.status === 504) {
+      return NextResponse.json(
+        { error: 'Upload service is temporarily unavailable. Please try again.' },
+        { status: 502 },
+      );
+    }
+
+    // Guard: API may return an HTML error page — don't call .json() blindly.
     const contentType = upstream.headers.get('content-type') ?? '';
     if (!contentType.includes('application/json')) {
       const text = await upstream.text().catch(() => '(no body)');
       console.error(`[upload proxy] Non-JSON response ${upstream.status}:`, text.slice(0, 300));
       return NextResponse.json(
-        { error: `Upload API returned unexpected response (${upstream.status}).` },
+        { error: `Upload failed (${upstream.status}). Contact support if this persists.` },
         { status: 502 },
       );
     }
