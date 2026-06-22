@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import type { Review } from '@/lib/api';
-import { updateReviewStatus } from '@/lib/api';
+import { updateReviewStatusAction } from './actions';
 
 type Filter = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -41,7 +41,7 @@ export default function ReviewsClient({ reviews: initial }: { reviews: Review[] 
   function handleStatus(id: number, status: 'approved' | 'rejected' | 'pending') {
     startTransition(async () => {
       try {
-        const updated = await updateReviewStatus(id, status);
+        const updated = await updateReviewStatusAction(id, status);
         setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r)));
       } catch {
         alert('Failed to update review status.');
