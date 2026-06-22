@@ -140,28 +140,25 @@ function NavItem({ href, label, icon, active }: {
 export default function Sidebar({
   isSuper = true,
   canSettings = true,
-  mode = 'store',
   storeName,
 }: {
   isSuper?: boolean;
   canSettings?: boolean;
-  /**
-   * 'platform' — super admin at the platform level (no store focused).
-   *              Shows only Platform link + sign out.
-   * 'store'    — managing a specific store (any role).
-   *              Shows full store nav. Super admins also get a back link.
-   */
-  mode?: 'platform' | 'store';
   storeName?: string;
 }) {
   const pathname = usePathname();
+
+  // Derive mode from the current path — no prop needed.
+  // Platform mode: super admin is on /platform/** (managing the platform itself).
+  // Store mode: everyone else, or super admin who has entered a specific store.
+  const isPlatformMode = isSuper && pathname.startsWith('/platform');
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 z-30 flex flex-col bg-white border-r border-stone-200">
       {/* Logo ------------------------------------------------------------ */}
       <div className="px-5 pt-6 pb-5">
         <Link
-          href={mode === 'platform' ? '/platform' : '/dashboard'}
+          href={isPlatformMode ? '/platform' : '/dashboard'}
           className="flex items-center gap-3 group"
         >
           <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#c96a3a] text-white text-sm font-bold tracking-tight flex-shrink-0 shadow-sm">
@@ -172,7 +169,7 @@ export default function Sidebar({
               Soul Thread
             </p>
             <p className="text-stone-400 text-xs leading-tight">
-              {mode === 'platform' ? 'Platform console' : (storeName ?? 'Store admin')}
+              {isPlatformMode ? 'Platform console' : (storeName ?? 'Store admin')}
             </p>
           </div>
         </Link>
@@ -182,7 +179,7 @@ export default function Sidebar({
 
       {/* Navigation ------------------------------------------------------ */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {mode === 'platform' ? (
+        {isPlatformMode ? (
           /* ── Platform mode: only the Platform console ─────────────────── */
           <NavItem
             href="/platform"

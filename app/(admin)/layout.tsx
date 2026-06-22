@@ -17,29 +17,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isSuper = admin.role === 'super';
   const stores = isSuper ? await getStores().catch(() => []) : [];
   const current = await currentStoreId();
-  const currentStore = isSuper
-    ? stores.find((s) => s.id === current)
-    : null;
-
-  // Platform mode: super admin is on /platform/** — no specific store in focus.
-  // Store mode: everyone else, or super admin who has navigated into a store.
-  const isPlatformMode = isSuper && pathname.startsWith('/platform');
-  const sidebarMode = isPlatformMode ? 'platform' : 'store';
-
-  // For non-super admins, the store name comes from their own storeId.
+  const currentStore = isSuper ? stores.find((s) => s.id === current) : null;
   const storeName = currentStore?.name ?? (isSuper ? current : undefined);
+
+  // The store context bar is only shown when NOT on platform routes.
+  // The Sidebar determines its own mode from usePathname() — no prop needed.
+  const isPlatformRoute = isSuper && pathname.startsWith('/platform');
 
   return (
     <div className="flex min-h-screen bg-stone-50">
       <Sidebar
         isSuper={isSuper}
         canSettings={can(admin.role, 'settings')}
-        mode={sidebarMode}
         storeName={storeName}
       />
       <div className="flex-1 min-w-0 ml-64">
-        {/* Store context bar — only in store mode, so the current store is always visible */}
-        {!isPlatformMode && (
+        {!isPlatformRoute && (
           <div className="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-2">
             <div className="flex items-center gap-2 text-sm">
               {!isSuper && (
