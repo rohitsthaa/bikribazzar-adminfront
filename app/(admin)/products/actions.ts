@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock } from '@/lib/api';
+import { createProduct, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 
 export async function saveProduct(_: unknown, formData: FormData) {
@@ -102,5 +102,29 @@ export async function adjustStockAction(
   }
   revalidatePath(`/products/${productId}`);
   revalidatePath('/products');
+  return { ok: true };
+}
+
+export async function restockVariantAction(
+  productId: string, variantId: string, qty: number, notes?: string, batchDate?: string
+): Promise<{ error: string } | { ok: true }> {
+  try {
+    await restockVariant(productId, variantId, qty, notes, batchDate);
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Failed to restock variant.' };
+  }
+  revalidatePath(`/products/${productId}`);
+  return { ok: true };
+}
+
+export async function adjustVariantStockAction(
+  productId: string, variantId: string, delta: number, notes?: string
+): Promise<{ error: string } | { ok: true }> {
+  try {
+    await adjustVariantStock(productId, variantId, delta, notes);
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Failed to adjust variant stock.' };
+  }
+  revalidatePath(`/products/${productId}`);
   return { ok: true };
 }

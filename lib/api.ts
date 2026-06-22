@@ -59,6 +59,7 @@ export type Product = {
 export type InventoryLog = {
   id: number;
   productId: string;
+  variantId: string | null;
   delta: number;
   reason: 'sale' | 'restock' | 'adjustment' | 'cancelled';
   notes: string | null;
@@ -101,6 +102,20 @@ export function adjustStock(productId: string, delta: number, notes?: string) {
     method: 'POST',
     body: JSON.stringify({ delta, notes }),
   });
+}
+
+export function restockVariant(productId: string, variantId: string, qty: number, notes?: string, batchDate?: string) {
+  return apiFetch<ProductVariant>(
+    `/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/restock`,
+    { method: 'POST', body: JSON.stringify({ qty, notes, batchDate }) },
+  );
+}
+
+export function adjustVariantStock(productId: string, variantId: string, delta: number, notes?: string) {
+  return apiFetch<ProductVariant>(
+    `/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/adjust`,
+    { method: 'POST', body: JSON.stringify({ delta, notes }) },
+  );
 }
 
 // ---- Testimonials ----
@@ -326,4 +341,29 @@ export function updateCoupon(code: string, data: Partial<Omit<Coupon, 'code' | '
 
 export function deleteCoupon(code: string) {
   return apiFetch<{ ok: boolean }>(`/coupons/${encodeURIComponent(code)}`, { method: 'DELETE' });
+}
+
+// --- reviews ---
+
+export type Review = {
+  id: number;
+  storeId: string;
+  productId: string;
+  reviewerName: string;
+  rating: number;
+  body: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+};
+
+export function getReviews(status?: 'pending' | 'approved' | 'rejected' | 'all') {
+  const qs = status ? `?status=${status}` : '';
+  return apiFetch<Review[]>(`/reviews${qs}`);
+}
+
+export function updateReviewStatus(id: number, status: 'approved' | 'rejected' | 'pending') {
+  return apiFetch<Review>(`/reviews/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
 }

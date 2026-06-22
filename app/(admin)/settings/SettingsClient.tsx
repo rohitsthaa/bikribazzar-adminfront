@@ -246,7 +246,7 @@ export default function SettingsClient({
           label="WhatsApp number (with country code)"
           value={whatsapp}
           onChange={setWhatsapp}
-          placeholder="9779845422250"
+          placeholder="977XXXXXXXXXX"
           mono
           hint="Used in wa.me/ links. Include country code, no + or spaces."
         />
@@ -260,13 +260,13 @@ export default function SettingsClient({
           label="Contact email"
           value={contactEmail}
           onChange={setContactEmail}
-          placeholder="hello@soulthreadktm.com"
+          placeholder="hello@yourstore.com"
         />
         <Field
           label="Location"
           value={location}
           onChange={setLocation}
-          placeholder="Budanilkantha, Kathmandu"
+          placeholder="City, Country"
         />
       </SettingCard>
 
@@ -421,7 +421,7 @@ export default function SettingsClient({
           label="Account holder name"
           value={accountName}
           onChange={setAccountName}
-          placeholder="e.g. Rohit Shrestha"
+          placeholder="e.g. Ram Bahadur Shrestha"
         />
         <Field
           label="Account number"
