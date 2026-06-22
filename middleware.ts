@@ -22,9 +22,12 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const response = NextResponse.next();
-  response.headers.set('x-pathname', pathname);
-  return response;
+  // Pass pathname as a REQUEST header so server components can read it via headers().
+  // Note: response.headers.set() sets a *response* header (sent to browser) — it is
+  // NOT available to server components. Request headers set here ARE available.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-pathname', pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] };
