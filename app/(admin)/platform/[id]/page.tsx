@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getStore, getStorePaymentConfig, getStoreAdmins } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import { updateStoreAction, updatePaymentConfigAction } from '../actions';
+import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import { TEMPLATES } from '../templates';
 
@@ -27,10 +28,20 @@ export default async function StoreManagePage({ params }: Props) {
 
   return (
     <main className="p-6 md:p-8 max-w-3xl space-y-8">
-      <div>
-        <Link href="/platform" className="text-sm text-stone-400 hover:text-stone-700">← All stores</Link>
-        <h1 className="text-3xl font-bold text-stone-900 tracking-tight mt-3">{store.name}</h1>
-        <p className="text-stone-400 text-sm">{store.id}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Link href="/platform" className="text-sm text-stone-400 hover:text-stone-700">← All stores</Link>
+          <h1 className="text-3xl font-bold text-stone-900 tracking-tight mt-3">{store.name}</h1>
+          <p className="text-stone-400 text-sm">{store.id}</p>
+        </div>
+        <form action={enterStore.bind(null, store.id)} className="mt-auto">
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 rounded-lg bg-[#c96a3a] text-white px-4 py-2 text-sm font-medium hover:bg-[#b85f33] transition-colors"
+          >
+            Enter store →
+          </button>
+        </form>
       </div>
 
       {/* Store settings */}

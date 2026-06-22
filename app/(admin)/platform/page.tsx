@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getStores, getPlatformOverview } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import { createStoreAction } from './actions';
+import { enterStore } from '../store-actions';
 import PlatformOverview from './PlatformOverview';
 import { TEMPLATES } from './templates';
 
@@ -52,7 +53,19 @@ export default async function PlatformPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <Link href={`/platform/${s.id}`} className="text-[#c96a3a] font-medium hover:underline">Manage</Link>
+                  <div className="flex items-center justify-end gap-3">
+                    <Link href={`/platform/${s.id}`} className="text-stone-400 text-sm hover:text-stone-700">
+                      Config
+                    </Link>
+                    <form action={enterStore.bind(null, s.id)}>
+                      <button
+                        type="submit"
+                        className="text-sm font-medium text-[#c96a3a] hover:underline"
+                      >
+                        Enter store →
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}

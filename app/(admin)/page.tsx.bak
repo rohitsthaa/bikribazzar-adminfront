@@ -1,0 +1,9 @@
+import { redirect } from 'next/navigation';
+import { getAdmin } from '@/lib/auth';
+
+/** Admin root — redirect based on role. */
+export default async function AdminRoot() {
+  const admin = await getAdmin();
+  if (admin?.role === 'super') redirect('/platform');
+  redirect('/dashboard');
+}
