@@ -356,6 +356,20 @@ export type Review = {
   createdAt: string;
 };
 
+// ---- Templates ----
+
+export type TemplateMeta = {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  palette: string[];
+  paletteLabels: string[];
+};
+
+/** Returns the list of available storefront templates from the API. */
+export function getTemplates() { return apiFetch<TemplateMeta[]>('/templates'); }
+
 export function getReviews(status?: 'pending' | 'approved' | 'rejected' | 'all') {
   const qs = status ? `?status=${status}` : '';
   return apiFetch<Review[]>(`/reviews${qs}`);

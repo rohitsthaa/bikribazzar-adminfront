@@ -19,6 +19,8 @@ const nextConfig = {
       { protocol: 'https', hostname: apiImageHostname(), pathname: '/uploads/**' },
       // Soul Thread's own / legacy API host
       { protocol: 'https', hostname: 'api.soulthreadktm.com', pathname: '/uploads/**' },
+      // Demo / placeholder images (picsum.photos used in seed-demo)
+      { protocol: 'https', hostname: 'picsum.photos' },
       // Local development
       { protocol: 'http', hostname: 'localhost', port: '3001', pathname: '/uploads/**' },
       { protocol: 'http', hostname: 'api', port: '3000', pathname: '/uploads/**' },

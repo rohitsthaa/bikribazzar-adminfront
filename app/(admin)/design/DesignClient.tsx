@@ -3,117 +3,164 @@
 import { useState, useTransition } from 'react';
 import { setTemplateAction, saveSectionsAction } from './actions';
 import { SECTION_REGISTRY, parseSections, type HomeSection } from '@/lib/home-sections';
+import type { TemplateMeta } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
-// Template definitions with visual preview SVGs
+// SVG previews keyed by template ID — purely client-side presentational layer.
+// When the API returns a template ID that has no preview here, a colour-swatch
+// fallback is shown instead. Add a new entry here whenever a new template is
+// built; no other admin changes are needed.
 // ---------------------------------------------------------------------------
 
-const TEMPLATES = [
-  {
-    id: 'soulthread',
-    name: 'Soul Thread',
-    tagline: 'Warm · Artisan · Earthy',
-    description: 'Hand-crafted feel with warm terracotta accents, serif display type, and a cream-toned palette. Designed for makers and slow-goods brands.',
-    preview: (
-      <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-        {/* Background */}
-        <rect width="280" height="180" fill="#faf8f5" />
-        {/* Nav */}
-        <rect width="280" height="28" fill="#faf8f5" />
-        <rect x="12" y="9" width="40" height="7" rx="2" fill="#c96a3a" opacity="0.8" />
-        <rect x="180" y="10" width="22" height="5" rx="1" fill="#7a6a5a" opacity="0.4" />
-        <rect x="208" y="10" width="22" height="5" rx="1" fill="#7a6a5a" opacity="0.4" />
-        <rect x="236" y="10" width="22" height="5" rx="1" fill="#7a6a5a" opacity="0.4" />
-        {/* Hero section */}
-        <rect y="28" width="280" height="52" fill="#f0ebe3" />
-        <rect x="12" y="36" width="70" height="10" rx="2" fill="#3d2c1e" opacity="0.7" />
-        <rect x="12" y="50" width="50" height="6" rx="1" fill="#7a6a5a" opacity="0.4" />
-        <rect x="12" y="60" width="80" height="6" rx="1" fill="#7a6a5a" opacity="0.3" />
-        <rect x="12" y="70" width="30" height="8" rx="4" fill="#c96a3a" opacity="0.9" />
-        {/* Hero image placeholder */}
-        <rect x="160" y="30" width="108" height="44" rx="4" fill="#ddd5c8" />
-        <circle cx="214" cy="52" r="12" fill="#c8b99a" opacity="0.6" />
-        <path d="M204 58 l10-14 l10 14 z" fill="#c96a3a" opacity="0.3" />
-        {/* Products grid */}
-        <rect x="12" y="88" width="60" height="9" rx="2" fill="#3d2c1e" opacity="0.5" />
-        {/* Product card 1 */}
-        <rect x="12" y="102" width="74" height="64" rx="4" fill="#fff" stroke="#e8e0d6" strokeWidth="0.5" />
-        <rect x="12" y="102" width="74" height="38" rx="4" fill="#e8ddd0" />
-        <rect x="20" y="146" width="40" height="5" rx="1" fill="#3d2c1e" opacity="0.5" />
-        <rect x="20" y="154" width="25" height="5" rx="1" fill="#c96a3a" opacity="0.6" />
-        {/* Product card 2 */}
-        <rect x="93" y="102" width="74" height="64" rx="4" fill="#fff" stroke="#e8e0d6" strokeWidth="0.5" />
-        <rect x="93" y="102" width="74" height="38" rx="4" fill="#ddd5c8" />
-        <rect x="101" y="146" width="40" height="5" rx="1" fill="#3d2c1e" opacity="0.5" />
-        <rect x="101" y="154" width="25" height="5" rx="1" fill="#c96a3a" opacity="0.6" />
-        {/* Product card 3 */}
-        <rect x="174" y="102" width="74" height="64" rx="4" fill="#fff" stroke="#e8e0d6" strokeWidth="0.5" />
-        <rect x="174" y="102" width="74" height="38" rx="4" fill="#cfc4b4" />
-        <rect x="182" y="146" width="40" height="5" rx="1" fill="#3d2c1e" opacity="0.5" />
-        <rect x="182" y="154" width="25" height="5" rx="1" fill="#c96a3a" opacity="0.6" />
-      </svg>
-    ),
-    palette: ['#faf8f5', '#f0ebe3', '#c96a3a', '#3d2c1e'],
-    paletteLabels: ['Cream', 'Sand', 'Terracotta', 'Ink'],
-  },
-  {
-    id: 'aurora',
-    name: 'Aurora',
-    tagline: 'Modern · Minimal · Clean',
-    description: 'Crisp zinc tones, tight grid layouts, and sharp typographic hierarchy. Versatile for any product category.',
-    preview: (
-      <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-        {/* Background */}
-        <rect width="280" height="180" fill="#ffffff" />
-        {/* Nav */}
-        <rect width="280" height="28" fill="#fff" />
-        <rect x="12" y="10" width="32" height="6" rx="1" fill="#18181b" opacity="0.8" />
-        <rect x="180" y="11" width="20" height="4" rx="1" fill="#71717a" opacity="0.5" />
-        <rect x="206" y="11" width="20" height="4" rx="1" fill="#71717a" opacity="0.5" />
-        <rect x="232" y="11" width="20" height="4" rx="1" fill="#71717a" opacity="0.5" />
-        <rect y="26" width="280" height="0.5" fill="#e4e4e7" />
-        {/* Hero */}
-        <rect y="28" width="280" height="52" fill="#f4f4f5" />
-        <rect x="12" y="37" width="80" height="11" rx="2" fill="#18181b" opacity="0.8" />
-        <rect x="12" y="52" width="55" height="5" rx="1" fill="#71717a" opacity="0.5" />
-        <rect x="12" y="61" width="70" height="5" rx="1" fill="#71717a" opacity="0.35" />
-        <rect x="12" y="70" width="36" height="7" rx="2" fill="#18181b" opacity="0.85" />
-        {/* Hero image */}
-        <rect x="160" y="30" width="108" height="44" rx="3" fill="#e4e4e7" />
-        <rect x="175" y="42" width="78" height="20" rx="2" fill="#d4d4d8" opacity="0.7" />
-        {/* Products */}
-        <rect x="12" y="90" width="256" height="0.5" fill="#e4e4e7" />
-        <rect x="12" y="96" width="55" height="7" rx="1" fill="#18181b" opacity="0.6" />
-        {/* Product card 1 */}
-        <rect x="12" y="108" width="72" height="62" rx="3" fill="#f4f4f5" />
-        <rect x="12" y="108" width="72" height="38" rx="3" fill="#e4e4e7" />
-        <rect x="18" y="152" width="38" height="4" rx="1" fill="#18181b" opacity="0.55" />
-        <rect x="18" y="159" width="24" height="4" rx="1" fill="#18181b" opacity="0.8" />
-        {/* Product card 2 */}
-        <rect x="92" y="108" width="72" height="62" rx="3" fill="#f4f4f5" />
-        <rect x="92" y="108" width="72" height="38" rx="3" fill="#d4d4d8" />
-        <rect x="98" y="152" width="38" height="4" rx="1" fill="#18181b" opacity="0.55" />
-        <rect x="98" y="159" width="24" height="4" rx="1" fill="#18181b" opacity="0.8" />
-        {/* Product card 3 */}
-        <rect x="172" y="108" width="72" height="62" rx="3" fill="#f4f4f5" />
-        <rect x="172" y="108" width="72" height="38" rx="3" fill="#e4e4e7" />
-        <rect x="178" y="152" width="38" height="4" rx="1" fill="#18181b" opacity="0.55" />
-        <rect x="178" y="159" width="24" height="4" rx="1" fill="#18181b" opacity="0.8" />
-      </svg>
-    ),
-    palette: ['#ffffff', '#f4f4f5', '#18181b', '#71717a'],
-    paletteLabels: ['White', 'Zinc 100', 'Zinc 950', 'Zinc 500'],
-  },
-];
+const TEMPLATE_PREVIEWS: Record<string, React.ReactNode> = {
+  soulthread: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#faf8f5" />
+      <rect width="280" height="28" fill="#faf8f5" />
+      <rect x="12" y="9" width="40" height="7" rx="2" fill="#c96a3a" opacity="0.8" />
+      <rect x="180" y="10" width="22" height="5" rx="1" fill="#7a6a5a" opacity="0.4" />
+      <rect x="208" y="10" width="22" height="5" rx="1" fill="#7a6a5a" opacity="0.4" />
+      <rect x="236" y="10" width="22" height="5" rx="1" fill="#7a6a5a" opacity="0.4" />
+      <rect y="28" width="280" height="52" fill="#f0ebe3" />
+      <rect x="12" y="36" width="70" height="10" rx="2" fill="#3d2c1e" opacity="0.7" />
+      <rect x="12" y="50" width="50" height="6" rx="1" fill="#7a6a5a" opacity="0.4" />
+      <rect x="12" y="60" width="80" height="6" rx="1" fill="#7a6a5a" opacity="0.3" />
+      <rect x="12" y="70" width="30" height="8" rx="4" fill="#c96a3a" opacity="0.9" />
+      <rect x="160" y="30" width="108" height="44" rx="4" fill="#ddd5c8" />
+      <circle cx="214" cy="52" r="12" fill="#c8b99a" opacity="0.6" />
+      <path d="M204 58 l10-14 l10 14 z" fill="#c96a3a" opacity="0.3" />
+      <rect x="12" y="88" width="60" height="9" rx="2" fill="#3d2c1e" opacity="0.5" />
+      <rect x="12" y="102" width="74" height="64" rx="4" fill="#fff" stroke="#e8e0d6" strokeWidth="0.5" />
+      <rect x="12" y="102" width="74" height="38" rx="4" fill="#e8ddd0" />
+      <rect x="20" y="146" width="40" height="5" rx="1" fill="#3d2c1e" opacity="0.5" />
+      <rect x="20" y="154" width="25" height="5" rx="1" fill="#c96a3a" opacity="0.6" />
+      <rect x="93" y="102" width="74" height="64" rx="4" fill="#fff" stroke="#e8e0d6" strokeWidth="0.5" />
+      <rect x="93" y="102" width="74" height="38" rx="4" fill="#ddd5c8" />
+      <rect x="101" y="146" width="40" height="5" rx="1" fill="#3d2c1e" opacity="0.5" />
+      <rect x="101" y="154" width="25" height="5" rx="1" fill="#c96a3a" opacity="0.6" />
+      <rect x="174" y="102" width="74" height="64" rx="4" fill="#fff" stroke="#e8e0d6" strokeWidth="0.5" />
+      <rect x="174" y="102" width="74" height="38" rx="4" fill="#cfc4b4" />
+      <rect x="182" y="146" width="40" height="5" rx="1" fill="#3d2c1e" opacity="0.5" />
+      <rect x="182" y="154" width="25" height="5" rx="1" fill="#c96a3a" opacity="0.6" />
+    </svg>
+  ),
+  aurora: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#ffffff" />
+      <rect width="280" height="28" fill="#fff" />
+      <rect x="12" y="10" width="32" height="6" rx="1" fill="#18181b" opacity="0.8" />
+      <rect x="180" y="11" width="20" height="4" rx="1" fill="#71717a" opacity="0.5" />
+      <rect x="206" y="11" width="20" height="4" rx="1" fill="#71717a" opacity="0.5" />
+      <rect x="232" y="11" width="20" height="4" rx="1" fill="#71717a" opacity="0.5" />
+      <rect y="26" width="280" height="0.5" fill="#e4e4e7" />
+      <rect y="28" width="280" height="52" fill="#f4f4f5" />
+      <rect x="12" y="37" width="80" height="11" rx="2" fill="#18181b" opacity="0.8" />
+      <rect x="12" y="52" width="55" height="5" rx="1" fill="#71717a" opacity="0.5" />
+      <rect x="12" y="61" width="70" height="5" rx="1" fill="#71717a" opacity="0.35" />
+      <rect x="12" y="70" width="36" height="7" rx="2" fill="#18181b" opacity="0.85" />
+      <rect x="160" y="30" width="108" height="44" rx="3" fill="#e4e4e7" />
+      <rect x="175" y="42" width="78" height="20" rx="2" fill="#d4d4d8" opacity="0.7" />
+      <rect x="12" y="90" width="256" height="0.5" fill="#e4e4e7" />
+      <rect x="12" y="96" width="55" height="7" rx="1" fill="#18181b" opacity="0.6" />
+      <rect x="12" y="108" width="72" height="62" rx="3" fill="#f4f4f5" />
+      <rect x="12" y="108" width="72" height="38" rx="3" fill="#e4e4e7" />
+      <rect x="18" y="152" width="38" height="4" rx="1" fill="#18181b" opacity="0.55" />
+      <rect x="18" y="159" width="24" height="4" rx="1" fill="#18181b" opacity="0.8" />
+      <rect x="92" y="108" width="72" height="62" rx="3" fill="#f4f4f5" />
+      <rect x="92" y="108" width="72" height="38" rx="3" fill="#d4d4d8" />
+      <rect x="98" y="152" width="38" height="4" rx="1" fill="#18181b" opacity="0.55" />
+      <rect x="98" y="159" width="24" height="4" rx="1" fill="#18181b" opacity="0.8" />
+      <rect x="172" y="108" width="72" height="62" rx="3" fill="#f4f4f5" />
+      <rect x="172" y="108" width="72" height="38" rx="3" fill="#e4e4e7" />
+      <rect x="178" y="152" width="38" height="4" rx="1" fill="#18181b" opacity="0.55" />
+      <rect x="178" y="159" width="24" height="4" rx="1" fill="#18181b" opacity="0.8" />
+    </svg>
+  ),
+  bloom: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#f7f4ef" />
+      <rect width="280" height="28" fill="#f7f4ef" />
+      <rect x="12" y="9" width="8" height="8" rx="4" fill="#5a7d5a" />
+      <rect x="24" y="11" width="36" height="5" rx="1" fill="#2d3a2d" opacity="0.7" />
+      <rect x="180" y="11" width="20" height="4" rx="1" fill="#4a5e4a" opacity="0.4" />
+      <rect x="206" y="11" width="20" height="4" rx="1" fill="#4a5e4a" opacity="0.4" />
+      <rect x="240" y="8" width="28" height="10" rx="5" fill="#5a7d5a" opacity="0.9" />
+      <rect y="27" width="280" height="0.5" fill="#d6cfc4" />
+      <rect y="28" width="280" height="54" fill="#f7f4ef" />
+      <rect x="12" y="36" width="8" height="4" rx="1" fill="#5a7d5a" opacity="0.6" />
+      <rect x="12" y="44" width="90" height="10" rx="2" fill="#2d3a2d" opacity="0.75" />
+      <rect x="12" y="57" width="65" height="5" rx="1" fill="#4a5e4a" opacity="0.4" />
+      <rect x="12" y="66" width="34" height="9" rx="5" fill="#5a7d5a" opacity="0.9" />
+      <rect x="158" y="30" width="110" height="46" rx="12" fill="#e0dbd0" />
+      <circle cx="213" cy="53" r="14" fill="#d6cfc4" opacity="0.7" />
+      <rect y="88" width="280" height="0.5" fill="#d6cfc4" opacity="0.6" />
+      <rect x="12" y="94" width="70" height="7" rx="2" fill="#2d3a2d" opacity="0.5" />
+      <rect x="12" y="106" width="74" height="64" rx="12" fill="#f0ebe4" stroke="#d6cfc4" strokeWidth="0.5" />
+      <rect x="12" y="106" width="74" height="38" rx="12" fill="#e0d9d0" />
+      <rect x="20" y="150" width="38" height="5" rx="1" fill="#2d3a2d" opacity="0.5" />
+      <rect x="20" y="158" width="24" height="4" rx="1" fill="#c4835a" opacity="0.7" />
+      <rect x="93" y="106" width="74" height="64" rx="12" fill="#f0ebe4" stroke="#d6cfc4" strokeWidth="0.5" />
+      <rect x="93" y="106" width="74" height="38" rx="12" fill="#d6d0c5" />
+      <rect x="101" y="150" width="38" height="5" rx="1" fill="#2d3a2d" opacity="0.5" />
+      <rect x="101" y="158" width="24" height="4" rx="1" fill="#c4835a" opacity="0.7" />
+      <rect x="174" y="106" width="74" height="64" rx="12" fill="#f0ebe4" stroke="#d6cfc4" strokeWidth="0.5" />
+      <rect x="174" y="106" width="74" height="38" rx="12" fill="#c8c2b5" />
+      <rect x="182" y="150" width="38" height="5" rx="1" fill="#2d3a2d" opacity="0.5" />
+      <rect x="182" y="158" width="24" height="4" rx="1" fill="#c4835a" opacity="0.7" />
+    </svg>
+  ),
+  coastal: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#f5f0e8" />
+      <rect width="280" height="28" fill="#f5f0e8" opacity="0.92" />
+      <rect x="12" y="9" width="10" height="10" rx="3" fill="#2d7d9a" />
+      <rect x="26" y="11" width="36" height="5" rx="1" fill="#1a3040" opacity="0.7" />
+      <rect x="178" y="11" width="20" height="4" rx="1" fill="#1a3040" opacity="0.4" />
+      <rect x="204" y="11" width="20" height="4" rx="1" fill="#1a3040" opacity="0.4" />
+      <rect x="238" y="8" width="30" height="10" rx="3" fill="#2d7d9a" opacity="0.9" />
+      <rect y="27" width="280" height="0.5" fill="#d9d0c0" />
+      <defs>
+        <linearGradient id="coastalHero" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#1a3040" />
+          <stop offset="100%" stopColor="#2d7d9a" />
+        </linearGradient>
+      </defs>
+      <rect y="28" width="280" height="54" fill="url(#coastalHero)" />
+      <rect x="12" y="37" width="8" height="3" rx="1" fill="#7ec8e3" opacity="0.7" />
+      <rect x="12" y="44" width="88" height="10" rx="2" fill="#f5f0e8" opacity="0.9" />
+      <rect x="12" y="57" width="60" height="5" rx="1" fill="#f5f0e8" opacity="0.5" />
+      <rect x="12" y="66" width="36" height="9" rx="3" fill="#2d7d9a" opacity="0.9" />
+      <rect x="54" y="66" width="36" height="9" rx="3" fill="none" stroke="#f5f0e8" strokeWidth="0.8" opacity="0.5" />
+      <rect x="158" y="30" width="110" height="46" rx="8" fill="#1a3040" opacity="0.5" />
+      <rect x="166" y="38" width="94" height="30" rx="4" fill="#2d7d9a" opacity="0.4" />
+      <rect y="88" width="280" height="0.5" fill="#d9d0c0" opacity="0.6" />
+      <rect x="12" y="94" width="60" height="7" rx="1" fill="#1a3040" opacity="0.5" />
+      <rect x="12" y="106" width="74" height="64" rx="8" fill="#ede8de" stroke="#d9d0c0" strokeWidth="0.5" />
+      <rect x="12" y="106" width="74" height="38" rx="8" fill="#ddd5c5" />
+      <rect x="20" y="150" width="38" height="5" rx="1" fill="#1a3040" opacity="0.6" />
+      <rect x="20" y="158" width="24" height="4" rx="1" fill="#c49a6c" opacity="0.8" />
+      <rect x="93" y="106" width="74" height="64" rx="8" fill="#ede8de" stroke="#d9d0c0" strokeWidth="0.5" />
+      <rect x="93" y="106" width="74" height="38" rx="8" fill="#c8c0b0" />
+      <rect x="101" y="150" width="38" height="5" rx="1" fill="#1a3040" opacity="0.6" />
+      <rect x="101" y="158" width="24" height="4" rx="1" fill="#c49a6c" opacity="0.8" />
+      <rect x="174" y="106" width="74" height="64" rx="8" fill="#ede8de" stroke="#d9d0c0" strokeWidth="0.5" />
+      <rect x="174" y="106" width="74" height="38" rx="8" fill="#d5cdc0" />
+      <rect x="182" y="150" width="38" height="5" rx="1" fill="#1a3040" opacity="0.6" />
+      <rect x="182" y="158" width="24" height="4" rx="1" fill="#c49a6c" opacity="0.8" />
+    </svg>
+  ),
+};
 
 // ---------------------------------------------------------------------------
 
 interface Props {
   currentTemplateId: string;
   rawSections: string;
+  /** Template list fetched from /templates — drives the picker. */
+  templates: TemplateMeta[];
 }
 
-export default function DesignClient({ currentTemplateId, rawSections }: Props) {
+export default function DesignClient({ currentTemplateId, rawSections, templates }: Props) {
   const [selected, setSelected] = useState(currentTemplateId);
   const [saved, setSaved] = useState(currentTemplateId);
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +233,7 @@ export default function DesignClient({ currentTemplateId, rawSections }: Props) 
     <div className="space-y-8">
       {/* Template cards */}
       <div className="grid sm:grid-cols-2 gap-5">
-        {TEMPLATES.map((t) => {
+        {templates.map((t) => {
           const isActive = saved === t.id;
           const isChosen = selected === t.id;
           return (
@@ -202,7 +249,14 @@ export default function DesignClient({ currentTemplateId, rawSections }: Props) 
             >
               {/* Preview */}
               <div className="aspect-[16/10] bg-stone-100 overflow-hidden relative">
-                {t.preview}
+                {TEMPLATE_PREVIEWS[t.id] ?? (
+                  /* Fallback for templates with no registered SVG preview */
+                  <div className="w-full h-full flex items-end p-3 gap-2" style={{ backgroundColor: t.palette[0] }}>
+                    {t.palette.map((c, i) => (
+                      <span key={i} className="w-6 h-6 rounded-full border border-white/40 flex-shrink-0" style={{ backgroundColor: c }} />
+                    ))}
+                  </div>
+                )}
                 {isActive && (
                   <span className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
                     Active
@@ -268,7 +322,7 @@ export default function DesignClient({ currentTemplateId, rawSections }: Props) 
         )}
         {isDirty && (
           <p className="text-sm text-stone-500">
-            Switching from <span className="font-medium">{TEMPLATES.find(t => t.id === saved)?.name}</span> to <span className="font-medium">{TEMPLATES.find(t => t.id === selected)?.name}</span>
+            Switching from <span className="font-medium">{templates.find(t => t.id === saved)?.name}</span> to <span className="font-medium">{templates.find(t => t.id === selected)?.name}</span>
           </p>
         )}
         {!isDirty && saved !== currentTemplateId && (

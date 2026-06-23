@@ -94,6 +94,12 @@ const IconBack = () => (
     <polyline points="15 18 9 12 15 6" />
   </svg>
 );
+const IconExternalLink = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+    <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
 
 // ---------------------------------------------------------------------------
 // Store nav items (shown when managing a specific store)
@@ -141,10 +147,12 @@ export default function Sidebar({
   isSuper = true,
   canSettings = true,
   storeName,
+  storeUrl,
 }: {
   isSuper?: boolean;
   canSettings?: boolean;
   storeName?: string;
+  storeUrl?: string | null;
 }) {
   const pathname = usePathname();
 
@@ -223,8 +231,19 @@ export default function Sidebar({
 
       <div className="mx-4 border-t border-stone-100" />
 
-      {/* Sign out -------------------------------------------------------- */}
-      <div className="px-3 py-4">
+      {/* View store + Sign out ------------------------------------------- */}
+      <div className="px-3 py-4 space-y-0.5">
+        {!isPlatformMode && storeUrl && (
+          <a
+            href={storeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-stone-500 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+          >
+            <IconExternalLink />
+            View store
+          </a>
+        )}
         <form action={logout}>
           <button
             type="submit"

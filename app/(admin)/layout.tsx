@@ -20,6 +20,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const currentStore = isSuper ? stores.find((s) => s.id === current) : null;
   const storeName = currentStore?.name ?? (isSuper ? current : undefined);
 
+  // Build the public storefront URL for the "View store" link in the sidebar.
+  const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? '';
+  const storeUrl = currentStore?.customDomain
+    ? `https://${currentStore.customDomain}`
+    : platformDomain && current
+    ? `https://${current}.${platformDomain}`
+    : null;
+
   // The store context bar is only shown when NOT on platform routes.
   // The Sidebar determines its own mode from usePathname() — no prop needed.
   const isPlatformRoute = isSuper && pathname.startsWith('/platform');
@@ -30,6 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         isSuper={isSuper}
         canSettings={can(admin.role, 'settings')}
         storeName={storeName}
+        storeUrl={storeUrl}
       />
       <div className="flex-1 min-w-0 ml-64">
         {!isPlatformRoute && (

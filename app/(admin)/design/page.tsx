@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getAdmin, can } from '@/lib/auth';
-import { getStore, getSettings } from '@/lib/api';
+import { getStore, getSettings, getTemplates } from '@/lib/api';
 import { currentStoreId } from '@/lib/store-context';
 import DesignClient from './DesignClient';
 
@@ -11,9 +11,10 @@ export default async function DesignPage() {
   if (!can(admin?.role, 'settings')) redirect('/dashboard');
 
   const storeId = await currentStoreId();
-  const [store, settings] = await Promise.all([
+  const [store, settings, templates] = await Promise.all([
     getStore(storeId).catch(() => null),
     getSettings().catch(() => ({} as Record<string, string>)),
+    getTemplates().catch(() => []),
   ]);
   const currentTemplateId = store?.templateId ?? 'soulthread';
 
@@ -27,6 +28,7 @@ export default async function DesignPage() {
         key={storeId}
         currentTemplateId={currentTemplateId}
         rawSections={settings.home_sections ?? ''}
+        templates={templates}
       />
     </main>
   );
