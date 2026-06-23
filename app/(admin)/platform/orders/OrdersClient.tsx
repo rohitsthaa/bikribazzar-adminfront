@@ -180,8 +180,6 @@ export default function OrdersClient({ orders, stores }: { orders: Order[]; stor
           {filtered.length < orders.length
             ? `${filtered.length} of ${orders.length} shown`
             : `${orders.length} most recent orders`}
-          {' · '}
-          <span className="text-stone-300">Full paginated history requires a /orders/all endpoint.</span>
         </p>
       )}
     </div>

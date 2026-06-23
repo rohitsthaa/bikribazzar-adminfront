@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { logout } from '@/app/login/actions';
 
@@ -69,10 +70,19 @@ const Icons = {
       <polyline points="15 18 9 12 15 6"/>
     </svg>
   ),
+  Menu: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  ),
+  X: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
 };
 
-// ─── Platform logo mark (SVG) ─────────────────────────────────────────────────
-// 2×2 grid of rounded squares = "managing multiple stores"
+// ─── Platform logo mark ────────────────────────────────────────────────────────
 const PlatformMark = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="2" y="2" width="12" height="12" rx="3" fill="#818cf8"/>
@@ -105,7 +115,7 @@ const STORE_NAV_GROUPS = [
   ],
 ];
 
-// ─── Store NavItem ────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StoreNavItem({ href, label, Icon, active }: {
   href: string; label: string; Icon: () => JSX.Element; active: boolean;
@@ -119,7 +129,6 @@ function StoreNavItem({ href, label, Icon, active }: {
           : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
       }`}
     >
-      {/* Active left bar */}
       {active && (
         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[#c96a3a]" />
       )}
@@ -130,8 +139,6 @@ function StoreNavItem({ href, label, Icon, active }: {
     </Link>
   );
 }
-
-// ─── Platform NavItem ─────────────────────────────────────────────────────────
 
 function PlatformNavItem({ href, label, Icon, active }: {
   href: string; label: string; Icon: () => JSX.Element; active: boolean;
@@ -156,16 +163,12 @@ function PlatformNavItem({ href, label, Icon, active }: {
   );
 }
 
-// ─── User chip ────────────────────────────────────────────────────────────────
-
 function UserChip({ email, dark }: { email: string; dark?: boolean }) {
   const initial = email !== 'legacy-admin' ? email[0].toUpperCase() : '?';
   return (
-    <div className={`flex items-center gap-2.5 px-2 py-1.5 rounded-xl ${dark ? '' : ''}`}>
+    <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl">
       <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-        dark
-          ? 'bg-indigo-500/20 text-indigo-300'
-          : 'bg-stone-200 text-stone-600'
+        dark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-stone-200 text-stone-600'
       }`}>
         {initial}
       </span>
@@ -192,68 +195,219 @@ export default function Sidebar({
   adminEmail?: string;
 }) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const isPlatformMode = isSuper && pathname.startsWith('/platform');
 
-  // ── Platform mode ── dark slate sidebar ───────────────────────────────────
+  // Auto-close sidebar when navigating
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Shared slide-in transition classes
+  const panelBase = `fixed inset-y-0 left-0 w-64 z-40 flex flex-col transition-transform duration-300 ease-out ${
+    mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+  }`;
+
+  // ── Platform mode ── dark slate sidebar ─────────────────────────────────────
   if (isPlatformMode) {
     return (
-      <aside className="fixed inset-y-0 left-0 w-64 z-30 flex flex-col bg-[#0f172a]">
-        {/* Brand */}
-        <Link href="/platform" className="group flex items-center gap-3 px-5 pt-7 pb-6">
-          <span className="flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-            <PlatformMark />
-          </span>
-          <div className="min-w-0">
-            <p className="text-white text-sm font-semibold tracking-tight leading-snug">
-              Hello World Nepal
-            </p>
-            <p className="text-indigo-400 text-[11px] leading-tight font-medium tracking-wide uppercase">
-              Platform Console
-            </p>
+      <>
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open menu"
+          className="fixed top-3 left-3 z-30 md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-[#0f172a] border border-white/10 text-slate-400 shadow-sm"
+        >
+          <Icons.Menu />
+        </button>
+
+        {/* Backdrop */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+
+        <aside className={`${panelBase} bg-[#0f172a]`}>
+          {/* Brand */}
+          <Link href="/platform" className="group flex items-center gap-3 px-5 pt-7 pb-6">
+            <span className="flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+              <PlatformMark />
+            </span>
+            <div className="min-w-0">
+              <p className="text-white text-sm font-semibold tracking-tight leading-snug">
+                Hello World Nepal
+              </p>
+              <p className="text-indigo-400 text-[11px] leading-tight font-medium tracking-wide uppercase">
+                Platform Console
+              </p>
+            </div>
+          </Link>
+
+          {/* Mobile close */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="absolute top-4 right-4 md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <Icons.X />
+          </button>
+
+          <div className="mx-5 border-t border-white/[0.07]" />
+
+          <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+            <PlatformNavItem
+              href="/platform"
+              label="Overview"
+              Icon={Icons.Dashboard}
+              active={pathname === '/platform'}
+            />
+            <PlatformNavItem
+              href="/platform/stores"
+              label="Stores"
+              Icon={Icons.Stores}
+              active={
+                pathname === '/platform/stores' ||
+                pathname.startsWith('/platform/stores/') ||
+                (pathname.startsWith('/platform/') &&
+                 !pathname.startsWith('/platform/stores') &&
+                 !pathname.startsWith('/platform/orders') &&
+                 pathname !== '/platform')
+              }
+            />
+            <PlatformNavItem
+              href="/platform/orders"
+              label="Orders"
+              Icon={Icons.Orders}
+              active={pathname === '/platform/orders' || pathname.startsWith('/platform/orders/')}
+            />
+          </nav>
+
+          <div className="mx-5 border-t border-white/[0.07]" />
+
+          <div className="px-3 py-4 space-y-1">
+            {adminEmail && <UserChip email={adminEmail} dark />}
+            <form action={logout}>
+              <button
+                type="submit"
+                className="group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-white/[0.06] hover:text-slate-300 transition-all duration-150 text-left"
+              >
+                <span className="flex-shrink-0 transition-transform duration-150 group-hover:translate-x-0.5">
+                  <Icons.SignOut />
+                </span>
+                Sign out
+              </button>
+            </form>
           </div>
-        </Link>
+        </aside>
+      </>
+    );
+  }
 
-        <div className="mx-5 border-t border-white/[0.07]" />
+  // ── Store mode ── white sidebar ──────────────────────────────────────────────
+  const initials = storeName
+    ? storeName.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+    : '?';
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-          <PlatformNavItem
-            href="/platform"
-            label="Overview"
-            Icon={Icons.Dashboard}
-            active={pathname === '/platform'}
-          />
-          <PlatformNavItem
-            href="/platform/stores"
-            label="Stores"
-            Icon={Icons.Stores}
-            active={
-              pathname === '/platform/stores' ||
-              pathname.startsWith('/platform/stores/') ||
-              // store config pages /platform/[id] (not stores/ or orders/)
-              (pathname.startsWith('/platform/') &&
-               !pathname.startsWith('/platform/stores') &&
-               !pathname.startsWith('/platform/orders') &&
-               pathname !== '/platform')
-            }
-          />
-          <PlatformNavItem
-            href="/platform/orders"
-            label="Orders"
-            Icon={Icons.Orders}
-            active={pathname === '/platform/orders' || pathname.startsWith('/platform/orders/')}
-          />
+  return (
+    <>
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
+        className="fixed top-3 left-3 z-30 md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-stone-200 text-stone-500 shadow-sm"
+      >
+        <Icons.Menu />
+      </button>
+
+      {/* Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside className={`${panelBase} bg-white border-r border-stone-200`}>
+        {/* Brand */}
+        <div className="px-4 pt-5 pb-4">
+          <Link href="/dashboard" className="group flex items-center gap-3">
+            <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#c96a3a] text-white text-sm font-bold tracking-tight flex-shrink-0 shadow-sm transition-transform duration-150 group-hover:scale-105">
+              {initials || 'ST'}
+            </span>
+            <div className="min-w-0">
+              <p className="text-stone-900 text-sm font-semibold tracking-tight leading-snug truncate">
+                {storeName ?? 'Store admin'}
+              </p>
+              <p className="text-stone-400 text-[11px] leading-tight">Store admin</p>
+            </div>
+          </Link>
+
+          {isSuper && (
+            <Link
+              href="/platform"
+              className="group mt-3 flex items-center gap-1.5 text-[11px] font-medium text-stone-400 hover:text-[#c96a3a] transition-colors duration-150"
+            >
+              <span className="transition-transform duration-150 group-hover:-translate-x-0.5">
+                <Icons.ChevronLeft />
+              </span>
+              Back to Platform
+            </Link>
+          )}
+        </div>
+
+        {/* Mobile close */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="absolute top-4 right-4 md:hidden w-7 h-7 flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+        >
+          <Icons.X />
+        </button>
+
+        <div className="mx-4 border-t border-stone-100" />
+
+        <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
+          {STORE_NAV_GROUPS.map((group, gi) => (
+            <div key={gi}>
+              {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
+              {group.map((item) => {
+                if (item.href === '/settings' && !canSettings) return null;
+                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <StoreNavItem
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    Icon={item.Icon}
+                    active={active}
+                  />
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        <div className="mx-5 border-t border-white/[0.07]" />
+        <div className="mx-4 border-t border-stone-100" />
 
-        {/* Footer */}
-        <div className="px-3 py-4 space-y-1">
-          {adminEmail && <UserChip email={adminEmail} dark />}
+        <div className="px-3 py-3 space-y-0.5">
+          {storeUrl && (
+            <a
+              href={storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-900 transition-all duration-150"
+            >
+              <span className="flex-shrink-0 transition-transform duration-150 group-hover:scale-110">
+                <Icons.ExternalLink />
+              </span>
+              View store
+            </a>
+          )}
+          {adminEmail && <UserChip email={adminEmail} />}
           <form action={logout}>
             <button
               type="submit"
-              className="group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-white/[0.06] hover:text-slate-300 transition-all duration-150 text-left"
+              className="group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-all duration-150 text-left"
             >
               <span className="flex-shrink-0 transition-transform duration-150 group-hover:translate-x-0.5">
                 <Icons.SignOut />
@@ -263,99 +417,6 @@ export default function Sidebar({
           </form>
         </div>
       </aside>
-    );
-  }
-
-  // ── Store mode ── white sidebar ────────────────────────────────────────────
-  // Derive initials for the store badge
-  const initials = storeName
-    ? storeName.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
-    : '?';
-
-  return (
-    <aside className="fixed inset-y-0 left-0 w-64 z-30 flex flex-col bg-white border-r border-stone-200">
-      {/* Brand */}
-      <div className="px-4 pt-5 pb-4">
-        <Link href="/dashboard" className="group flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#c96a3a] text-white text-sm font-bold tracking-tight flex-shrink-0 shadow-sm transition-transform duration-150 group-hover:scale-105">
-            {initials || 'ST'}
-          </span>
-          <div className="min-w-0">
-            <p className="text-stone-900 text-sm font-semibold tracking-tight leading-snug truncate">
-              {storeName ?? 'Store admin'}
-            </p>
-            <p className="text-stone-400 text-[11px] leading-tight">Store admin</p>
-          </div>
-        </Link>
-
-        {/* Back to Platform — super admin only */}
-        {isSuper && (
-          <Link
-            href="/platform"
-            className="group mt-3 flex items-center gap-1.5 text-[11px] font-medium text-stone-400 hover:text-[#c96a3a] transition-colors duration-150"
-          >
-            <span className="transition-transform duration-150 group-hover:-translate-x-0.5">
-              <Icons.ChevronLeft />
-            </span>
-            Back to Platform
-          </Link>
-        )}
-      </div>
-
-      <div className="mx-4 border-t border-stone-100" />
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
-        {STORE_NAV_GROUPS.map((group, gi) => (
-          <div key={gi}>
-            {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
-            {group.map((item) => {
-              if (item.href === '/settings' && !canSettings) return null;
-              const active = pathname === item.href || pathname.startsWith(item.href + '/');
-              return (
-                <StoreNavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  Icon={item.Icon}
-                  active={active}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </nav>
-
-      <div className="mx-4 border-t border-stone-100" />
-
-      {/* Footer */}
-      <div className="px-3 py-3 space-y-0.5">
-        {storeUrl && (
-          <a
-            href={storeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-900 transition-all duration-150"
-          >
-            <span className="flex-shrink-0 transition-transform duration-150 group-hover:scale-110">
-              <Icons.ExternalLink />
-            </span>
-            View store
-          </a>
-        )}
-        {adminEmail && <UserChip email={adminEmail} />}
-        <form action={logout}>
-          <button
-            type="submit"
-            className="group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-all duration-150 text-left"
-          >
-            <span className="flex-shrink-0 transition-transform duration-150 group-hover:translate-x-0.5">
-              <Icons.SignOut />
-            </span>
-            Sign out
-          </button>
-        </form>
-      </div>
-    </aside>
+    </>
   );
 }

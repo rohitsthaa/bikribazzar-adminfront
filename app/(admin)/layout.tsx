@@ -45,9 +45,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         storeUrl={storeUrl}
         adminEmail={admin.email}
       />
-      <div className="flex-1 min-w-0 ml-64">
+      <div className="flex-1 min-w-0 ml-0 md:ml-64">
         {!isPlatformRoute && (
-          <div className="flex items-center justify-between border-b border-stone-100 bg-white px-6 py-2.5 h-12">
+          <div className="flex items-center justify-between border-b border-stone-100 bg-white pl-14 pr-6 md:px-6 py-2.5 h-12">
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
               <span className="text-sm font-medium text-stone-700">{storeName ?? current}</span>
