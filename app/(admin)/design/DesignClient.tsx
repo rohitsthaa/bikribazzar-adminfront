@@ -149,6 +149,79 @@ const TEMPLATE_PREVIEWS: Record<string, React.ReactNode> = {
       <rect x="182" y="158" width="24" height="4" rx="1" fill="#c49a6c" opacity="0.8" />
     </svg>
   ),
+  neon: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#0a0a0b" />
+      {/* Nav */}
+      <rect width="280" height="28" fill="#111113" />
+      <rect x="12" y="9" width="38" height="8" rx="4" fill="#00e5ff" opacity="0.9" />
+      <rect x="180" y="11" width="20" height="4" rx="1" fill="#ffffff" opacity="0.25" />
+      <rect x="206" y="11" width="20" height="4" rx="1" fill="#ffffff" opacity="0.25" />
+      <rect x="234" y="8" width="34" height="10" rx="5" fill="#00e5ff" opacity="0.85" />
+      {/* Hero glow */}
+      <ellipse cx="140" cy="62" rx="100" ry="30" fill="#00e5ff" opacity="0.06" />
+      <rect y="30" width="280" height="52" fill="transparent" />
+      <rect x="12" y="38" width="78" height="11" rx="2" fill="#ffffff" opacity="0.85" />
+      <rect x="12" y="53" width="52" height="5" rx="1" fill="#ffffff" opacity="0.3" />
+      <rect x="12" y="62" width="64" height="5" rx="1" fill="#ffffff" opacity="0.18" />
+      <rect x="12" y="72" width="36" height="8" rx="4" fill="#00e5ff" opacity="0.9" />
+      <rect x="54" y="72" width="36" height="8" rx="4" fill="none" stroke="#7c3aff" strokeWidth="1" opacity="0.8" />
+      <rect x="160" y="32" width="108" height="44" rx="6" fill="#111113" stroke="#00e5ff" strokeWidth="0.5" opacity="0.8" />
+      <rect x="174" y="44" width="80" height="20" rx="3" fill="#7c3aff" opacity="0.3" />
+      {/* Products */}
+      <rect x="12" y="94" width="60" height="7" rx="1" fill="#ffffff" opacity="0.4" />
+      <rect x="12" y="106" width="74" height="64" rx="6" fill="#111113" stroke="#ffffff" strokeWidth="0.3" opacity="0.6" />
+      <rect x="12" y="106" width="74" height="38" rx="6" fill="#1a1a1e" />
+      <rect x="20" y="150" width="38" height="4" rx="1" fill="#ffffff" opacity="0.5" />
+      <rect x="20" y="158" width="25" height="4" rx="1" fill="#00e5ff" opacity="0.8" />
+      <rect x="93" y="106" width="74" height="64" rx="6" fill="#111113" stroke="#ffffff" strokeWidth="0.3" opacity="0.6" />
+      <rect x="93" y="106" width="74" height="38" rx="6" fill="#16101e" />
+      <rect x="101" y="150" width="38" height="4" rx="1" fill="#ffffff" opacity="0.5" />
+      <rect x="101" y="158" width="25" height="4" rx="1" fill="#7c3aff" opacity="0.8" />
+      <rect x="174" y="106" width="74" height="64" rx="6" fill="#111113" stroke="#ffffff" strokeWidth="0.3" opacity="0.6" />
+      <rect x="174" y="106" width="74" height="38" rx="6" fill="#0d1419" />
+      <rect x="182" y="150" width="38" height="4" rx="1" fill="#ffffff" opacity="0.5" />
+      <rect x="182" y="158" width="25" height="4" rx="1" fill="#00e5ff" opacity="0.8" />
+    </svg>
+  ),
+  bubbly: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#fff8f3" />
+      {/* Decorative blobs */}
+      <circle cx="240" cy="20" r="30" fill="#ff4d6d" opacity="0.08" />
+      <circle cx="20" cy="160" r="24" fill="#ffd60a" opacity="0.12" />
+      {/* Nav */}
+      <rect width="280" height="28" fill="#fff8f3" />
+      <rect x="12" y="8" width="50" height="12" rx="6" fill="#ff4d6d" opacity="0.15" />
+      <rect x="16" y="11" width="42" height="6" rx="3" fill="#ff4d6d" opacity="0.7" />
+      <rect x="174" y="11" width="22" height="5" rx="2.5" fill="#1a0a00" opacity="0.2" />
+      <rect x="202" y="11" width="22" height="5" rx="2.5" fill="#1a0a00" opacity="0.2" />
+      <rect x="232" y="8" width="36" height="11" rx="5.5" fill="#ff4d6d" opacity="0.9" />
+      <rect y="27" width="280" height="0.5" fill="#ffd60a" opacity="0.4" />
+      {/* Hero */}
+      <rect y="28" width="280" height="52" fill="#fff8f3" />
+      <rect x="12" y="36" width="82" height="12" rx="3" fill="#1a0a00" opacity="0.8" />
+      <rect x="12" y="52" width="58" height="6" rx="2" fill="#1a0a00" opacity="0.3" />
+      <rect x="12" y="62" width="38" height="11" rx="5.5" fill="#ff4d6d" opacity="0.9" />
+      <rect x="56" y="62" width="38" height="11" rx="5.5" fill="#ffd60a" opacity="0.85" />
+      <rect x="160" y="30" width="108" height="46" rx="16" fill="#ffe4e9" />
+      <circle cx="214" cy="53" r="14" fill="#ffb3bf" opacity="0.7" />
+      {/* Products */}
+      <rect x="12" y="90" width="60" height="7" rx="2" fill="#1a0a00" opacity="0.4" />
+      <rect x="12" y="102" width="74" height="68" rx="16" fill="#fff" stroke="#ffd60a" strokeWidth="1.5" />
+      <rect x="12" y="102" width="74" height="40" rx="16" fill="#ffe4e9" />
+      <rect x="20" y="148" width="38" height="5" rx="1.5" fill="#1a0a00" opacity="0.5" />
+      <rect x="20" y="156" width="46" height="8" rx="4" fill="#ff4d6d" opacity="0.85" />
+      <rect x="93" y="102" width="74" height="68" rx="16" fill="#fff" stroke="#ff4d6d" strokeWidth="1.5" />
+      <rect x="93" y="102" width="74" height="40" rx="16" fill="#fef9c3" />
+      <rect x="101" y="148" width="38" height="5" rx="1.5" fill="#1a0a00" opacity="0.5" />
+      <rect x="101" y="156" width="46" height="8" rx="4" fill="#ffd60a" opacity="0.85" />
+      <rect x="174" y="102" width="74" height="68" rx="16" fill="#fff" stroke="#ffd60a" strokeWidth="1.5" />
+      <rect x="174" y="102" width="74" height="40" rx="16" fill="#e8f5e9" />
+      <rect x="182" y="148" width="38" height="5" rx="1.5" fill="#1a0a00" opacity="0.5" />
+      <rect x="182" y="156" width="46" height="8" rx="4" fill="#ff4d6d" opacity="0.85" />
+    </svg>
+  ),
 };
 
 // ---------------------------------------------------------------------------
