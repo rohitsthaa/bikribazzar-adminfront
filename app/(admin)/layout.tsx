@@ -21,11 +21,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const storeName = currentStore?.name ?? (isSuper ? current : undefined);
 
   // Build the public storefront URL for the "View store" link in the sidebar.
-  const platformDomain = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? '';
+  // Check both NEXT_PUBLIC_ (for client exposure) and plain PLATFORM_DOMAIN (API config).
+  const platformDomain =
+    process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
+    process.env.PLATFORM_DOMAIN ||
+    '';
   const storeUrl = currentStore?.customDomain
     ? `https://${currentStore.customDomain}`
-    : platformDomain && current
-    ? `https://${current}.${platformDomain}`
+    : current
+    ? `https://${current}.${platformDomain || 'store.helloworldnepal.com'}`
     : null;
 
   // The store context bar is only shown when NOT on platform routes.

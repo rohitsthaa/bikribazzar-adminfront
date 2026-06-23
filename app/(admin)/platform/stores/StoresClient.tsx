@@ -31,7 +31,7 @@ function storeInitials(name: string): string {
 
 // ─── Store row ────────────────────────────────────────────────────────────────
 
-function StoreRow({ s }: { s: StoreSummary }) {
+function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: string }) {
   const color = storeColor(s.id);
   const initials = storeInitials(s.name);
   const lastOrder = fmtDate(s.lastOrderAt);
@@ -112,6 +112,19 @@ function StoreRow({ s }: { s: StoreSummary }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        <a
+          href={`https://${s.id}.${platformDomain}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-400 border border-stone-200 hover:border-stone-300 hover:text-stone-700 hover:bg-stone-50 transition-all duration-150 flex items-center gap-1"
+          title={`https://${s.id}.${platformDomain}`}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View
+        </a>
         <Link
           href={`/platform/${s.id}`}
           className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-500 border border-stone-200 hover:border-stone-300 hover:text-stone-800 hover:bg-stone-50 transition-all duration-150"
@@ -153,7 +166,7 @@ function EmptyState({ query }: { query: string }) {
 
 // ─── Main client component ────────────────────────────────────────────────────
 
-export default function StoresClient({ stores }: { stores: StoreSummary[] }) {
+export default function StoresClient({ stores, platformDomain }: { stores: StoreSummary[]; platformDomain: string }) {
   const [query, setQuery]   = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'suspended'>('all');
 
@@ -222,7 +235,7 @@ export default function StoresClient({ stores }: { stores: StoreSummary[] }) {
           <EmptyState query={query} />
         ) : (
           <div className="divide-y divide-stone-100">
-            {filtered.map((s) => <StoreRow key={s.id} s={s} />)}
+            {filtered.map((s) => <StoreRow key={s.id} s={s} platformDomain={platformDomain} />)}
           </div>
         )}
       </div>

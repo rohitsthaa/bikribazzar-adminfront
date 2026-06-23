@@ -16,6 +16,11 @@ export default async function PlatformStoresPage() {
   const active    = stores.filter((s) => s.status === 'active').length;
   const suspended = stores.filter((s) => s.status !== 'active').length;
 
+  const platformDomain =
+    process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
+    process.env.PLATFORM_DOMAIN ||
+    'store.helloworldnepal.com';
+
   return (
     <main className="p-6 md:p-8 max-w-5xl">
       {/* Header */}
@@ -32,7 +37,7 @@ export default async function PlatformStoresPage() {
         <NewStoreDialog />
       </div>
 
-      <StoresClient stores={stores} />
+      <StoresClient stores={stores} platformDomain={platformDomain} />
     </main>
   );
 }
