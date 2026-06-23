@@ -53,6 +53,9 @@ const Icons = {
   Testimonials: () => I('M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'),
   Reviews:      () => I('M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'),
   Enquiries:    () => I('M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 01-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 011-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 011.52 0C14.51 3.81 17 5 19 5a1 1 0 011 1z'),
+  Blog:         () => I('M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'),
+  Portfolio:    () => I('M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'),
+  Services:     () => I('M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2'),
   Settings:     () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3"/>
@@ -108,6 +111,9 @@ const STORE_NAV_GROUPS = [
     { href: '/products',     label: 'Products',     Icon: Icons.Products },
     { href: '/gallery',      label: 'Gallery',      Icon: Icons.Gallery },
     { href: '/content',      label: 'Content',      Icon: Icons.Content },
+    { href: '/blog',         label: 'Blog',         Icon: Icons.Blog },
+    { href: '/portfolio',    label: 'Portfolio',    Icon: Icons.Portfolio },
+    { href: '/services',     label: 'Services',     Icon: Icons.Services },
   ],
   [
     { href: '/design',       label: 'Design',       Icon: Icons.Design },

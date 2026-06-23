@@ -42,6 +42,8 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
   const [prepaymentType, setPrepaymentType] = useState<PrepaymentType>(
     (product?.prepaymentType as PrepaymentType) ?? 'none'
   );
+  const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
+  const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
   type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string };
   const [variants, setVariants] = useState<VariantRow[]>(
     (product?.variants ?? []).map((v) => ({
@@ -407,6 +409,41 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Digital product */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700">Digital product</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Enable if this product is a downloadable file — no physical shipping required.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="isDigital"
+                name="isDigital"
+                value="true"
+                checked={isDigital}
+                onChange={(e) => setIsDigital(e.target.checked)}
+                className="w-4 h-4 accent-stone-700"
+              />
+              <label htmlFor="isDigital" className="text-sm text-gray-700">Digital product (no physical shipping)</label>
+            </div>
+            {!isDigital && <input type="hidden" name="isDigital" value="false" />}
+            {isDigital && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Download URL</label>
+                <input
+                  type="url"
+                  name="digitalAssetUrl"
+                  value={digitalAssetUrl}
+                  onChange={(e) => setDigitalAssetUrl(e.target.value)}
+                  placeholder="https://example.com/file.pdf"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                />
+                <p className="text-xs text-gray-400 mt-1">The file URL sent to the customer after delivery is confirmed.</p>
               </div>
             )}
           </div>

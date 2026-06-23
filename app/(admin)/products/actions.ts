@@ -27,6 +27,8 @@ export async function saveProduct(_: unknown, formData: FormData) {
     prepaymentValue: Number(formData.get('prepaymentValue') ?? 0),
     stockQty: stockQtyRaw === '' || stockQtyRaw === null ? null : Number(stockQtyRaw),
     reorderPoint: Number(formData.get('reorderPoint') ?? 0),
+    digitalAssetUrl: (formData.get('digitalAssetUrl') as string) || null,
+    isDigital: formData.get('isDigital') === 'true',
   };
 
   // Variants (optional). Parsed from the hidden JSON field. Staff can't set

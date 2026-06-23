@@ -53,6 +53,8 @@ export type Product = {
   prepaymentValue: number;
   stockQty: number | null;   // null = unlimited
   reorderPoint: number;
+  digitalAssetUrl?: string | null;
+  isDigital?: boolean;
   variants?: ProductVariant[];
 };
 
@@ -400,4 +402,90 @@ export type Lead = {
 export function getLeads() { return apiFetch<Lead[]>('/leads'); }
 export function markLeadRead(id: number) {
   return apiFetch<Lead>(`/leads/${id}/read`, { method: 'PATCH', body: '{}' });
+}
+
+// ---- Blog ----
+
+export type BlogPost = {
+  id: number;
+  storeId: string;
+  title: string;
+  slug: string;
+  body: string;
+  excerpt: string;
+  coverImage: string;
+  status: 'draft' | 'published';
+  tags: string[];
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getBlogPosts() { return apiFetch<BlogPost[]>('/blog/posts'); }
+export function getBlogPost(id: number) { return apiFetch<BlogPost>(`/blog/posts/${id}`); }
+export function createBlogPost(data: Partial<BlogPost>) {
+  return apiFetch<BlogPost>('/blog/posts', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateBlogPost(id: number, data: Partial<BlogPost>) {
+  return apiFetch<BlogPost>(`/blog/posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+export function deleteBlogPost(id: number) {
+  return apiFetch<{ ok: boolean }>(`/blog/posts/${id}`, { method: 'DELETE', body: '{}' });
+}
+
+// ---- Portfolio ----
+
+export type PortfolioWork = {
+  id: number;
+  storeId: string;
+  title: string;
+  slug: string;
+  medium: string;
+  year: string;
+  description: string;
+  images: string[];
+  tags: string[];
+  priceLabel: string;
+  available: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getPortfolioWorks() { return apiFetch<PortfolioWork[]>('/portfolio/works'); }
+export function createPortfolioWork(data: Partial<PortfolioWork>) {
+  return apiFetch<PortfolioWork>('/portfolio/works', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updatePortfolioWork(id: number, data: Partial<PortfolioWork>) {
+  return apiFetch<PortfolioWork>(`/portfolio/works/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+export function deletePortfolioWork(id: number) {
+  return apiFetch<{ ok: boolean }>(`/portfolio/works/${id}`, { method: 'DELETE', body: '{}' });
+}
+
+// ---- Services ----
+
+export type Service = {
+  id: number;
+  storeId: string;
+  title: string;
+  description: string;
+  priceLabel: string;
+  image: string;
+  tags: string[];
+  available: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getServices() { return apiFetch<Service[]>('/services'); }
+export function createService(data: Partial<Service>) {
+  return apiFetch<Service>('/services', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateService(id: number, data: Partial<Service>) {
+  return apiFetch<Service>(`/services/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+export function deleteService(id: number) {
+  return apiFetch<{ ok: boolean }>(`/services/${id}`, { method: 'DELETE', body: '{}' });
 }
