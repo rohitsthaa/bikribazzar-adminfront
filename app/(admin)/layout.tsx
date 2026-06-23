@@ -39,18 +39,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         canSettings={can(admin.role, 'settings')}
         storeName={storeName}
         storeUrl={storeUrl}
+        adminEmail={admin.email}
       />
       <div className="flex-1 min-w-0 ml-64">
         {!isPlatformRoute && (
-          <div className="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-2">
-            <div className="flex items-center gap-2 text-sm">
-              {!isSuper && (
-                <span className="text-xs uppercase tracking-wide text-stone-400">Managing</span>
-              )}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1 font-medium text-stone-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                {storeName ?? current}
-              </span>
+          <div className="flex items-center justify-between border-b border-stone-100 bg-white px-6 py-2.5 h-12">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-stone-700">{storeName ?? current}</span>
+              <span className="text-xs text-stone-400 hidden sm:block">·</span>
+              <span className="text-xs text-stone-400 hidden sm:block">store</span>
             </div>
             {isSuper && stores.length > 1 && <StoreSwitcher stores={stores} current={current} />}
           </div>
