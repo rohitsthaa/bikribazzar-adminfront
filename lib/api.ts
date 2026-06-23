@@ -225,6 +225,7 @@ export type StoreSummary = {
   templateId: string;
   theme: Record<string, unknown>;
   customDomain: string | null;
+  siteType: string;
 };
 
 export type StorePaymentConfigView = {
@@ -240,10 +241,10 @@ export type StorePaymentConfigView = {
 
 export function getStores() { return apiFetch<StoreSummary[]>('/stores'); }
 export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`); }
-export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null }) {
+export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string }) {
   return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null }>) {
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string }>) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function getStorePaymentConfig(id: string) {
@@ -380,4 +381,23 @@ export function updateReviewStatus(id: number, status: 'approved' | 'rejected' |
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
+}
+
+// ---- Leads / Enquiries ----
+
+export type Lead = {
+  id: number;
+  storeId: string;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  source: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export function getLeads() { return apiFetch<Lead[]>('/leads'); }
+export function markLeadRead(id: number) {
+  return apiFetch<Lead>(`/leads/${id}/read`, { method: 'PATCH', body: '{}' });
 }

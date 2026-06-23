@@ -22,6 +22,37 @@ export const SECTION_REGISTRY: Record<string, Array<{ id: string; label: string;
     { id: 'testimonials', label: 'Testimonials',  description: 'Customer quotes' },
     { id: 'cta',          label: 'Call to action', description: 'Contact / enquiry strip' },
   ],
+  bloom: [
+    { id: 'hero',         label: 'Hero',          description: 'Brand header with botanical feel' },
+    { id: 'collection',   label: 'Collection',    description: 'Featured products grid' },
+    { id: 'marquee',      label: 'Marquee strip',  description: 'Scrolling accent banner' },
+    { id: 'testimonials', label: 'Testimonials',   description: 'Customer reviews' },
+    { id: 'gallery',      label: 'Gallery strip',  description: 'Photo gallery row' },
+    { id: 'cta',          label: 'Call to action', description: 'WhatsApp / contact CTA' },
+  ],
+  coastal: [
+    { id: 'hero',         label: 'Hero',          description: 'Bold ocean-blue hero section' },
+    { id: 'collection',   label: 'Collection',    description: 'Featured products grid' },
+    { id: 'marquee',      label: 'Marquee strip',  description: 'Scrolling accent banner' },
+    { id: 'testimonials', label: 'Testimonials',   description: 'Customer reviews' },
+    { id: 'gallery',      label: 'Gallery strip',  description: 'Photo gallery row' },
+    { id: 'cta',          label: 'Call to action', description: 'WhatsApp / contact CTA' },
+  ],
+  neon: [
+    { id: 'hero',         label: 'Hero',          description: 'Dark electric hero with glow effect' },
+    { id: 'collection',   label: 'Collection',    description: 'Product grid on dark background' },
+    { id: 'marquee',      label: 'Marquee strip',  description: 'Neon scrolling banner' },
+    { id: 'testimonials', label: 'Testimonials',   description: 'Customer quotes' },
+    { id: 'cta',          label: 'Call to action', description: 'Contact CTA' },
+  ],
+  bubbly: [
+    { id: 'hero',         label: 'Hero',          description: 'Colourful hero with blob accents' },
+    { id: 'collection',   label: 'Collection',    description: 'Product grid with rounded cards' },
+    { id: 'marquee',      label: 'Marquee strip',  description: 'Playful scrolling banner' },
+    { id: 'values',       label: 'Values strip',   description: 'Brand value icons bar' },
+    { id: 'testimonials', label: 'Testimonials',   description: 'Colourful testimonial cards' },
+    { id: 'cta',          label: 'Call to action', description: 'Bold CTA block' },
+  ],
 };
 
 export function parseSections(raw: string, templateId: string): HomeSection[] {

@@ -53,3 +53,16 @@ export async function saveSectionsAction(sections: Array<{ id: string; enabled: 
   revalidatePath('/design');
   return {};
 }
+
+export async function saveNavItemsAction(items: Array<{ label: string; href: string }>): Promise<{ error?: string }> {
+  try {
+    await assertCanSettings();
+    const storeId = await currentStoreId();
+    await updateSetting('nav_items', JSON.stringify(items));
+    void revalidateStorefront(storeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to save navigation.' };
+  }
+  revalidatePath('/design');
+  return {};
+}

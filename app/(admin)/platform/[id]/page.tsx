@@ -120,7 +120,12 @@ export default async function StoreManagePage({ params }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-stone-900">{store.name}</h1>
-            <p className="text-sm text-stone-400 mt-0.5">{store.id}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-sm text-stone-400">{store.id}</p>
+              {store.siteType && store.siteType !== 'store' && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 capitalize">{store.siteType}</span>
+              )}
+            </div>
           </div>
           <form action={enterStore.bind(null, store.id)}>
             <button

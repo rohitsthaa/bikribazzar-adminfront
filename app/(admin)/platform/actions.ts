@@ -18,8 +18,9 @@ export async function createStoreAction(fd: FormData) {
   const id = str(fd, 'id').toLowerCase();
   const name = str(fd, 'name');
   const templateId = str(fd, 'templateId') || 'soulthread';
+  const siteType = str(fd, 'siteType') || 'store';
   if (!id || !name) return;
-  await createStore({ id, name, templateId });
+  await createStore({ id, name, templateId, siteType });
   revalidatePath('/platform');
   redirect(`/platform/${id}`);
 }

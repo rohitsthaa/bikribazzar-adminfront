@@ -101,6 +101,19 @@ export default function NewStoreDialog() {
                 </select>
               </label>
 
+              <label className="block">
+                <span className="text-xs font-medium text-stone-600">Site type</span>
+                <select
+                  name="siteType"
+                  className="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
+                >
+                  <option value="store">Store — sell products online</option>
+                  <option value="blog">Blog — articles and posts</option>
+                  <option value="portfolio">Portfolio — showcase work</option>
+                  <option value="business">Business — services and profile</option>
+                </select>
+              </label>
+
               {error && <p className="text-xs text-red-600">{error}</p>}
 
               <div className="flex items-center gap-3 pt-1">

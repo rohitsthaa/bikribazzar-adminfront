@@ -3,6 +3,7 @@ import { getAdmin, can } from '@/lib/auth';
 import { getStore, getSettings, getTemplates } from '@/lib/api';
 import { currentStoreId } from '@/lib/store-context';
 import DesignClient from './DesignClient';
+import NavEditor from './NavEditor';
 
 export const metadata = { title: 'Design — Admin' };
 
@@ -30,6 +31,7 @@ export default async function DesignPage() {
         rawSections={settings.home_sections ?? ''}
         templates={templates}
       />
+      <NavEditor rawNavItems={settings.nav_items ?? ''} />
     </main>
   );
 }
