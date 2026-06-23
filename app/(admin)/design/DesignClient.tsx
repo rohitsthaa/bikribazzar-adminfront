@@ -222,6 +222,70 @@ const TEMPLATE_PREVIEWS: Record<string, React.ReactNode> = {
       <rect x="182" y="156" width="46" height="8" rx="4" fill="#ff4d6d" opacity="0.85" />
     </svg>
   ),
+  folio: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#ffffff" />
+      {/* Nav — minimal white, just name + links */}
+      <rect width="280" height="24" fill="#ffffff" />
+      <rect y="23" width="280" height="0.5" fill="#e5e5e5" />
+      <rect x="12" y="9" width="50" height="6" rx="1" fill="#111111" opacity="0.85" />
+      <rect x="180" y="10" width="22" height="4" rx="1" fill="#555" opacity="0.4" />
+      <rect x="208" y="10" width="22" height="4" rx="1" fill="#555" opacity="0.4" />
+      <rect x="236" y="10" width="22" height="4" rx="1" fill="#555" opacity="0.4" />
+      {/* Hero — big editorial type */}
+      <rect x="12" y="36" width="120" height="18" rx="1" fill="#111111" opacity="0.85" />
+      <rect x="12" y="58" width="80" height="8" rx="1" fill="#111111" opacity="0.25" />
+      <rect x="12" y="70" width="40" height="6" rx="0" fill="#e05c2a" opacity="0.85" />
+      {/* Works grid — 3 portrait tiles */}
+      <rect y="88" width="280" height="0.5" fill="#f0f0f0" />
+      <rect x="12" y="96" width="8" height="4" rx="0" fill="#888" opacity="0.5" />
+      <rect x="24" y="96" width="50" height="4" rx="0" fill="#888" opacity="0.35" />
+      <rect x="12" y="106" width="74" height="64" rx="0" fill="#f5f5f5" />
+      <rect x="12" y="106" width="74" height="64" rx="0" fill="#e8e2da" />
+      <rect x="93" y="106" width="74" height="64" rx="0" fill="#e0d8ce" />
+      <rect x="174" y="106" width="74" height="64" rx="0" fill="#ede8e0" />
+      <rect x="12" y="162" width="32" height="4" rx="0" fill="#111" opacity="0.5" />
+      <rect x="12" y="168" width="20" height="3" rx="0" fill="#888" opacity="0.4" />
+      <rect x="93" y="162" width="32" height="4" rx="0" fill="#111" opacity="0.5" />
+      <rect x="174" y="162" width="32" height="4" rx="0" fill="#111" opacity="0.5" />
+    </svg>
+  ),
+  profile: (
+    <svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <rect width="280" height="180" fill="#f8f7f5" />
+      {/* Nav — deep navy */}
+      <rect width="280" height="28" fill="#1e3a5f" />
+      <rect x="12" y="9" width="10" height="10" rx="0" fill="#c9a227" />
+      <rect x="26" y="11" width="36" height="5" rx="1" fill="#ffffff" opacity="0.8" />
+      <rect x="160" y="12" width="22" height="4" rx="1" fill="#ffffff" opacity="0.4" />
+      <rect x="188" y="12" width="22" height="4" rx="1" fill="#ffffff" opacity="0.4" />
+      <rect x="216" y="12" width="22" height="4" rx="1" fill="#ffffff" opacity="0.4" />
+      <rect x="245" y="8" width="24" height="12" rx="0" fill="#c9a227" opacity="0.9" />
+      {/* Hero — navy with gold CTA */}
+      <rect y="28" width="280" height="50" fill="#1e3a5f" />
+      <rect x="12" y="34" width="10" height="3" rx="1" fill="#c9a227" opacity="0.7" />
+      <rect x="12" y="41" width="82" height="10" rx="1" fill="#ffffff" opacity="0.9" />
+      <rect x="12" y="55" width="58" height="5" rx="1" fill="#ffffff" opacity="0.35" />
+      <rect x="12" y="63" width="36" height="9" rx="0" fill="#c9a227" opacity="0.9" />
+      <rect x="54" y="63" width="36" height="9" rx="0" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+      <rect x="158" y="30" width="110" height="42" rx="4" fill="#2d5080" opacity="0.7" />
+      {/* Services grid */}
+      <rect y="84" width="280" height="0.5" fill="#e0ddd8" />
+      <rect x="12" y="92" width="70" height="6" rx="1" fill="#1e3a5f" opacity="0.5" />
+      <rect x="12" y="104" width="74" height="64" rx="0" fill="#ffffff" stroke="#e8e6e2" strokeWidth="0.5" />
+      <rect x="12" y="104" width="74" height="32" rx="0" fill="#ddd5c8" />
+      <rect x="20" y="142" width="40" height="5" rx="1" fill="#1e3a5f" opacity="0.6" />
+      <rect x="20" y="150" width="28" height="4" rx="0" fill="#c9a227" opacity="0.7" />
+      <rect x="93" y="104" width="74" height="64" rx="0" fill="#ffffff" stroke="#e8e6e2" strokeWidth="0.5" />
+      <rect x="93" y="104" width="74" height="32" rx="0" fill="#d0c9be" />
+      <rect x="101" y="142" width="40" height="5" rx="1" fill="#1e3a5f" opacity="0.6" />
+      <rect x="101" y="150" width="28" height="4" rx="0" fill="#c9a227" opacity="0.7" />
+      <rect x="174" y="104" width="74" height="64" rx="0" fill="#ffffff" stroke="#e8e6e2" strokeWidth="0.5" />
+      <rect x="174" y="104" width="74" height="32" rx="0" fill="#c8c0b2" />
+      <rect x="182" y="142" width="40" height="5" rx="1" fill="#1e3a5f" opacity="0.6" />
+      <rect x="182" y="150" width="28" height="4" rx="0" fill="#c9a227" opacity="0.7" />
+    </svg>
+  ),
 };
 
 // ---------------------------------------------------------------------------
