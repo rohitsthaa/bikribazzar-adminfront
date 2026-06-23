@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getPlatformOverview } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
-import PlatformOverview from './PlatformOverview';
+import OrdersClient from './OrdersClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PlatformPage() {
+export default async function PlatformOrdersPage() {
   const admin = await getAdmin();
   if (admin?.role !== 'super') redirect('/dashboard');
 
@@ -17,19 +17,19 @@ export default async function PlatformPage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-1">
           Hello World Nepal
         </p>
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Platform Overview</h1>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Orders</h1>
         <p className="text-sm text-stone-400 mt-1">
           {overview
-            ? `${overview.totals.active} active store${overview.totals.active !== 1 ? 's' : ''} · ${overview.totals.orders.toLocaleString()} orders all-time`
-            : 'Manage all stores on this platform.'}
+            ? `${overview.recent.length > 0 ? `${overview.totals.orders.toLocaleString()} total · showing ${overview.recent.length} most recent` : 'No orders yet'}`
+            : 'Recent orders across all stores.'}
         </p>
       </div>
 
       {overview ? (
-        <PlatformOverview data={overview} />
+        <OrdersClient orders={overview.recent} stores={overview.stores} />
       ) : (
         <div className="rounded-2xl border border-stone-200 bg-white px-6 py-16 text-center">
-          <p className="text-sm text-stone-400">Could not load platform data — check API connectivity.</p>
+          <p className="text-sm text-stone-400">Could not load orders — check API connectivity.</p>
         </div>
       )}
     </main>

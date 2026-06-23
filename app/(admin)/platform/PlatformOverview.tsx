@@ -2,12 +2,9 @@ import Link from 'next/link';
 import type { PlatformOverview as Data } from '@/lib/api';
 import { enterStore } from '../store-actions';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const TZ = 'Asia/Kathmandu';
-
-const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-US', { timeZone: TZ, day: 'numeric', month: 'short' }) : null;
 
 const fmtTime = (d: string) =>
   new Date(d).toLocaleString('en-US', {
@@ -16,16 +13,9 @@ const fmtTime = (d: string) =>
 
 const money = (n: number) => `NPR ${n.toLocaleString()}`;
 
-// Deterministic colour per store slug — avoids always showing the same colour.
 const AVATAR_COLORS = [
-  '#6366f1', // indigo
-  '#0891b2', // cyan
-  '#059669', // emerald
-  '#d97706', // amber
-  '#dc2626', // red
-  '#7c3aed', // violet
-  '#0284c7', // sky
-  '#c96a3a', // terracotta
+  '#6366f1', '#0891b2', '#059669', '#d97706',
+  '#dc2626', '#7c3aed', '#0284c7', '#c96a3a',
 ];
 
 function storeColor(id: string): string {
@@ -38,8 +28,6 @@ function storeInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
-// ─── Status badge colours ─────────────────────────────────────────────────────
-
 const ORDER_STATUS: Record<string, string> = {
   new:       'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
   confirmed: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
@@ -51,15 +39,10 @@ const ORDER_STATUS: Record<string, string> = {
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, icon, accent }: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ReactNode;
-  accent: string;
+  label: string; value: string; sub?: string; icon: React.ReactNode; accent: string;
 }) {
   return (
     <div className="relative bg-white rounded-2xl border border-stone-200 p-5 overflow-hidden">
-      {/* Accent blob */}
       <span
         className="absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-[0.07] pointer-events-none"
         style={{ backgroundColor: accent }}
@@ -79,91 +62,80 @@ function StatCard({ label, value, sub, icon, accent }: {
   );
 }
 
-// ─── Store row ────────────────────────────────────────────────────────────────
+// ─── Quick nav card ───────────────────────────────────────────────────────────
 
-function StoreRow({ s }: {
-  s: Data['stores'][number];
+function QuickNavCard({ href, label, sub, accent, icon }: {
+  href: string; label: string; sub: string; accent: string; icon: React.ReactNode;
 }) {
+  return (
+    <Link
+      href={href}
+      className="group relative bg-white rounded-2xl border border-stone-200 p-5 overflow-hidden hover:border-stone-300 hover:shadow-sm transition-all duration-150 flex items-center gap-4"
+    >
+      <span
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none rounded-2xl"
+        style={{ background: `radial-gradient(circle at 80% 50%, ${accent}08, transparent 70%)` }}
+      />
+      <span
+        className="inline-flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+        style={{ backgroundColor: `${accent}14`, color: accent }}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-stone-900">{label}</p>
+        <p className="text-xs text-stone-400 mt-0.5">{sub}</p>
+      </div>
+      <span className="ml-auto text-stone-300 group-hover:text-stone-500 transition-colors duration-150 flex-shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </span>
+    </Link>
+  );
+}
+
+// ─── Attention row (compact) ──────────────────────────────────────────────────
+
+function AttentionRow({ s }: { s: Data['stores'][number] }) {
   const color = storeColor(s.id);
   const initials = storeInitials(s.name);
-  const lastOrder = fmtDate(s.lastOrderAt);
 
-  const flags: { label: string; color: string }[] = [];
-  if (s.pending > 0)       flags.push({ label: `${s.pending} pending`,        color: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' });
-  if (s.lowStock > 0)      flags.push({ label: `${s.lowStock} low stock`,      color: 'bg-red-50 text-red-600 ring-1 ring-red-100' });
-  if (!s.hasPaymentConfig) flags.push({ label: 'no payment config',            color: 'bg-stone-100 text-stone-500' });
-
-  const isHealthy = s.status === 'active' && flags.length === 0;
+  const flags: { label: string; cls: string }[] = [];
+  if (s.status !== 'active')  flags.push({ label: s.status,              cls: 'bg-stone-100 text-stone-500' });
+  if (s.pending > 0)          flags.push({ label: `${s.pending} pending`, cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' });
+  if (s.lowStock > 0)         flags.push({ label: `${s.lowStock} low stock`, cls: 'bg-red-50 text-red-600 ring-1 ring-red-100' });
+  if (!s.hasPaymentConfig)    flags.push({ label: 'no payment',          cls: 'bg-stone-100 text-stone-500' });
 
   return (
-    <div className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50/70 transition-colors duration-100 group">
-      {/* Avatar */}
-      <div className="relative flex-shrink-0">
-        <span
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-sm"
-          style={{ backgroundColor: color }}
-        >
-          {initials}
-        </span>
-        {/* Health dot */}
-        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-          s.status !== 'active' ? 'bg-stone-400' :
-          flags.length > 0     ? 'bg-amber-400' :
-                                 'bg-emerald-400'
-        }`} />
-      </div>
-
-      {/* Identity + flags */}
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50/70 transition-colors duration-100 group">
+      <span
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+        style={{ backgroundColor: color }}
+      >
+        {initials}
+      </span>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-stone-900">{s.name}</span>
-          {s.status !== 'active' && (
-            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">
-              {s.status}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          <span className="text-[11px] text-stone-400">{s.id}</span>
+        <p className="text-sm font-medium text-stone-900">{s.name}</p>
+        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
           {flags.map((f) => (
-            <span key={f.label} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${f.color}`}>
+            <span key={f.label} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${f.cls}`}>
               {f.label}
             </span>
           ))}
-          {isHealthy && (
-            <span className="text-[10px] text-emerald-600 font-medium">All good</span>
-          )}
         </div>
       </div>
-
-      {/* Metrics */}
-      <div className="hidden lg:flex items-center gap-6 text-right flex-shrink-0">
-        <div>
-          <p className="text-sm font-semibold text-stone-800">{s.orderCount.toLocaleString()}</p>
-          <p className="text-[10px] text-stone-400 uppercase tracking-wide">orders</p>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-stone-800">{money(s.revenue)}</p>
-          <p className="text-[10px] text-stone-400 uppercase tracking-wide">revenue</p>
-        </div>
-        <div>
-          <p className="text-sm text-stone-500">{lastOrder ?? '—'}</p>
-          <p className="text-[10px] text-stone-400 uppercase tracking-wide">last order</p>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <Link
           href={`/platform/${s.id}`}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-500 border border-stone-200 hover:border-stone-300 hover:text-stone-800 hover:bg-stone-50 transition-all duration-150"
+          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-500 border border-stone-200 hover:border-stone-300 hover:text-stone-800 hover:bg-stone-50 transition-all duration-150"
         >
           Config
         </Link>
         <form action={enterStore.bind(null, s.id)}>
           <button
             type="submit"
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#c96a3a] hover:bg-[#b85f33] active:scale-95 transition-all duration-150 shadow-sm"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#c96a3a] hover:bg-[#b85f33] active:scale-95 transition-all duration-150 shadow-sm"
           >
             Enter →
           </button>
@@ -178,6 +150,10 @@ function StoreRow({ s }: {
 export default function PlatformOverview({ data }: { data: Data }) {
   const { totals, stores, recent } = data;
   const nameOf = (id: string) => stores.find((s) => s.id === id)?.name ?? id;
+
+  const attentionStores = stores.filter((s) =>
+    s.status !== 'active' || s.pending > 0 || s.lowStock > 0 || !s.hasPaymentConfig
+  );
 
   const stats = [
     {
@@ -235,66 +211,102 @@ export default function PlatformOverview({ data }: { data: Data }) {
         ))}
       </div>
 
-      {/* ── Stores ─────────────────────────────────────────────────────────── */}
+      {/* ── Quick nav ──────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <QuickNavCard
+          href="/platform/stores"
+          label="All stores"
+          sub={`${totals.stores} store${totals.stores !== 1 ? 's' : ''} · browse, search & configure`}
+          accent="#6366f1"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          }
+        />
+        <QuickNavCard
+          href="/platform/orders"
+          label="All orders"
+          sub={`${totals.orders.toLocaleString()} orders across all stores`}
+          accent="#0891b2"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
+            </svg>
+          }
+        />
+      </div>
+
+      {/* ── Needs attention ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
           <div>
-            <h2 className="text-sm font-semibold text-stone-900">Stores</h2>
-            <p className="text-xs text-stone-400 mt-0.5">Click "Enter" to manage a store, "Config" to edit its settings.</p>
+            <h2 className="text-sm font-semibold text-stone-900">Needs attention</h2>
+            <p className="text-xs text-stone-400 mt-0.5">Stores with pending orders, low stock, or missing config.</p>
           </div>
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-stone-100 text-stone-500">
-            {stores.length} total
-          </span>
+          {attentionStores.length > 0 && (
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+              {attentionStores.length} store{attentionStores.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
-        {stores.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <p className="text-sm text-stone-400">No stores yet — create one to get started.</p>
+        {attentionStores.length === 0 ? (
+          <div className="px-5 py-8 flex items-center gap-3">
+            <span className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </span>
+            <div>
+              <p className="text-sm font-medium text-stone-800">All stores are healthy</p>
+              <p className="text-xs text-stone-400 mt-0.5">No pending items, stock issues, or missing configs.</p>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
-            {stores.map((s) => <StoreRow key={s.id} s={s} />)}
+            {attentionStores.map((s) => <AttentionRow key={s.id} s={s} />)}
           </div>
         )}
       </div>
 
-      {/* ── Recent orders ──────────────────────────────────────────────────── */}
+      {/* ── Recent orders (last 5) ──────────────────────────────────────────── */}
       {recent.length > 0 && (
         <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone-100">
-            <h2 className="text-sm font-semibold text-stone-900">Recent orders</h2>
-            <p className="text-xs text-stone-400 mt-0.5">Latest activity across all stores.</p>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+            <div>
+              <h2 className="text-sm font-semibold text-stone-900">Recent activity</h2>
+              <p className="text-xs text-stone-400 mt-0.5">Latest orders across all stores.</p>
+            </div>
+            <Link
+              href="/platform/orders"
+              className="text-xs font-medium text-indigo-500 hover:text-indigo-700 transition-colors duration-150"
+            >
+              View all →
+            </Link>
           </div>
           <ul className="divide-y divide-stone-100">
-            {recent.map((o) => {
+            {recent.slice(0, 5).map((o) => {
               const color = storeColor(o.storeId);
               return (
-                <li key={`${o.storeId}-${o.id}`} className="flex items-center gap-3 px-6 py-3 hover:bg-stone-50/60 transition-colors duration-100">
-                  {/* Store dot */}
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: color }}
-                  />
-                  {/* Store badge */}
+                <li key={`${o.storeId}-${o.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-stone-50/60 transition-colors duration-100">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                   <span
                     className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: `${color}18`, color }}
                   >
                     {nameOf(o.storeId)}
                   </span>
-                  {/* Order info */}
                   <span className="text-sm text-stone-700 flex-1 min-w-0 truncate">
                     #{o.id} · {o.customerName}
                   </span>
-                  {/* Status */}
                   <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${ORDER_STATUS[o.status] ?? 'bg-stone-100 text-stone-500'}`}>
                     {o.status}
                   </span>
-                  {/* Amount */}
                   <span className="text-sm font-semibold text-stone-800 flex-shrink-0 hidden sm:block tabular-nums">
                     {money(o.totalNpr)}
                   </span>
-                  {/* Time */}
                   <span className="text-xs text-stone-400 flex-shrink-0 hidden md:block w-32 text-right">
                     {fmtTime(o.createdAt)}
                   </span>

@@ -14,6 +14,12 @@ const I = (d: string, size = 16) => (
 
 const Icons = {
   Dashboard:    () => I('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'),
+  Stores:       () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
   Orders:       () => I('M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0'),
   Customers:    () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -215,7 +221,27 @@ export default function Sidebar({
             href="/platform"
             label="Overview"
             Icon={Icons.Dashboard}
-            active={pathname === '/platform' || pathname.startsWith('/platform/')}
+            active={pathname === '/platform'}
+          />
+          <PlatformNavItem
+            href="/platform/stores"
+            label="Stores"
+            Icon={Icons.Stores}
+            active={
+              pathname === '/platform/stores' ||
+              pathname.startsWith('/platform/stores/') ||
+              // store config pages /platform/[id] (not stores/ or orders/)
+              (pathname.startsWith('/platform/') &&
+               !pathname.startsWith('/platform/stores') &&
+               !pathname.startsWith('/platform/orders') &&
+               pathname !== '/platform')
+            }
+          />
+          <PlatformNavItem
+            href="/platform/orders"
+            label="Orders"
+            Icon={Icons.Orders}
+            active={pathname === '/platform/orders' || pathname.startsWith('/platform/orders/')}
           />
         </nav>
 
