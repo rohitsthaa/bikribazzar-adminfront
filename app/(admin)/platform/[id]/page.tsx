@@ -5,8 +5,7 @@ import { getAdmin } from '@/lib/auth';
 import { updateStoreAction, updatePaymentConfigAction } from '../actions';
 import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
-import ColorInput from './ColorInput';
-import { TEMPLATES } from '../templates';
+import TemplateThemeClient from './TemplateThemeClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,44 +178,14 @@ export default async function StoreManagePage({ params }: Props) {
 
       {/* ── Section 2: Template & Theme ── */}
       <SectionCard title="Template & Theme" description="Visual design applied to this store's storefront.">
-        <form action={updateStoreAction} className="space-y-6">
-          <input type="hidden" name="id" value={store.id} />
-          <input type="hidden" name="name" value={store.name} />
-          <input type="hidden" name="status" value={store.status} />
-          <input type="hidden" name="customDomain" value={store.customDomain ?? ''} />
-
-          <div>
-            <Label>Template</Label>
-            <Select name="templateId" defaultValue={store.templateId}>
-              {TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </Select>
-            <p className="text-[11px] text-stone-400 mt-1.5">Changing this updates the storefront layout immediately.</p>
-          </div>
-
-          <div>
-            <p className="text-xs font-medium text-stone-600 mb-3">
-              Theme overrides <span className="text-stone-400 font-normal">— leave blank to use template defaults</span>
-            </p>
-            <div className="grid sm:grid-cols-3 gap-4">
-              <ColorInput name="primary" label="Primary colour" defaultValue={theme.colors?.primary} placeholder="#c96a3a" />
-              <ColorInput name="accent"  label="Accent colour"  defaultValue={theme.colors?.accent}  placeholder="#3d2c1e" />
-              <ColorInput name="bg"      label="Background"     defaultValue={theme.colors?.bg}      placeholder="#faf8f5" />
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Display font <span className="text-stone-400 font-normal">(Google Fonts name)</span></Label>
-              <Input name="fontDisplay" defaultValue={theme.fonts?.display ?? ''} placeholder="Cormorant Garamond" />
-            </div>
-            <div>
-              <Label>Body font <span className="text-stone-400 font-normal">(Google Fonts name)</span></Label>
-              <Input name="fontBody" defaultValue={theme.fonts?.body ?? ''} placeholder="Inter" />
-            </div>
-          </div>
-
-          <SaveBtn />
-        </form>
+        <TemplateThemeClient
+          storeId={store.id}
+          storeName={store.name}
+          storeStatus={store.status}
+          customDomain={store.customDomain ?? null}
+          initialTemplateId={store.templateId}
+          initialTheme={theme}
+        />
       </SectionCard>
 
       {/* ── Section 3: Payment credentials ── */}

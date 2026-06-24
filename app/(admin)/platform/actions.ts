@@ -48,6 +48,33 @@ export async function updateStoreAction(fd: FormData) {
   revalidatePath(`/platform/${id}`);
 }
 
+/** Called programmatically from TemplateThemeClient — returns result for UI feedback. */
+export async function updateStoreTemplateThemeAction(
+  storeId: string,
+  data: {
+    name: string;
+    status: string;
+    customDomain: string | null;
+    templateId: string;
+    theme: Record<string, unknown>;
+  }
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await updateStore(storeId, {
+      name: data.name,
+      status: data.status,
+      templateId: data.templateId,
+      customDomain: data.customDomain,
+      theme: data.theme,
+    });
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to save' };
+  }
+}
+
 export async function updatePaymentConfigAction(fd: FormData) {
   const id = str(fd, 'id');
   const data: Record<string, unknown> = {
