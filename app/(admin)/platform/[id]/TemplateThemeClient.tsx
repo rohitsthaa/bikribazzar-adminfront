@@ -82,12 +82,19 @@ export default function TemplateThemeClient({
         <Label>Template</Label>
         <select
           value={templateId}
-          onChange={(e) => setTemplateId(e.target.value)}
+          onChange={(e) => {
+            setTemplateId(e.target.value);
+            // Clear custom overrides so the new template's default palette applies.
+            // Operators can re-set individual colors after switching.
+            setPrimary('');
+            setAccent('');
+            setBg('');
+          }}
           className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
         >
           {TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <p className="text-[11px] text-stone-400 mt-1.5">Changing this updates the storefront layout immediately.</p>
+        <p className="text-[11px] text-stone-400 mt-1.5">Changing template resets custom colours to that template's defaults. Save to apply.</p>
       </div>
 
       <div>

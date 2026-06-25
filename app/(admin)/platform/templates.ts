@@ -8,4 +8,5 @@ export const TEMPLATES = [
   { id: 'bubbly',     name: 'Bubbly — Playful · Colourful' },
   { id: 'folio',      name: 'Folio — Editorial · Portfolio' },
   { id: 'profile',    name: 'Profile — Professional · Business' },
+  { id: 'artisan',    name: 'Artisan — Handicraft · Golden · Warm' },
 ];
