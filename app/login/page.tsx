@@ -17,7 +17,7 @@ function Submit() {
 
 // This is the shared platform console login (multi-tenant), so it carries the
 // platform brand, not any single store. Override via NEXT_PUBLIC_PLATFORM_NAME.
-const PLATFORM_NAME = process.env.NEXT_PUBLIC_PLATFORM_NAME || 'Hello World Nepal';
+const PLATFORM_NAME = process.env.NEXT_PUBLIC_PLATFORM_NAME || 'Bikri Bazaar';
 const PLATFORM_INITIALS = PLATFORM_NAME
   .split(/\s+/)
   .map((w) => w[0])

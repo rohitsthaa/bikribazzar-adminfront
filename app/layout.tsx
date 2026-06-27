@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: `${process.env.NEXT_PUBLIC_PLATFORM_NAME || 'Hello World Nepal'} — Platform Console`,
+  title: `${process.env.NEXT_PUBLIC_PLATFORM_NAME || 'Bikri Bazaar'} — Platform Console`,
   robots: { index: false, follow: false },
 };
 
