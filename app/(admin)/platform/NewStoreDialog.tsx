@@ -76,7 +76,7 @@ export default function NewStoreDialog() {
                   autoFocus
                   className="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
                 />
-                <p className="text-[11px] text-stone-400 mt-1">Used as <code className="bg-stone-100 px-1 rounded">slug.store.helloworldnepal.com</code></p>
+                <p className="text-[11px] text-stone-400 mt-1">Used as <code className="bg-stone-100 px-1 rounded">slug.bikribazaar.com</code></p>
               </label>
 
               <label className="block">

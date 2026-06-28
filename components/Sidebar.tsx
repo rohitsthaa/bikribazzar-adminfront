@@ -245,7 +245,7 @@ export default function Sidebar({
             </span>
             <div className="min-w-0">
               <p className="text-white text-sm font-semibold tracking-tight leading-snug">
-                Hello World Nepal
+                Bikri Bazaar
               </p>
               <p className="text-indigo-400 text-[11px] leading-tight font-medium tracking-wide uppercase">
                 Platform Console

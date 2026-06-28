@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const storeUrl = currentStore?.customDomain
     ? `https://${currentStore.customDomain}`
     : current
-    ? `https://${current}.${platformDomain || 'store.helloworldnepal.com'}`
+    ? `https://${current}.${platformDomain || 'bikribazaar.com'}`
     : null;
 
   // The store context bar is only shown when NOT on platform routes.
