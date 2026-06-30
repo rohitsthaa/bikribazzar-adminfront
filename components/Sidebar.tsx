@@ -280,6 +280,7 @@ export default function Sidebar({
                 (pathname.startsWith('/platform/') &&
                  !pathname.startsWith('/platform/stores') &&
                  !pathname.startsWith('/platform/orders') &&
+                 !pathname.startsWith('/platform/templates') &&
                  pathname !== '/platform')
               }
             />
@@ -288,6 +289,12 @@ export default function Sidebar({
               label="Orders"
               Icon={Icons.Orders}
               active={pathname === '/platform/orders' || pathname.startsWith('/platform/orders/')}
+            />
+            <PlatformNavItem
+              href="/platform/templates"
+              label="Templates"
+              Icon={Icons.Design}
+              active={pathname === '/platform/templates' || pathname.startsWith('/platform/templates/')}
             />
           </nav>
 
