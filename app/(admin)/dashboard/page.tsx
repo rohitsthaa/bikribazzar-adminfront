@@ -29,8 +29,8 @@ export default async function DashboardPage() {
 
   try {
     await Promise.all([
-      getOrders().then((o) => { orders = o; }).catch(() => {}),
-      getProducts().then((p) => { allProducts = p; }).catch(() => {}),
+      getOrders().then((o) => { orders = Array.isArray(o) ? o : (o as any).items ?? []; }).catch(() => {}),
+      getProducts().then((p) => { allProducts = Array.isArray(p) ? p : (p as any).items ?? []; }).catch(() => {}),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
   } catch { /* show zeros */ }

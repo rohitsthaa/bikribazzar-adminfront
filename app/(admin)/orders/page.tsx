@@ -12,10 +12,11 @@ export default async function OrdersPage() {
   let currency = 'NPR';
 
   try {
-    [orders] = await Promise.all([
+    const [raw] = await Promise.all([
       getOrders(),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
+    orders = Array.isArray(raw) ? raw : (raw as any).items ?? [];
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load orders';
   }
