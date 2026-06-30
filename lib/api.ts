@@ -228,6 +228,7 @@ export type StoreSummary = {
   theme: Record<string, unknown>;
   customDomain: string | null;
   siteType: string;
+  allowedTemplates: string[] | null;
 };
 
 export type StorePaymentConfigView = {
@@ -246,7 +247,7 @@ export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${
 export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string }) {
   return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string }>) {
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null }>) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function getStorePaymentConfig(id: string) {
@@ -363,6 +364,7 @@ export type Review = {
 
 export type TemplateMeta = {
   id: string;
+  access?: 'public' | 'private';
   name: string;
   tagline: string;
   description: string;
@@ -370,8 +372,11 @@ export type TemplateMeta = {
   paletteLabels: string[];
 };
 
-/** Returns the list of available storefront templates from the API. */
+/** Returns store-scoped templates (filtered by x-store-id). */
 export function getTemplates() { return apiFetch<TemplateMeta[]>('/templates'); }
+
+/** Returns ALL templates including private ones. Internal-token only. Super-admin use. */
+export function getAllTemplates() { return apiFetch<TemplateMeta[]>('/templates/all'); }
 
 export function getReviews(status?: 'pending' | 'approved' | 'rejected' | 'all') {
   const qs = status ? `?status=${status}` : '';

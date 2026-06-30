@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -104,6 +104,25 @@ export async function createStoreAdminAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to create admin' };
+  }
+}
+
+/**
+ * Set a store's allowed template list.
+ * allowedTemplates = null  → no restriction (all public templates)
+ * allowedTemplates = [...] → restrict + grant private templates
+ */
+export async function updateAllowedTemplatesAction(
+  storeId: string,
+  allowedTemplates: string[] | null
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await updateStore(storeId, { allowedTemplates });
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to update template access' };
   }
 }
 

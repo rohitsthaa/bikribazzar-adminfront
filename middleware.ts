@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const TOKEN_COOKIE = 'st_admin_token'; // JWT from admin_users login
 const LEGACY_COOKIE = 'st_admin';      // legacy shared-password fallback
-const PUBLIC = ['/login', '/signup'];
+const PUBLIC = ['/login', '/signup', '/verify-email'];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

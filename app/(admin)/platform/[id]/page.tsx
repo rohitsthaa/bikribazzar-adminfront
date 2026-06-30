@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { getStore, getStorePaymentConfig, getStoreAdmins } from '@/lib/api';
+import { getStore, getStorePaymentConfig, getStoreAdmins, getAllTemplates } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import { updateStoreAction, updatePaymentConfigAction } from '../actions';
 import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import TemplateThemeClient from './TemplateThemeClient';
+import TemplateAccessClient from './TemplateAccessClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,9 +96,10 @@ export default async function StoreManagePage({ params }: Props) {
   try { store = await getStore(params.id); } catch { notFound(); }
   if (!store) notFound();
 
-  const [pay, admins] = await Promise.all([
+  const [pay, admins, allTemplates] = await Promise.all([
     getStorePaymentConfig(params.id).catch(() => null),
     getStoreAdmins(params.id).catch(() => []),
+    getAllTemplates().catch(() => []),
   ]);
 
   const theme = (store.theme ?? {}) as ThemeShape;
@@ -276,7 +278,19 @@ export default async function StoreManagePage({ params }: Props) {
         </form>
       </SectionCard>
 
-      {/* ── Section 4: Team ── */}
+      {/* ── Section 4: Template Access ── */}
+      <SectionCard
+        title="Template access"
+        description="Control which storefront themes this store can use. Grant exclusive/private templates here."
+      >
+        <TemplateAccessClient
+          storeId={store.id}
+          allTemplates={allTemplates}
+          initialAllowed={store.allowedTemplates ?? null}
+        />
+      </SectionCard>
+
+      {/* ── Section 5: Team ── */}
       <StoreAdmins storeId={store.id} storeName={store.name} admins={admins} />
 
     </main>

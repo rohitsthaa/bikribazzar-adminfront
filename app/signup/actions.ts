@@ -1,6 +1,5 @@
 'use server';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN_COOKIE = 'st_admin_token';
@@ -15,14 +14,15 @@ export type SignupPayload = {
   whatsappNumber: string;
 };
 
+// Signup no longer returns a JWT — user must verify email first.
 export type SignupResult =
-  | { ok: true; storeId: string; trialEndsAt: string }
+  | { ok: true; email: string }
   | { ok: false; error: string };
 
 /**
- * Call the public /self-serve/signup endpoint on the API.
- * On success, set the JWT cookie and redirect into the admin dashboard.
- * On failure, return an error message to the client.
+ * Call the public /self-serve/signup endpoint.
+ * On success: a verification email is sent and we return { ok: true, email }.
+ * The user must click the link in their inbox before they can log in.
  */
 export async function signupAction(payload: SignupPayload): Promise<SignupResult> {
   try {
@@ -39,19 +39,24 @@ export async function signupAction(payload: SignupPayload): Promise<SignupResult
       return { ok: false, error: data.error ?? `Signup failed (${res.status})` };
     }
 
-    // Set the JWT cookie — same format as loginWithCredentials in lib/auth.ts
-    cookies().set(TOKEN_COOKIE, data.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    return { ok: true, storeId: data.store.id, trialEndsAt: data.store.trialEndsAt };
-  } catch (err) {
+    return { ok: true, email: data.email };
+  } catch {
     return { ok: false, error: 'Could not reach the server. Please try again.' };
   }
+}
+
+/**
+ * Sets the JWT auth cookie after email verification.
+ * Called from the /verify-email page once the API returns a token.
+ */
+export async function setAuthCookieAction(token: string): Promise<void> {
+  cookies().set(TOKEN_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+  });
 }
 
 /**

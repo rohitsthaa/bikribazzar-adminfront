@@ -85,7 +85,7 @@ export default function SignupPage() {
 
   const [step, setStep] = useState(1);
   const [globalError, setGlobalError] = useState('');
-  const [doneData, setDoneData] = useState<{ storeId: string; trialEndsAt: string } | null>(null);
+  const [doneEmail, setDoneEmail] = useState<string | null>(null);
 
   // Step 1 fields
   const [storeName, setStoreName] = useState('');
@@ -168,7 +168,7 @@ export default function SignupPage() {
         setGlobalError(result.error);
         return;
       }
-      setDoneData({ storeId: result.storeId, trialEndsAt: result.trialEndsAt });
+      setDoneEmail(result.email);
       setStep(3);
     });
   }
@@ -333,39 +333,37 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* ── Step 3: Done ─────────────────────────────────────────────── */}
-          {step === 3 && doneData && (
+          {/* ── Step 3: Check your email ─────────────────────────────────── */}
+          {step === 3 && doneEmail && (
             <div className="text-center space-y-5">
-              <div className="text-4xl">🎉</div>
+              <div className="text-5xl">📬</div>
               <div>
-                <h2 className="text-xl font-semibold text-stone-900 mb-1">Your store is live!</h2>
-                <p className="text-sm text-stone-500">
-                  <span className="font-medium text-stone-700">{doneData.storeId}.{PLATFORM_DOMAIN}</span> is ready.
-                  Your 14-day free trial has started.
+                <h2 className="text-xl font-semibold text-stone-900 mb-2">Check your inbox</h2>
+                <p className="text-sm text-stone-500 leading-relaxed">
+                  We sent a verification link to{' '}
+                  <span className="font-semibold text-stone-700">{doneEmail}</span>.
+                  Click the link to activate your account and access your store.
                 </p>
               </div>
 
-              <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 text-left space-y-2">
-                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">What to do next</p>
-                <ul className="text-sm text-stone-600 space-y-1.5">
-                  <li>✦ Add your products (photos, prices, descriptions)</li>
-                  <li>✦ Customise your logo and brand colours</li>
-                  <li>✦ Share your store link with customers</li>
-                </ul>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1.5">
+                  Don't see it?
+                </p>
+                <p className="text-sm text-amber-700 leading-relaxed">
+                  Check your spam or junk folder. The link expires in 24 hours.
+                </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => router.push('/')}
-                className="w-full py-2.5 px-4 bg-stone-800 hover:bg-stone-700 text-white rounded-xl text-sm font-medium transition-colors"
-              >
-                Go to my store admin →
-              </button>
-
               <p className="text-xs text-stone-400">
-                Trial ends{' '}
-                {new Date(doneData.trialEndsAt).toLocaleDateString('en-NP', { day: 'numeric', month: 'long', year: 'numeric' })}.
-                We'll remind you before it expires.
+                Wrong email?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setStep(1); setDoneEmail(null); }}
+                  className="text-stone-600 underline underline-offset-2"
+                >
+                  Start over
+                </button>
               </p>
             </div>
           )}
