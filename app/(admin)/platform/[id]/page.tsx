@@ -7,6 +7,7 @@ import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import TemplateThemeClient from './TemplateThemeClient';
 import TemplateAccessClient from './TemplateAccessClient';
+import SubmitButton from '@/components/SubmitButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,14 +42,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement> & { childre
 }
 
 function SaveBtn({ label = 'Save changes' }: { label?: string }) {
-  return (
-    <button
-      type="submit"
-      className="rounded-xl bg-stone-800 text-white px-5 py-2.5 text-sm font-medium hover:bg-stone-700 transition-colors"
-    >
-      {label}
-    </button>
-  );
+  return <SubmitButton label={label} />;
 }
 
 function SectionCard({ title, description, children }: {

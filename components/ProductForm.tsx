@@ -1,8 +1,9 @@
 'use client';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormState } from 'react-dom';
 import { useState } from 'react';
 import type { Product } from '@/lib/api';
 import ImageUploader from './ImageUploader';
+import SubmitButton from './SubmitButton';
 
 type PrepaymentType = 'none' | 'percentage' | 'fixed';
 
@@ -23,15 +24,11 @@ type Props = {
 };
 
 function Submit({ isNew }: { isNew: boolean }) {
-  const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="px-5 py-2.5 bg-stone-800 hover:bg-stone-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors font-medium"
-    >
-      {pending ? 'Saving…' : isNew ? 'Create product' : 'Save changes'}
-    </button>
+    <SubmitButton
+      label={isNew ? 'Create product' : 'Save changes'}
+      className="relative overflow-hidden px-5 py-2.5 bg-stone-800 hover:bg-stone-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors font-medium"
+    />
   );
 }
 

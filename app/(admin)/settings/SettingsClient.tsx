@@ -41,8 +41,14 @@ function SettingCard({
           type="button"
           onClick={onSave}
           disabled={isPending}
-          className="px-4 py-2 bg-stone-800 hover:bg-stone-700 disabled:opacity-50 text-white text-sm rounded-xl transition-colors font-medium"
+          className="relative overflow-hidden px-4 py-2 bg-stone-800 hover:bg-stone-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm rounded-xl transition-colors font-medium"
         >
+          {isPending && (
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 bottom-0 h-[3px] bg-white/40 origin-left animate-progress"
+            />
+          )}
           {isPending ? 'Saving…' : 'Save'}
         </button>
       </div>
