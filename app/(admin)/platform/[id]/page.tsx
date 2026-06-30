@@ -10,7 +10,7 @@ import TemplateAccessClient from './TemplateAccessClient';
 
 export const dynamic = 'force-dynamic';
 
-interface Props { params: { id: string } }
+interface Props { params: { id: string }; searchParams?: { error?: string; saved?: string } }
 type ThemeShape = { colors?: { primary?: string; accent?: string; bg?: string }; fonts?: { display?: string; body?: string } };
 
 // ── Small shared primitives ──────────────────────────────────────────────────
@@ -88,7 +88,7 @@ function ToggleField({ name, label, description, defaultChecked }: {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function StoreManagePage({ params }: Props) {
+export default async function StoreManagePage({ params, searchParams }: Props) {
   const me = await getAdmin();
   if (me?.role !== 'super') redirect('/dashboard');
 
@@ -103,9 +103,23 @@ export default async function StoreManagePage({ params }: Props) {
   ]);
 
   const theme = (store.theme ?? {}) as ThemeShape;
+  const saveError = searchParams?.error ? decodeURIComponent(searchParams.error) : null;
+  const saveOk = searchParams?.saved === '1';
 
   return (
     <main className="p-6 md:p-8 max-w-3xl space-y-8">
+
+      {/* ── Save feedback banner ── */}
+      {saveError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <strong>Save failed:</strong> {saveError}
+        </div>
+      )}
+      {saveOk && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          ✓ Changes saved.
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div>

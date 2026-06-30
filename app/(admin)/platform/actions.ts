@@ -26,6 +26,7 @@ export async function createStoreAction(fd: FormData) {
 }
 
 export async function updateStoreAction(fd: FormData) {
+  await assertSuper();
   const id = str(fd, 'id');
   const theme = {
     colors: {
@@ -38,14 +39,22 @@ export async function updateStoreAction(fd: FormData) {
       body: str(fd, 'fontBody') || undefined,
     },
   };
-  await updateStore(id, {
-    name: str(fd, 'name'),
-    status: str(fd, 'status') || 'active',
-    templateId: str(fd, 'templateId') || 'soulthread',
-    customDomain: str(fd, 'customDomain') || null,
-    theme,
-  });
+  try {
+    await updateStore(id, {
+      name: str(fd, 'name'),
+      status: str(fd, 'status') || 'active',
+      templateId: str(fd, 'templateId') || 'soulthread',
+      customDomain: str(fd, 'customDomain') || null,
+      theme,
+    });
+  } catch (e: unknown) {
+    // Re-throw Next.js internal errors (redirect / notFound)
+    if (e && typeof e === 'object' && 'digest' in e) throw e;
+    const msg = e instanceof Error ? e.message : 'Save failed';
+    redirect(`/platform/${id}?error=${encodeURIComponent(msg)}`);
+  }
   revalidatePath(`/platform/${id}`);
+  redirect(`/platform/${id}?saved=1`);
 }
 
 /** Called programmatically from TemplateThemeClient — returns result for UI feedback. */
@@ -76,6 +85,7 @@ export async function updateStoreTemplateThemeAction(
 }
 
 export async function updatePaymentConfigAction(fd: FormData) {
+  await assertSuper();
   const id = str(fd, 'id');
   const data: Record<string, unknown> = {
     esewaEnabled: fd.get('esewaEnabled') === 'on',
@@ -84,14 +94,20 @@ export async function updatePaymentConfigAction(fd: FormData) {
     khaltiEnabled: fd.get('khaltiEnabled') === 'on',
     khaltiMode: str(fd, 'khaltiMode') || 'test',
   };
-  // Only send a secret if the operator typed a new one (blank = leave unchanged).
   const esewaSecret = str(fd, 'esewaSecret');
   if (esewaSecret) data.esewaSecret = esewaSecret;
   const khaltiSecret = str(fd, 'khaltiSecret');
   if (khaltiSecret) data.khaltiSecret = khaltiSecret;
 
-  await updateStorePaymentConfig(id, data);
+  try {
+    await updateStorePaymentConfig(id, data);
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'digest' in e) throw e;
+    const msg = e instanceof Error ? e.message : 'Save failed';
+    redirect(`/platform/${id}?error=${encodeURIComponent(msg)}`);
+  }
   revalidatePath(`/platform/${id}`);
+  redirect(`/platform/${id}?saved=1`);
 }
 
 export async function createStoreAdminAction(
