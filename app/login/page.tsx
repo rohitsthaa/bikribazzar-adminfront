@@ -1,6 +1,7 @@
 'use client';
 import { useFormState, useFormStatus } from 'react-dom';
 import { login } from './actions';
+import { BikriMark } from '@/components/BikriMark';
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -15,29 +16,20 @@ function Submit() {
   );
 }
 
-// This is the shared platform console login (multi-tenant), so it carries the
-// platform brand, not any single store. Override via NEXT_PUBLIC_PLATFORM_NAME.
-const PLATFORM_NAME = process.env.NEXT_PUBLIC_PLATFORM_NAME || 'Bikri Bazaar';
-const PLATFORM_INITIALS = PLATFORM_NAME
-  .split(/\s+/)
-  .map((w) => w[0])
-  .slice(0, 2)
-  .join('')
-  .toUpperCase();
-
 export default function LoginPage() {
   const [state, action] = useFormState(login, null);
 
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
+
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-stone-800 text-white text-lg font-bold rounded-2xl mb-4">
-            {PLATFORM_INITIALS}
+          <div className="inline-flex items-center justify-center mb-4">
+            <BikriMark bg="#f9fafb" size={52} />
           </div>
-          <h1 className="text-2xl font-serif font-semibold tracking-tight text-stone-900">
-            {PLATFORM_NAME}
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900">
+            Bikri<span className="text-[#F05228]">Bazaar</span>
           </h1>
           <p className="text-sm text-stone-500 mt-1.5">Platform console</p>
         </div>
@@ -83,7 +75,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-stone-400 mt-6">
-          &copy; {new Date().getFullYear()} {PLATFORM_NAME}
+          &copy; {new Date().getFullYear()} BikriBazaar
         </p>
       </div>
     </div>

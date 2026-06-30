@@ -27,7 +27,7 @@ export default async function PlatformStoresPage() {
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-1">
-            Bikri Bazaar
+            BikriBazaar
           </p>
           <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Stores</h1>
           <p className="text-sm text-stone-400 mt-1">

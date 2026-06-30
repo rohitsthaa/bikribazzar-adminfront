@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { signupAction, checkSlugAction } from './actions';
 
-const PLATFORM_NAME = process.env.NEXT_PUBLIC_PLATFORM_NAME || 'Bikri Bazaar';
+const PLATFORM_NAME = process.env.NEXT_PUBLIC_PLATFORM_NAME || 'BikriBazaar';
 const PLATFORM_DOMAIN = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'bikribazaar.com';
 
 // ─── Templates shown in the picker ────────────────────────────────────────

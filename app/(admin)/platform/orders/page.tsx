@@ -15,7 +15,7 @@ export default async function PlatformOrdersPage() {
     <main className="p-6 md:p-8 max-w-5xl">
       <div className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-1">
-          Bikri Bazaar
+          BikriBazaar
         </p>
         <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Orders</h1>
         <p className="text-sm text-stone-400 mt-1">

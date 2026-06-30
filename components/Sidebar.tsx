@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { logout } from '@/app/login/actions';
+import { BikriMark } from '@/components/BikriMark';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -85,16 +86,6 @@ const Icons = {
     </svg>
   ),
 };
-
-// ─── Platform logo mark ────────────────────────────────────────────────────────
-const PlatformMark = () => (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="2" width="12" height="12" rx="3" fill="#818cf8"/>
-    <rect x="18" y="2" width="12" height="12" rx="3" fill="#818cf8" fillOpacity="0.65"/>
-    <rect x="2" y="18" width="12" height="12" rx="3" fill="#818cf8" fillOpacity="0.65"/>
-    <rect x="18" y="18" width="12" height="12" rx="3" fill="#818cf8" fillOpacity="0.3"/>
-  </svg>
-);
 
 // ─── Nav data ─────────────────────────────────────────────────────────────────
 
@@ -241,13 +232,13 @@ export default function Sidebar({
           {/* Brand */}
           <Link href="/platform" className="group flex items-center gap-3 px-5 pt-7 pb-6">
             <span className="flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-              <PlatformMark />
+              <BikriMark bg="#0f172a" size={36} />
             </span>
             <div className="min-w-0">
-              <p className="text-white text-sm font-semibold tracking-tight leading-snug">
-                Bikri Bazaar
+              <p className="text-white text-sm font-bold tracking-tight leading-snug">
+                Bikri<span className="text-[#F5845A]">Bazaar</span>
               </p>
-              <p className="text-indigo-400 text-[11px] leading-tight font-medium tracking-wide uppercase">
+              <p className="text-slate-500 text-[11px] leading-tight font-medium tracking-wide uppercase">
                 Platform Console
               </p>
             </div>
@@ -431,6 +422,17 @@ export default function Sidebar({
             </button>
           </form>
         </div>
+
+        {/* Powered by BikriBazaar */}
+        <a
+          href="https://bikribazaar.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 py-3 border-t border-stone-100 text-[10px] text-stone-300 hover:text-stone-500 transition-colors duration-150"
+        >
+          <BikriMark bg="white" size={16} />
+          <span>Powered by <strong className="font-semibold text-stone-400">BikriBazaar</strong></span>
+        </a>
       </aside>
     </>
   );
