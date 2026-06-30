@@ -89,7 +89,7 @@ export function deleteProduct(id: string) {
 }
 
 export function getInventoryLog(productId: string) {
-  return apiFetch<InventoryLog[]>(`/products/${encodeURIComponent(productId)}/inventory-log`);
+  return apiFetch<InventoryLog[]>(`/products/${encodeURIComponent(productId)}/inventory-logs`);
 }
 
 export function restockProduct(productId: string, qty: number, notes?: string, batchDate?: string) {
