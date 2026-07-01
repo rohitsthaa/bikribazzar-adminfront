@@ -29,6 +29,8 @@ export async function saveProduct(_: unknown, formData: FormData) {
     reorderPoint: Number(formData.get('reorderPoint') ?? 0),
     digitalAssetUrl: (formData.get('digitalAssetUrl') as string) || null,
     isDigital: formData.get('isDigital') === 'true',
+    metaTitle: (formData.get('metaTitle') as string) || null,
+    metaDescription: (formData.get('metaDescription') as string) || null,
   };
 
   // Variants (optional). Parsed from the hidden JSON field. Staff can't set

@@ -36,6 +36,7 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
   const [state, formAction] = useFormState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
+  const [seoOpen, setSeoOpen] = useState(!!(product?.metaTitle || product?.metaDescription));
   const [prepaymentType, setPrepaymentType] = useState<PrepaymentType>(
     (product?.prepaymentType as PrepaymentType) ?? 'none'
   );
@@ -441,6 +442,68 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
                 />
                 <p className="text-xs text-gray-400 mt-1">The file URL sent to the customer after delivery is confirmed.</p>
+              </div>
+            )}
+          </div>
+
+          {/* SEO — collapsible, optional */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <button
+              type="button"
+              onClick={() => setSeoOpen(!seoOpen)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div>
+                <h2 className="text-sm font-semibold text-gray-700">SEO</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {seoOpen
+                    ? 'Custom title and description for search engines.'
+                    : 'Optional — override the auto-generated search preview.'}
+                </p>
+              </div>
+              <svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2"
+                className={`shrink-0 text-gray-400 transition-transform ${seoOpen ? 'rotate-180' : ''}`}
+              >
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+
+            {seoOpen && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                    Meta title <span className="normal-case font-normal text-gray-400">(max 120 chars — leave blank to auto-generate)</span>
+                  </label>
+                  <input
+                    name="metaTitle"
+                    defaultValue={product?.metaTitle ?? ''}
+                    maxLength={120}
+                    placeholder={`e.g. Handwoven Macramé Shelf – ${product?.name ?? 'Product Name'}`}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Shown as the clickable headline in Google results. ~50–60 chars is ideal.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                    Meta description <span className="normal-case font-normal text-gray-400">(max 320 chars — leave blank to auto-generate)</span>
+                  </label>
+                  <textarea
+                    name="metaDescription"
+                    defaultValue={product?.metaDescription ?? ''}
+                    maxLength={320}
+                    rows={3}
+                    placeholder="e.g. Handwoven in Kathmandu using natural cotton cord and pine. Perfect for indoor plants. Free delivery within the Valley."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 resize-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Shown below the title in Google results. ~150–160 chars is ideal.
+                  </p>
+                </div>
               </div>
             )}
           </div>

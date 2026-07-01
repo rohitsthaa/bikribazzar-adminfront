@@ -55,6 +55,8 @@ export type Product = {
   reorderPoint: number;
   digitalAssetUrl?: string | null;
   isDigital?: boolean;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   variants?: ProductVariant[];
 };
 
@@ -377,6 +379,14 @@ export function getTemplates() { return apiFetch<TemplateMeta[]>('/templates'); 
 
 /** Returns ALL templates including private ones. Internal-token only. Super-admin use. */
 export function getAllTemplates() { return apiFetch<TemplateMeta[]>('/templates/all'); }
+
+/** Set a template's access level (public | private). Internal-token only. */
+export function setTemplateAccess(id: string, access: 'public' | 'private') {
+  return apiFetch<{ id: string; access: string }>(`/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ access }),
+  });
+}
 
 export function getReviews(status?: 'pending' | 'approved' | 'rejected' | 'all') {
   const qs = status ? `?status=${status}` : '';

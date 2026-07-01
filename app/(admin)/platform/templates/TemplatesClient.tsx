@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { TemplateMeta, StoreSummary } from '@/lib/api';
-import { grantTemplateAccessAction, revokeTemplateAccessAction } from './actions';
+import { grantTemplateAccessAction, revokeTemplateAccessAction, setTemplateAccessAction } from './actions';
 
 // ── Palette strip ─────────────────────────────────────────────────────────────
 
@@ -95,13 +95,26 @@ function PrivateTemplateCard({
   template,
   stores,
   allPublicIds,
+  onMakePublic,
 }: {
   template: TemplateMeta;
   stores: StoreSummary[];
   allPublicIds: string[];
+  onMakePublic: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [, startTransition] = useTransition();
   const granted = stores.filter((s) => s.allowedTemplates?.includes(template.id));
+
+  async function makePublic() {
+    setBusy(true);
+    startTransition(async () => {
+      const result = await setTemplateAccessAction(template.id, 'public');
+      if (!('error' in result)) onMakePublic(template.id);
+      setBusy(false);
+    });
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
@@ -117,19 +130,29 @@ function PrivateTemplateCard({
             <p className="text-xs text-stone-400 mt-0.5">{template.tagline}</p>
           </div>
         </div>
-        <button
-          onClick={() => setExpanded((e) => !e)}
-          className="flex-shrink-0 text-xs text-stone-500 hover:text-stone-800 transition-colors flex items-center gap-1"
-        >
-          <span className="font-medium">{granted.length} store{granted.length !== 1 ? 's' : ''}</span>
-          <svg
-            width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={makePublic}
+            disabled={busy}
+            title="Make this template public (available to all stores)"
+            className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors disabled:opacity-50"
           >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+            {busy ? '…' : 'Make public'}
+          </button>
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="text-xs text-stone-500 hover:text-stone-800 transition-colors flex items-center gap-1"
+          >
+            <span className="font-medium">{granted.length} store{granted.length !== 1 ? 's' : ''}</span>
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Expanded store list */}
@@ -157,7 +180,25 @@ function PrivateTemplateCard({
 
 // ── Public template card ───────────────────────────────────────────────────────
 
-function PublicTemplateCard({ template }: { template: TemplateMeta }) {
+function PublicTemplateCard({
+  template,
+  onMakeExclusive,
+}: {
+  template: TemplateMeta;
+  onMakeExclusive: (id: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [, startTransition] = useTransition();
+
+  async function makeExclusive() {
+    setBusy(true);
+    startTransition(async () => {
+      const result = await setTemplateAccessAction(template.id, 'private');
+      if (!('error' in result)) onMakeExclusive(template.id);
+      setBusy(false);
+    });
+  }
+
   return (
     <div className="bg-white rounded-xl border border-stone-200 px-4 py-3.5 flex items-center gap-4">
       <PaletteStrip palette={template.palette} labels={template.paletteLabels} />
@@ -165,7 +206,17 @@ function PublicTemplateCard({ template }: { template: TemplateMeta }) {
         <p className="text-sm font-medium text-stone-800">{template.name}</p>
         <p className="text-xs text-stone-400">{template.tagline}</p>
       </div>
-      <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-400 font-medium">Public</span>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={makeExclusive}
+          disabled={busy}
+          title="Make exclusive — only stores you grant access can use this template"
+          className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-amber-50 hover:text-amber-700 transition-colors disabled:opacity-50"
+        >
+          {busy ? '…' : 'Make exclusive'}
+        </button>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-400 font-medium">Public</span>
+      </div>
     </div>
   );
 }
@@ -178,9 +229,21 @@ interface Props {
 }
 
 export default function TemplatesClient({ allTemplates, stores }: Props) {
-  const privateTemplates = allTemplates.filter((t) => t.access === 'private');
-  const publicTemplates = allTemplates.filter((t) => t.access !== 'private');
+  // Local access state so toggles update immediately without a page reload
+  const [accessMap, setAccessMap] = useState<Record<string, 'public' | 'private'>>(() =>
+    Object.fromEntries(allTemplates.map((t) => [t.id, t.access ?? 'public']))
+  );
+
+  const privateTemplates = allTemplates.filter((t) => (accessMap[t.id] ?? t.access) === 'private');
+  const publicTemplates  = allTemplates.filter((t) => (accessMap[t.id] ?? t.access) !== 'private');
   const allPublicIds = publicTemplates.map((t) => t.id);
+
+  function makePublic(id: string) {
+    setAccessMap((m) => ({ ...m, [id]: 'public' }));
+  }
+  function makeExclusive(id: string) {
+    setAccessMap((m) => ({ ...m, [id]: 'private' }));
+  }
 
   return (
     <div className="space-y-10">
@@ -198,8 +261,7 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
           <div className="rounded-2xl border border-dashed border-stone-200 px-6 py-10 text-center">
             <p className="text-sm text-stone-400">No exclusive templates yet.</p>
             <p className="text-xs text-stone-400 mt-1">
-              Set <code className="bg-stone-100 px-1 rounded">access: &quot;private&quot;</code> on any template in{' '}
-              <code className="bg-stone-100 px-1 rounded">soul-thread-api/src/routes/templates.ts</code>.
+              Click <strong className="font-medium text-stone-500">Make exclusive</strong> on any public template below.
             </p>
           </div>
         ) : (
@@ -210,6 +272,7 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
                 template={t}
                 stores={stores}
                 allPublicIds={allPublicIds}
+                onMakePublic={makePublic}
               />
             ))}
           </div>
@@ -224,7 +287,7 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
         </div>
         <div className="space-y-2">
           {publicTemplates.map((t) => (
-            <PublicTemplateCard key={t.id} template={t} />
+            <PublicTemplateCard key={t.id} template={t} onMakeExclusive={makeExclusive} />
           ))}
         </div>
       </section>

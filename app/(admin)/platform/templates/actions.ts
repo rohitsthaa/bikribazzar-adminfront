@@ -1,11 +1,29 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { getStore, updateStore } from '@/lib/api';
+import { getStore, updateStore, setTemplateAccess } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 async function assertSuper() {
   const me = await getAdmin();
   if (me?.role !== 'super') throw new Error('Forbidden');
+}
+
+/**
+ * Toggle a template between public and private (exclusive).
+ * Stored in the template_configs DB table — takes precedence over the hardcoded default.
+ */
+export async function setTemplateAccessAction(
+  id: string,
+  access: 'public' | 'private'
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await setTemplateAccess(id, access);
+    revalidatePath('/platform/templates');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to update access' };
+  }
 }
 
 /**
