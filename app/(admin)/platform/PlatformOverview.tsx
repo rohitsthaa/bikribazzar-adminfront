@@ -4,13 +4,6 @@ import { enterStore } from '../store-actions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const TZ = 'Asia/Kathmandu';
-
-const fmtTime = (d: string) =>
-  new Date(d).toLocaleString('en-US', {
-    timeZone: TZ, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
-  });
-
 const money = (n: number) => `NPR ${n.toLocaleString()}`;
 
 const AVATAR_COLORS = [
@@ -27,14 +20,6 @@ function storeColor(id: string): string {
 function storeInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
-
-const ORDER_STATUS: Record<string, string> = {
-  new:       'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
-  confirmed: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
-  shipped:   'bg-violet-50 text-violet-700 ring-1 ring-violet-100',
-  delivered: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
-  cancelled: 'bg-stone-100 text-stone-500',
-};
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
@@ -148,8 +133,7 @@ function AttentionRow({ s }: { s: Data['stores'][number] }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function PlatformOverview({ data }: { data: Data }) {
-  const { totals, stores, recent } = data;
-  const nameOf = (id: string) => stores.find((s) => s.id === id)?.name ?? id;
+  const { totals, stores } = data;
 
   const attentionStores = stores.filter((s) =>
     s.status !== 'active' || s.pending > 0 || s.lowStock > 0 || !s.hasPaymentConfig
@@ -271,51 +255,115 @@ export default function PlatformOverview({ data }: { data: Data }) {
         )}
       </div>
 
-      {/* ── Recent orders (last 5) ──────────────────────────────────────────── */}
-      {recent.length > 0 && (
-        <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
-            <div>
-              <h2 className="text-sm font-semibold text-stone-900">Recent activity</h2>
-              <p className="text-xs text-stone-400 mt-0.5">Latest orders across all stores.</p>
-            </div>
-            <Link
-              href="/platform/orders"
-              className="text-xs font-medium text-indigo-500 hover:text-indigo-700 transition-colors duration-150"
-            >
-              View all →
-            </Link>
+      {/* ── Store performance ──────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+          <div>
+            <h2 className="text-sm font-semibold text-stone-900">Store performance</h2>
+            <p className="text-xs text-stone-400 mt-0.5">All stores · sorted by revenue</p>
           </div>
-          <ul className="divide-y divide-stone-100">
-            {recent.slice(0, 5).map((o) => {
-              const color = storeColor(o.storeId);
-              return (
-                <li key={`${o.storeId}-${o.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-stone-50/60 transition-colors duration-100">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                  <span
-                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: `${color}18`, color }}
-                  >
-                    {nameOf(o.storeId)}
-                  </span>
-                  <span className="text-sm text-stone-700 flex-1 min-w-0 truncate">
-                    #{o.id} · {o.customerName}
-                  </span>
-                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${ORDER_STATUS[o.status] ?? 'bg-stone-100 text-stone-500'}`}>
-                    {o.status}
-                  </span>
-                  <span className="text-sm font-semibold text-stone-800 flex-shrink-0 hidden sm:block tabular-nums">
-                    {money(o.totalNpr)}
-                  </span>
-                  <span className="text-xs text-stone-400 flex-shrink-0 hidden md:block w-32 text-right">
-                    {fmtTime(o.createdAt)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <Link
+            href="/platform/stores"
+            className="text-xs font-medium text-indigo-500 hover:text-indigo-700 transition-colors duration-150"
+          >
+            Manage all →
+          </Link>
         </div>
-      )}
+
+        {/* Header row */}
+        <div className="hidden md:grid grid-cols-[1fr_80px_120px_80px_120px_120px] gap-4 px-5 py-2 border-b border-stone-50 bg-stone-50/60">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Store</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 text-right">Orders</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 text-right">Revenue</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 text-right">Pending</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Last order</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 text-right">Actions</span>
+        </div>
+
+        <div className="divide-y divide-stone-100">
+          {[...stores].sort((a, b) => b.revenue - a.revenue).map((s) => {
+            const color = storeColor(s.id);
+            const initials = storeInitials(s.name);
+            const lastOrder = s.lastOrderAt
+              ? (() => {
+                  const diff = Math.floor((Date.now() - new Date(s.lastOrderAt).getTime()) / 86400000);
+                  if (diff === 0) return 'Today';
+                  if (diff === 1) return 'Yesterday';
+                  if (diff < 30) return `${diff}d ago`;
+                  return new Date(s.lastOrderAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                })()
+              : 'Never';
+            const isDormant = !s.lastOrderAt || (Date.now() - new Date(s.lastOrderAt).getTime()) > 30 * 86400000;
+
+            return (
+              <div
+                key={s.id}
+                className="flex md:grid md:grid-cols-[1fr_80px_120px_80px_120px_120px] gap-4 items-center px-5 py-3 hover:bg-stone-50/60 transition-colors duration-100"
+              >
+                {/* Store name */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                  >
+                    {initials}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-stone-900 truncate">{s.name}</p>
+                    {s.status !== 'active' && (
+                      <span className="text-[10px] text-stone-400 font-medium">{s.status}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Orders */}
+                <p className="hidden md:block text-sm text-stone-700 text-right tabular-nums">
+                  {s.orderCount.toLocaleString()}
+                </p>
+
+                {/* Revenue */}
+                <p className="hidden md:block text-sm font-semibold text-stone-800 text-right tabular-nums">
+                  {s.revenue > 0 ? money(s.revenue) : <span className="text-stone-300 font-normal">—</span>}
+                </p>
+
+                {/* Pending */}
+                <p className="hidden md:block text-right">
+                  {s.pending > 0 ? (
+                    <span className="text-xs font-semibold text-amber-700 bg-amber-50 ring-1 ring-amber-100 px-2 py-0.5 rounded-full">
+                      {s.pending}
+                    </span>
+                  ) : (
+                    <span className="text-stone-300 text-sm">—</span>
+                  )}
+                </p>
+
+                {/* Last order */}
+                <p className={`hidden md:block text-xs ${isDormant ? 'text-stone-300' : 'text-stone-500'}`}>
+                  {lastOrder}
+                </p>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1.5 justify-end flex-shrink-0 ml-auto md:ml-0">
+                  <Link
+                    href={`/platform/${s.id}`}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-500 border border-stone-200 hover:border-stone-300 hover:text-stone-800 hover:bg-stone-50 transition-all duration-150"
+                  >
+                    Config
+                  </Link>
+                  <form action={enterStore.bind(null, s.id)}>
+                    <button
+                      type="submit"
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#c96a3a] hover:bg-[#b85f33] active:scale-95 transition-all duration-150 shadow-sm"
+                    >
+                      Enter →
+                    </button>
+                  </form>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
     </div>
   );
