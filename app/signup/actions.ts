@@ -39,7 +39,9 @@ export async function signupAction(payload: SignupPayload): Promise<SignupResult
       return { ok: false, error: data.error ?? `Signup failed (${res.status})` };
     }
 
-    return { ok: true, email: data.email };
+    // API returns { ok, storeId, storeUrl } — echo back the email from the payload
+    // so step 3 can display it in the "check your inbox" message.
+    return { ok: true, email: payload.ownerEmail };
   } catch {
     return { ok: false, error: 'Could not reach the server. Please try again.' };
   }
@@ -65,7 +67,7 @@ export async function setAuthCookieAction(token: string): Promise<void> {
  */
 export async function checkSlugAction(slug: string): Promise<{ available: boolean; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/self-serve/check-slug?slug=${encodeURIComponent(slug)}`, {
+    const res = await fetch(`${API_BASE}/self-serve/slug-check?slug=${encodeURIComponent(slug)}`, {
       cache: 'no-store',
     });
     return res.json();
