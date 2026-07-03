@@ -421,7 +421,10 @@ export type Lead = {
   createdAt: string;
 };
 
-export function getLeads() { return apiFetch<Lead[]>('/leads'); }
+export async function getLeads(): Promise<Lead[]> {
+  const r = await apiFetch<Lead[] | { items: Lead[] }>('/leads');
+  return Array.isArray(r) ? r : (r as { items: Lead[] }).items ?? [];
+}
 export function markLeadRead(id: number) {
   return apiFetch<Lead>(`/leads/${id}/read`, { method: 'PATCH', body: '{}' });
 }
@@ -443,7 +446,10 @@ export type BlogPost = {
   updatedAt: string;
 };
 
-export function getBlogPosts() { return apiFetch<BlogPost[]>('/blog/posts'); }
+export async function getBlogPosts(): Promise<BlogPost[]> {
+  const r = await apiFetch<BlogPost[] | { items: BlogPost[] }>('/blog/posts');
+  return Array.isArray(r) ? r : (r as { items: BlogPost[] }).items ?? [];
+}
 export function getBlogPost(id: number) { return apiFetch<BlogPost>(`/blog/posts/${id}`); }
 export function createBlogPost(data: Partial<BlogPost>) {
   return apiFetch<BlogPost>('/blog/posts', { method: 'POST', body: JSON.stringify(data) });
