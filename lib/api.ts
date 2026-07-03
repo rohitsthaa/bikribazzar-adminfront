@@ -282,8 +282,19 @@ export function getPlatformOverview() {
 }
 
 // ---- Admin users (super-admin manages store logins) ----
-export type AdminUserView = { id: number; email: string; role: 'super' | 'store'; storeId: string | null };
+export type AdminUserView = {
+  id: number;
+  email: string;
+  role: 'super' | 'store' | 'staff';
+  storeId: string | null;
+  emailVerified: boolean;
+  createdAt: string;
+};
 
+/** All admin users across the platform (super-admin only). */
+export function getAllAdminUsers() {
+  return apiFetch<AdminUserView[]>('/admin-auth/users');
+}
 export function getStoreAdmins(storeId: string) {
   return apiFetch<AdminUserView[]>(`/admin-auth/users?storeId=${encodeURIComponent(storeId)}`);
 }
@@ -291,6 +302,12 @@ export function createStoreAdmin(data: { email: string; password: string; storeI
   return apiFetch<AdminUserView>('/admin-auth/users', {
     method: 'POST',
     body: JSON.stringify({ ...data, role: data.role ?? 'store' }),
+  });
+}
+export function patchAdminUser(id: number, data: { role?: string; storeId?: string | null }) {
+  return apiFetch<AdminUserView>(`/admin-auth/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   });
 }
 export function deleteAdminUser(id: number) {

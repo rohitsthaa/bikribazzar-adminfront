@@ -54,6 +54,20 @@ const Icons = {
   Testimonials: () => I('M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'),
   Reviews:      () => I('M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'),
   Enquiries:    () => I('M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 01-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 011-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 011.52 0C14.51 3.81 17 5 19 5a1 1 0 011 1z'),
+  Team:         () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-3.31 3.58-6 8-6s8 2.69 8 6"/>
+    </svg>
+  ),
+  Users:        () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
   Blog:         () => I('M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'),
   Portfolio:    () => I('M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'),
   Services:     () => I('M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2'),
@@ -107,10 +121,11 @@ const STORE_NAV_GROUPS = [
     { href: '/services',     label: 'Services',     Icon: Icons.Services },
   ],
   [
-    { href: '/design',       label: 'Design',       Icon: Icons.Design },
-    { href: '/testimonials', label: 'Testimonials', Icon: Icons.Testimonials },
-    { href: '/reviews',      label: 'Reviews',      Icon: Icons.Reviews },
-    { href: '/settings',     label: 'Settings',     Icon: Icons.Settings },
+    { href: '/design',         label: 'Design',       Icon: Icons.Design },
+    { href: '/testimonials',   label: 'Testimonials', Icon: Icons.Testimonials },
+    { href: '/reviews',        label: 'Reviews',      Icon: Icons.Reviews },
+    { href: '/settings/team',  label: 'Team',         Icon: Icons.Team },
+    { href: '/settings',       label: 'Settings',     Icon: Icons.Settings },
   ],
 ];
 
@@ -270,22 +285,22 @@ export default function Sidebar({
                 pathname.startsWith('/platform/stores/') ||
                 (pathname.startsWith('/platform/') &&
                  !pathname.startsWith('/platform/stores') &&
-                 !pathname.startsWith('/platform/orders') &&
                  !pathname.startsWith('/platform/templates') &&
+                 !pathname.startsWith('/platform/users') &&
                  pathname !== '/platform')
               }
-            />
-            <PlatformNavItem
-              href="/platform/orders"
-              label="Orders"
-              Icon={Icons.Orders}
-              active={pathname === '/platform/orders' || pathname.startsWith('/platform/orders/')}
             />
             <PlatformNavItem
               href="/platform/templates"
               label="Templates"
               Icon={Icons.Design}
               active={pathname === '/platform/templates' || pathname.startsWith('/platform/templates/')}
+            />
+            <PlatformNavItem
+              href="/platform/users"
+              label="Users"
+              Icon={Icons.Users}
+              active={pathname === '/platform/users' || pathname.startsWith('/platform/users/')}
             />
           </nav>
 
@@ -377,8 +392,11 @@ export default function Sidebar({
             <div key={gi}>
               {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
               {group.map((item) => {
-                if (item.href === '/settings' && !canSettings) return null;
-                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                if ((item.href === '/settings' || item.href === '/settings/team') && !canSettings) return null;
+                // For /settings, don't match /settings/team as active (it has its own nav item)
+                const active = item.href === '/settings'
+                  ? pathname === '/settings'
+                  : pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <StoreNavItem
                     key={item.href}
