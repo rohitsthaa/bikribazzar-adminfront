@@ -1,8 +1,60 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock } from '@/lib/api';
+import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
+
+// ── CSV import ────────────────────────────────────────────────────────────────
+
+export type CsvRow = {
+  id: string;
+  name: string;
+  description: string;
+  priceNpr: number;
+  category: string;
+  details?: string;
+  tag?: string;
+  available: boolean;
+  stockQty: number | null;
+  reorderPoint: number;
+};
+
+export type ImportResult = {
+  created: number;
+  updated: number;
+  errors: Array<{ row: number; id: string; error: string }>;
+};
+
+export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
+  const admin = await getAdmin();
+  if (!admin) throw new Error('Unauthorized');
+
+  const payload = rows.map((row, i) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    priceNpr: row.priceNpr,
+    category: row.category,
+    details: row.details || null,
+    tag: row.tag || null,
+    image: '',
+    images: [] as string[],
+    available: row.available,
+    sortOrder: i,
+    prepaymentType: 'none' as const,
+    prepaymentValue: 0,
+    stockQty: row.stockQty,
+    reorderPoint: row.reorderPoint,
+    digitalAssetUrl: null,
+    isDigital: false,
+    metaTitle: null,
+    metaDescription: null,
+  }));
+
+  const { created, updated } = await bulkImportProducts(payload);
+  revalidatePath('/products');
+  return { created, updated, errors: [] };
+}
 
 export async function saveProduct(_: unknown, formData: FormData) {
   const id = (formData.get('id') as string).trim().toLowerCase().replace(/\s+/g, '-');

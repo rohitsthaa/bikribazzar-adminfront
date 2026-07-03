@@ -79,6 +79,13 @@ export function createProduct(data: Omit<Product, 'createdAt' | 'updatedAt'>) {
   return apiFetch<Product>('/products', { method: 'POST', body: JSON.stringify(data) });
 }
 
+export function bulkImportProducts(items: Array<Omit<Product, 'createdAt' | 'updatedAt'>>) {
+  return apiFetch<{ created: number; updated: number }>('/products/bulk', {
+    method: 'POST',
+    body: JSON.stringify(items),
+  });
+}
+
 export function updateProduct(id: string, data: Partial<Product>) {
   return apiFetch<Product>(`/products/${encodeURIComponent(id)}`, {
     method: 'PATCH',
