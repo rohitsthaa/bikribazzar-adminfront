@@ -33,7 +33,7 @@ function exportCsv(orders: Order[], label: string) {
     o.phone,
     o.address ?? '',
     o.notes ?? '',
-    o.items.map((i) => `${i.productId} ×${i.quantity}`).join('; '),
+    o.items.map((i) => `${i.name ?? i.productId}${i.variantLabel ? ` (${i.variantLabel})` : ''} ×${i.quantity}`).join('; '),
     o.totalNpr,
     o.paidNpr ?? 0,
     o.paymentMethod ?? '',
