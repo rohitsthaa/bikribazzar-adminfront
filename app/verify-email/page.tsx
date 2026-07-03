@@ -1,17 +1,15 @@
-import { redirect } from 'next/navigation';
-import { setAuthCookieAction } from '../signup/actions';
-
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 
 async function verifyToken(token: string): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const res = await fetch(`${API_BASE}/self-serve/verify-email?token=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/admin-auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
       cache: 'no-store',
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error ?? 'Verification failed.' };
-    // Set the JWT cookie via server action
-    await setAuthCookieAction(data.token);
     return { ok: true };
   } catch {
     return { ok: false, error: 'Could not reach the server. Please try again.' };
@@ -32,10 +30,32 @@ export default async function VerifyEmailPage({
   const result = await verifyToken(token);
 
   if (result.ok) {
-    redirect('/');
+    return <SuccessScreen />;
   }
 
   return <ErrorScreen message={result.error} />;
+}
+
+function SuccessScreen() {
+  return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md text-center">
+        <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8 space-y-5">
+          <div className="text-5xl">✅</div>
+          <h1 className="text-xl font-semibold text-stone-900">Email verified!</h1>
+          <p className="text-sm text-stone-500 leading-relaxed">
+            Your account is ready. Sign in with your email and password to access your store.
+          </p>
+          <a
+            href="/login"
+            className="block w-full py-2.5 px-4 bg-stone-800 hover:bg-stone-700 text-white rounded-xl text-sm font-medium transition-colors text-center"
+          >
+            Go to login →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ErrorScreen({ message }: { message: string }) {
