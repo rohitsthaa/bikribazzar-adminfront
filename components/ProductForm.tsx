@@ -1,6 +1,6 @@
 'use client';
 import { useFormState } from 'react-dom';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Product } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 import SubmitButton from './SubmitButton';
@@ -23,6 +23,74 @@ type Props = {
   canSetPrice?: boolean; // staff can't set/change price
 };
 
+// Compact 40×40 thumbnail uploader for a single variant row — e.g. a photo of
+// that color. Full-size ImageUploader (with its drop zone + URL field) is too
+// tall to fit inline in the variant table, so this reuses the same /api/upload
+// endpoint with a much smaller control.
+function VariantImageCell({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (res.ok) onChange(json.url);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="relative w-10 h-10 shrink-0">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        title={value ? 'Replace variant photo' : 'Add variant photo'}
+        className="w-10 h-10 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-stone-400 transition-colors"
+      >
+        {uploading ? (
+          <svg className="w-4 h-4 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+        ) : value ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+        )}
+      </button>
+      {value && !uploading && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          title="Remove photo"
+          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white border border-gray-300 text-gray-400 hover:text-red-500 flex items-center justify-center text-[10px] leading-none"
+        >
+          ×
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          e.target.value = '';
+        }}
+      />
+    </div>
+  );
+}
+
 function Submit({ isNew }: { isNew: boolean }) {
   return (
     <SubmitButton
@@ -42,7 +110,7 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
   );
   const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
   const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
-  type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string };
+  type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string; image: string };
   const [variants, setVariants] = useState<VariantRow[]>(
     (product?.variants ?? []).map((v) => ({
       id: v.id,
@@ -50,9 +118,10 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
       priceNpr: v.priceNpr == null ? '' : String(v.priceNpr),
       stockQty: v.stockQty == null ? '' : String(v.stockQty),
       sku: v.sku ?? '',
+      image: v.image ?? '',
     })),
   );
-  function addVariant() { setVariants([...variants, { label: '', priceNpr: '', stockQty: '', sku: '' }]); }
+  function addVariant() { setVariants([...variants, { label: '', priceNpr: '', stockQty: '', sku: '', image: '' }]); }
   function removeVariant(idx: number) { setVariants(variants.filter((_, i) => i !== idx)); }
   function updateVariant(idx: number, patch: Partial<VariantRow>) {
     setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
@@ -67,6 +136,7 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
         priceNpr: v.priceNpr.trim() === '' ? null : Number(v.priceNpr),
         stockQty: v.stockQty.trim() === '' ? null : Number(v.stockQty),
         sku: v.sku.trim() || null,
+        image: v.image.trim() || null,
         sortOrder: i,
       })),
   );
@@ -484,11 +554,15 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
               <p className="text-xs text-gray-300">No variants. This product is sold as one option.</p>
             ) : (
               <div className="space-y-2">
-                <div className="hidden sm:grid grid-cols-[1fr_90px_80px_90px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
-                  <span>Label</span><span>Price</span><span>Stock</span><span>SKU</span><span />
+                <div className="hidden sm:grid grid-cols-[40px_1fr_90px_80px_90px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
+                  <span /><span>Label</span><span>Price</span><span>Stock</span><span>SKU</span><span />
                 </div>
                 {variants.map((v, idx) => (
-                  <div key={idx} className="grid grid-cols-2 sm:grid-cols-[1fr_90px_80px_90px_28px] gap-2">
+                  <div key={idx} className="grid grid-cols-2 sm:grid-cols-[40px_1fr_90px_80px_90px_28px] gap-2 sm:items-center">
+                    <VariantImageCell
+                      value={v.image}
+                      onChange={(url) => updateVariant(idx, { image: url })}
+                    />
                     <input
                       value={v.label}
                       onChange={(e) => updateVariant(idx, { label: e.target.value })}

@@ -34,6 +34,7 @@ export type ProductVariant = {
   priceNpr: number | null;   // null = inherit product price
   stockQty: number | null;   // null = unlimited
   sku: string | null;
+  image?: string | null;     // e.g. a photo of this color — falls back to the product's main image
   sortOrder?: number;
 };
 
