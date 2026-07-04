@@ -228,6 +228,17 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
   return (
     <form action={formAction} className="pb-24">
       <input type="hidden" name="_isNew" value={isNew ? '1' : '0'} />
+      {/* Snapshot of the images this product had before this edit — actions.ts
+          diffs these against the saved values to clean up now-orphaned
+          uploaded files (e.g. after a "Replace photo" or "Remove"). Only
+          meaningful on edit; harmless empty arrays on create. */}
+      <input type="hidden" name="_prevImage" value={product?.image ?? ''} />
+      <input type="hidden" name="_prevImages" value={JSON.stringify(product?.images ?? [])} />
+      <input
+        type="hidden"
+        name="_prevVariantImages"
+        value={JSON.stringify((product?.variants ?? []).map((v) => v.image).filter(Boolean))}
+      />
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: persistent media + visibility rail — stays visible across every tab */}

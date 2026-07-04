@@ -106,6 +106,36 @@ export function deleteProduct(id: string) {
   return apiFetch<{ ok: boolean }>(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
+// ---- Uploaded files ----
+
+/**
+ * Deletes a previously-uploaded file from API storage, given the URL stored
+ * on a product/variant (e.g. "http://api:3000/uploads/abc123.jpg" or
+ * "/uploads/abc123.jpg"). Silently no-ops for anything that isn't one of our
+ * own /uploads/ URLs (e.g. a manually pasted external image URL) — there's
+ * nothing on our storage to clean up in that case.
+ *
+ * Callers should treat this as best-effort: a failed cleanup shouldn't fail
+ * the product save that triggered it, since the save itself already
+ * succeeded by the time this runs.
+ */
+export async function deleteUploadedImage(url: string): Promise<void> {
+  let pathname: string;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    pathname = url; // already relative, e.g. "/uploads/abc123.jpg"
+  }
+  const match = pathname.match(/\/uploads\/([^/?#]+)/);
+  if (!match) return; // not one of our upload URLs — nothing to delete
+
+  try {
+    await apiFetch(`/uploads/image/${encodeURIComponent(match[1])}`, { method: 'DELETE' });
+  } catch (err) {
+    console.error(`[deleteUploadedImage] Failed to delete ${match[1]}:`, err);
+  }
+}
+
 export function getInventoryLog(productId: string) {
   return apiFetch<InventoryLog[]>(`/products/${encodeURIComponent(productId)}/inventory-logs`);
 }

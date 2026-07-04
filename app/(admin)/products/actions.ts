@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock } from '@/lib/api';
+import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
@@ -79,6 +79,36 @@ function parseTags(raw: string | null): string[] {
   return raw.split(',').map((t) => t.trim()).filter(Boolean);
 }
 
+function parseJsonStringArray(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string' && v.length > 0) : [];
+  } catch {
+    return [];
+  }
+}
+
+// After a successful edit-save, delete any previously-uploaded image files
+// that are no longer referenced by this product (main image, gallery, or
+// variant photos) — e.g. the user replaced or removed a photo. Best-effort:
+// failures are logged but never surface to the user or fail the save, since
+// the save itself already succeeded by the time this runs. Never called on
+// create (isNew) since there's no "previous" state to clean up.
+async function cleanupOrphanedImages(formData: FormData, next: { image: string; images: string[] }, nextVariantImages: string[]) {
+  const prevImage = (formData.get('_prevImage') as string) || '';
+  const prevImages = parseJsonStringArray(formData.get('_prevImages') as string | null);
+  const prevVariantImages = parseJsonStringArray(formData.get('_prevVariantImages') as string | null);
+
+  const stillUsed = new Set([next.image, ...next.images, ...nextVariantImages].filter(Boolean));
+  const orphaned = Array.from(new Set([prevImage, ...prevImages, ...prevVariantImages])).filter(
+    (url) => url && !stillUsed.has(url),
+  );
+  if (orphaned.length === 0) return;
+
+  await Promise.allSettled(orphaned.map((url) => deleteUploadedImage(url)));
+}
+
 export async function saveProduct(_: unknown, formData: FormData) {
   const id = (formData.get('id') as string).trim().toLowerCase().replace(/\s+/g, '-');
   const isNew = formData.get('_isNew') === '1';
@@ -118,7 +148,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
 
   // Variants (optional). Parsed from the hidden JSON field. Staff can't set
   // prices, so strip per-variant price overrides for them.
-  let variants: Array<{ id?: string; label: string; priceNpr: number | null; stockQty: number | null; sku: string | null; sortOrder: number }> | undefined;
+  let variants: Array<{ id?: string; label: string; priceNpr: number | null; stockQty: number | null; sku: string | null; image?: string | null; sortOrder: number }> | undefined;
   const variantsRaw = formData.get('variants') as string | null;
   if (variantsRaw != null) {
     try {
@@ -139,6 +169,15 @@ export async function saveProduct(_: unknown, formData: FormData) {
       const { priceNpr, compareAtPriceNpr, ...rest } = data;
       const base = canPrice ? data : rest;
       await updateProduct(id, { ...base, ...(variants !== undefined ? { variants } : {}) });
+
+      // Best-effort cleanup of any images this edit replaced/removed. Only
+      // meaningful once we know which variant images are still in use — if
+      // the variants field failed to parse, skip variant-image cleanup
+      // entirely rather than risk deleting one that's still referenced.
+      const nextVariantImages = variants === undefined
+        ? parseJsonStringArray(formData.get('_prevVariantImages') as string | null)
+        : variants.map((v) => v.image).filter((img): img is string => !!img);
+      await cleanupOrphanedImages(formData, { image: data.image, images: data.images }, nextVariantImages);
     }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Failed to save product.' };

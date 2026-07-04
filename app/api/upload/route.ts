@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     let upstream: Response;
     try {
-      upstream = await fetch(`${API_BASE}/uploads`, {
+      upstream = await fetch(`${API_BASE}/uploads/image`, {
         method: 'POST',
         headers: {
           'x-internal-token': TOKEN,
