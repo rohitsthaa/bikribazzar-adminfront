@@ -9,6 +9,8 @@ function apiImageHostname() {
   return 'api-store.helloworldnepal.com';
 }
 
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -27,4 +29,17 @@ const nextConfig = {
     ],
   },
 };
-export default nextConfig;
+
+// Source map upload only runs if SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN are
+// all set (e.g. in Vercel env vars); otherwise the plugin quietly no-ops instead
+// of failing the build, so this is safe to leave on unconditionally.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  telemetry: false,
+  widenClientFileUpload: false,
+  disableLogger: true,
+  automaticVercelMonitors: false,
+});
