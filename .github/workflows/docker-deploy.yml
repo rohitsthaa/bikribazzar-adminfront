@@ -1,0 +1,101 @@
+name: Admin — Build & Deploy (self-hosted)
+
+# Manual trigger only. Switch to `push: { branches: [main] }` once this is
+# confirmed working in production and any Vercel Git integration for this
+# project has been disconnected (Vercel's native Git integration, if still
+# connected in its dashboard, deploys on push independent of this file).
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: rohitsthaa/soul-thread-admin
+
+jobs:
+  # ── 1. Build Docker image and push to GHCR ──────────────────────────────────
+  build-push:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # NEXT_PUBLIC_* vars get baked into the client bundle at build time —
+          # set these as repo/environment Variables (not Secrets) in
+          # Settings → Secrets and variables → Actions → Variables.
+          build-args: |
+            NEXT_PUBLIC_PLATFORM_DOMAIN=${{ vars.NEXT_PUBLIC_PLATFORM_DOMAIN || 'bikribazaar.com' }}
+            NEXT_PUBLIC_PLATFORM_NAME=${{ vars.NEXT_PUBLIC_PLATFORM_NAME || 'Bikri Bazaar' }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 2. SSH into VPS and redeploy ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to VPS
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: Production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: docker-compose.yml
+          # Must be its own directory, distinct from bikribazaar-api's and
+          # soulthreadktm's VPS_DEPLOY_PATH — needs its own .env already in
+          # place (copied from .env.production.example, not scp'd here).
+          target: ${{ secrets.VPS_DEPLOY_PATH }}
+
+      - name: SSH — pull new image and restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+
+            docker compose pull admin
+            docker compose up -d --no-deps admin
+            docker image prune -f
+
+            echo "Deploy complete."

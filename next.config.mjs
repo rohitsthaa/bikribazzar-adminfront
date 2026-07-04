@@ -13,6 +13,9 @@ function apiImageHostname() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Standalone output — required by ./Dockerfile to self-host on the VPS.
+  // Has no effect on a Vercel build.
+  output: 'standalone',
   images: {
     remotePatterns: [
       // Platform API host (current)
