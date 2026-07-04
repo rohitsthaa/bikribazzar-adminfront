@@ -18,3 +18,5 @@ Sentry.init({
   replaysOnErrorSampleRate: 0,
   enabled: Boolean(dsn),
 });
+
+console.log(dsn ? '[sentry] enabled (client)' : '[sentry] disabled — NEXT_PUBLIC_SENTRY_DSN not set (client)');

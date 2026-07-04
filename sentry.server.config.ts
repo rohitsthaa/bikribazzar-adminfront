@@ -9,3 +9,5 @@ Sentry.init({
   tracesSampleRate: 0.1,
   enabled: Boolean(dsn),
 });
+
+console.log(dsn ? '[sentry] enabled (server)' : '[sentry] disabled — NEXT_PUBLIC_SENTRY_DSN not set (server)');
