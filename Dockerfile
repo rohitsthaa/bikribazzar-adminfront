@@ -28,9 +28,16 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# .next/cache doesn't exist in the standalone output — Next creates it lazily
+# at runtime for the ISR/prerender cache. Everything COPY'd below defaults to
+# root-owned, and USER nextjs below can't write under root-owned /app, so
+# without this the very first ISR write 500s with EACCES (hit this exact bug
+# on the storefront first). Create it with the right owner up front instead.
+RUN mkdir -p .next/cache && chown nextjs:nodejs .next .next/cache
+
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3002
