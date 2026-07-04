@@ -56,6 +56,29 @@ export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
   return { created, updated, errors: [] };
 }
 
+// Blank field → null (not specified). Same "blank on edit doesn't clear" limitation
+// as stockQty/tag below — a blank value is indistinguishable from "not provided"
+// once it reaches the API's PATCH handler.
+function parseOptionalNumber(raw: string | null): number | null {
+  if (raw == null || raw.trim() === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+// CompareAtPriceNpr uses a -1 sentinel on edit so "end the sale" (blanking the
+// field) actually clears it via PATCH — see PatchProductRequest in the API.
+// On create there's no ambiguity to resolve, so blank is just null.
+function parseCompareAtPrice(raw: string | null, isNew: boolean): number | null {
+  if (raw == null || raw.trim() === '') return isNew ? null : -1;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseTags(raw: string | null): string[] {
+  if (raw == null) return [];
+  return raw.split(',').map((t) => t.trim()).filter(Boolean);
+}
+
 export async function saveProduct(_: unknown, formData: FormData) {
   const id = (formData.get('id') as string).trim().toLowerCase().replace(/\s+/g, '-');
   const isNew = formData.get('_isNew') === '1';
@@ -83,6 +106,14 @@ export async function saveProduct(_: unknown, formData: FormData) {
     isDigital: formData.get('isDigital') === 'true',
     metaTitle: (formData.get('metaTitle') as string) || null,
     metaDescription: (formData.get('metaDescription') as string) || null,
+    widthCm: parseOptionalNumber(formData.get('widthCm') as string),
+    heightCm: parseOptionalNumber(formData.get('heightCm') as string),
+    depthCm: parseOptionalNumber(formData.get('depthCm') as string),
+    leadTimeDays: parseOptionalNumber(formData.get('leadTimeDays') as string),
+    sku: (formData.get('sku') as string) || null,
+    compareAtPriceNpr: parseCompareAtPrice(formData.get('compareAtPriceNpr') as string, isNew),
+    tags: parseTags(formData.get('tags') as string),
+    status: (formData.get('status') as 'draft' | 'active' | 'archived') || 'active',
   };
 
   // Variants (optional). Parsed from the hidden JSON field. Staff can't set
@@ -100,12 +131,12 @@ export async function saveProduct(_: unknown, formData: FormData) {
     if (isNew) {
       // Staff may create products, but price stays owner-controlled (defaults to
       // 0 = "price on request" until an owner sets it).
-      if (!canPrice) data.priceNpr = 0;
+      if (!canPrice) { data.priceNpr = 0; data.compareAtPriceNpr = null; }
       await createProduct({ ...data, ...(variants !== undefined ? { variants } : {}) });
     } else {
-      // On edit, staff cannot change price: omit it so the API preserves the
-      // existing value (PATCH is a partial update).
-      const { priceNpr, ...rest } = data;
+      // On edit, staff cannot change price (or the sale price alongside it): omit
+      // both so the API preserves the existing values (PATCH is a partial update).
+      const { priceNpr, compareAtPriceNpr, ...rest } = data;
       const base = canPrice ? data : rest;
       await updateProduct(id, { ...base, ...(variants !== undefined ? { variants } : {}) });
     }

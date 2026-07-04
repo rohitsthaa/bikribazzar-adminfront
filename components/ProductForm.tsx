@@ -131,7 +131,7 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             <h2 className="text-sm font-semibold text-gray-700">Visibility</h2>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Status</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Availability</label>
               <select
                 name="available"
                 defaultValue={product?.available === false ? 'false' : 'true'}
@@ -140,6 +140,23 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                 <option value="true">● Available (visible in shop)</option>
                 <option value="false">○ Hidden (not visible)</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Status</label>
+              <select
+                name="status"
+                defaultValue={product?.status ?? 'active'}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
+              >
+                <option value="draft">Draft — still being set up</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived — discontinued</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                For your own organization/filtering in the product list — separate from Availability above,
+                which is what actually controls whether it shows in the shop.
+              </p>
             </div>
 
             <div>
@@ -173,6 +190,19 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 read-only:bg-gray-50 read-only:text-gray-400 font-mono"
               />
               {isNew && <p className="text-xs text-gray-400 mt-1">Lowercase, hyphens only. Cannot be changed later.</p>}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">SKU</label>
+              <input
+                name="sku"
+                defaultValue={product?.sku ?? ''}
+                placeholder="e.g. ST-SHELF-DBL"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 font-mono"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Optional. Leave blank if this product uses per-variant SKUs instead.
+              </p>
             </div>
 
             <div>
@@ -240,11 +270,85 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Dimensions / details</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Sale price (NPR)</label>
+              <div className="relative max-w-[200px]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
+                <input
+                  name="compareAtPriceNpr"
+                  type="number"
+                  min={0}
+                  defaultValue={product?.compareAtPriceNpr ?? ''}
+                  placeholder="none"
+                  disabled={!canSetPrice}
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 disabled:bg-gray-100 disabled:text-gray-400"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {canSetPrice
+                  ? 'Optional "original" price shown struck through, e.g. for a Dashain/Tihar promo. Leave blank for no sale — must be higher than the price above to show.'
+                  : 'Sale price is managed by the store owner.'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Tags</label>
+              <input
+                name="tags"
+                defaultValue={(product?.tags ?? []).join(', ')}
+                placeholder="e.g. gift, wedding, bestseller"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Comma-separated. Used for shop filtering — different from the single "Tag" badge below.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Dimensions (cm)</label>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <input
+                    name="widthCm"
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    defaultValue={product?.widthCm ?? ''}
+                    placeholder="Width"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                </div>
+                <div>
+                  <input
+                    name="heightCm"
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    defaultValue={product?.heightCm ?? ''}
+                    placeholder="Height"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                </div>
+                <div>
+                  <input
+                    name="depthCm"
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    defaultValue={product?.depthCm ?? ''}
+                    placeholder="Depth"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Shown to customers on the product page. Leave blank if not applicable.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Details (materials, notes)</label>
               <input
                 name="details"
                 defaultValue={product?.details ?? ''}
-                placeholder="e.g. 45 × 70 cm · natural pine · 4mm cotton cord"
+                placeholder="e.g. natural pine · 4mm cotton cord"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
               />
             </div>
@@ -291,6 +395,21 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                 />
                 <p className="text-xs text-gray-400 mt-1">Alert when stock ≤ this.</p>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Lead time (days)</label>
+              <input
+                name="leadTimeDays"
+                type="number"
+                min={0}
+                defaultValue={product?.leadTimeDays ?? ''}
+                placeholder="e.g. 5"
+                className="w-full max-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                For handmade/made-to-order pieces. Shown to customers when this item is out of stock. Leave blank if not applicable.
+              </p>
             </div>
           </div>
 

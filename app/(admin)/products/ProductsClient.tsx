@@ -12,7 +12,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   custom: 'bg-rose-100 text-rose-700',
 };
 
-type Filter = 'all' | 'live' | 'hidden' | 'low' | 'oos';
+type Filter = 'all' | 'live' | 'hidden' | 'low' | 'oos' | 'draft' | 'archived';
 
 function ProductCard({ p, currency, canDelete }: { p: Product; currency: string; canDelete: boolean }) {
   const [confirming, setConfirming] = useState(false);
@@ -55,6 +55,20 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
         {p.tag && (
           <span className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-xs font-medium text-stone-700 rounded-full shadow-sm">
             {p.tag}
+          </span>
+        )}
+        {p.status && p.status !== 'active' && (
+          <span
+            className={`absolute ${p.tag ? 'top-9' : 'top-2.5'} left-2.5 px-2 py-0.5 backdrop-blur-sm text-xs font-medium rounded-full shadow-sm capitalize ${
+              p.status === 'draft' ? 'bg-blue-100/90 text-blue-700' : 'bg-stone-200/90 text-stone-600'
+            }`}
+          >
+            {p.status}
+          </span>
+        )}
+        {!!p.compareAtPriceNpr && p.compareAtPriceNpr > p.priceNpr && (
+          <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 bg-rose-500/90 text-white text-xs font-medium rounded-full shadow-sm">
+            Sale
           </span>
         )}
         {/* Availability toggle */}
@@ -119,6 +133,11 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
           <span className="text-sm font-semibold text-gray-900">
             {p.priceNpr === 0 ? (
               <span className="text-gray-400 font-normal">On request</span>
+            ) : !!p.compareAtPriceNpr && p.compareAtPriceNpr > p.priceNpr ? (
+              <span className="flex items-center gap-1.5">
+                <span className="text-gray-400 line-through font-normal text-xs">{currency} {p.compareAtPriceNpr.toLocaleString()}</span>
+                <span className="text-rose-600">{currency} {p.priceNpr.toLocaleString()}</span>
+              </span>
             ) : (
               <>{currency} {p.priceNpr.toLocaleString()}</>
             )}
@@ -184,11 +203,15 @@ export default function ProductsClient({ products, currency = 'NPR', canDelete =
     if (filter === 'hidden') return !p.available;
     if (filter === 'oos') return p.stockQty !== null && p.stockQty === 0;
     if (filter === 'low') return p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint;
+    if (filter === 'draft') return p.status === 'draft';
+    if (filter === 'archived') return p.status === 'archived';
     return true;
   });
 
   const lowCount = products.filter(p => p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint).length;
   const oosCount = products.filter(p => p.stockQty !== null && p.stockQty === 0).length;
+  const draftCount = products.filter(p => p.status === 'draft').length;
+  const archivedCount = products.filter(p => p.status === 'archived').length;
 
   const counts = {
     all: products.length,
@@ -196,6 +219,8 @@ export default function ProductsClient({ products, currency = 'NPR', canDelete =
     hidden: products.filter(p => !p.available).length,
     low: lowCount,
     oos: oosCount,
+    draft: draftCount,
+    archived: archivedCount,
   };
 
   const tabs: { key: Filter; label: string; alert?: boolean }[] = [
@@ -204,6 +229,8 @@ export default function ProductsClient({ products, currency = 'NPR', canDelete =
     { key: 'hidden', label: 'Hidden' },
     ...(oosCount > 0 ? [{ key: 'oos' as Filter, label: 'Out of stock', alert: true }] : []),
     ...(lowCount > 0 ? [{ key: 'low' as Filter, label: 'Low stock', alert: true }] : []),
+    ...(draftCount > 0 ? [{ key: 'draft' as Filter, label: 'Draft' }] : []),
+    ...(archivedCount > 0 ? [{ key: 'archived' as Filter, label: 'Archived' }] : []),
   ];
 
   return (

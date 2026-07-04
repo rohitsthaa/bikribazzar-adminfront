@@ -57,6 +57,14 @@ export type Product = {
   isDigital?: boolean;
   metaTitle?: string | null;
   metaDescription?: string | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  depthCm?: number | null;
+  leadTimeDays?: number | null;  // days before a made-to-order item ships; null = not applicable
+  sku?: string | null;                  // product-level SKU; blank when variants carry their own
+  compareAtPriceNpr?: number | null;    // "original" price shown struck through when set
+  tags?: string[];                      // multi-value tags for storefront filtering (separate from `tag` badge)
+  status?: 'draft' | 'active' | 'archived';  // organizational label — independent of `available`
   variants?: ProductVariant[];
 };
 
