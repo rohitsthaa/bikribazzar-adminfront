@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 // Derive the image host from the configured API base URL so next/image always
 // allows whatever host uploads are served from. The platform API host moved to
 // api-store.helloworldnepal.com; read it from env rather than hardcoding.
@@ -8,8 +10,6 @@ function apiImageHostname() {
   }
   return 'api-store.helloworldnepal.com';
 }
-
-import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -40,6 +40,4 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   telemetry: false,
   widenClientFileUpload: false,
-  disableLogger: true,
-  automaticVercelMonitors: false,
 });
