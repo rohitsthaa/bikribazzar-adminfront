@@ -23,6 +23,29 @@ type Props = {
   canSetPrice?: boolean; // staff can't set/change price
 };
 
+// Reusable collapsible section header — used for the optional/secondary cards
+// (Physical details, Advance payment, SEO) so they don't clutter product types
+// that don't need them (e.g. dimensions don't apply to apparel).
+function SectionToggle({
+  title, subtitle, open, onToggle,
+}: { title: string; subtitle: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between text-left">
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700">{title}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
+      </div>
+      <svg
+        width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2"
+        className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+      >
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </button>
+  );
+}
+
 // Compact 40×40 thumbnail uploader for a single variant row — e.g. a photo of
 // that color. Full-size ImageUploader (with its drop zone + URL field) is too
 // tall to fit inline in the variant table, so this reuses the same /api/upload
@@ -105,9 +128,13 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
   const [seoOpen, setSeoOpen] = useState(!!(product?.metaTitle || product?.metaDescription));
+  const [physicalOpen, setPhysicalOpen] = useState(
+    !!(product?.widthCm || product?.heightCm || product?.depthCm || product?.details)
+  );
   const [prepaymentType, setPrepaymentType] = useState<PrepaymentType>(
     (product?.prepaymentType as PrepaymentType) ?? 'none'
   );
+  const [advanceOpen, setAdvanceOpen] = useState(prepaymentType !== 'none');
   const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
   const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
   type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string; image: string };
@@ -196,24 +223,32 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             </div>
           </div>
 
-          {/* Availability + Sort */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+          {/* Visibility — the one toggle that actually controls the shop. Kept in
+              its own card, deliberately separate from "Organize" below, so it
+              doesn't read as one of several similar-looking status dropdowns. */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-2">
             <h2 className="text-sm font-semibold text-gray-700">Visibility</h2>
+            <select
+              name="available"
+              defaultValue={product?.available === false ? 'false' : 'true'}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
+            >
+              <option value="true">● Available (visible in shop)</option>
+              <option value="false">○ Hidden (not visible)</option>
+            </select>
+            <p className="text-xs text-gray-400">This is what controls whether customers can see it.</p>
+          </div>
 
+          {/* Organize — internal-only bookkeeping, intentionally a separate card
+              from Visibility above so the two are never mistaken for each other. */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Availability</label>
-              <select
-                name="available"
-                defaultValue={product?.available === false ? 'false' : 'true'}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
-              >
-                <option value="true">● Available (visible in shop)</option>
-                <option value="false">○ Hidden (not visible)</option>
-              </select>
+              <h2 className="text-sm font-semibold text-gray-700">Organize</h2>
+              <p className="text-xs text-gray-400 mt-0.5">For your own tracking — doesn&apos;t affect the shop.</p>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Status</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Catalog stage</label>
               <select
                 name="status"
                 defaultValue={product?.status ?? 'active'}
@@ -223,10 +258,6 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                 <option value="active">Active</option>
                 <option value="archived">Archived — discontinued</option>
               </select>
-              <p className="text-xs text-gray-400 mt-1">
-                For your own organization/filtering in the product list — separate from Availability above,
-                which is what actually controls whether it shows in the shop.
-              </p>
             </div>
 
             <div>
@@ -302,8 +333,11 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             </div>
           </div>
 
+          {/* Pricing — trimmed to just price. Dimensions/materials moved to the
+              collapsible "Physical details" card; tags/badge moved to their own
+              card below, since they were easy to confuse when grouped here. */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">Pricing & details</h2>
+            <h2 className="text-sm font-semibold text-gray-700">Pricing</h2>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -359,185 +393,12 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                   : 'Sale price is managed by the store owner.'}
               </p>
             </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Tags</label>
-              <input
-                name="tags"
-                defaultValue={(product?.tags ?? []).join(', ')}
-                placeholder="e.g. gift, wedding, bestseller"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Comma-separated. Used for shop filtering — different from the single "Tag" badge below.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Dimensions (cm)</label>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <input
-                    name="widthCm"
-                    type="number"
-                    min={0}
-                    step="0.1"
-                    defaultValue={product?.widthCm ?? ''}
-                    placeholder="Width"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-                  />
-                </div>
-                <div>
-                  <input
-                    name="heightCm"
-                    type="number"
-                    min={0}
-                    step="0.1"
-                    defaultValue={product?.heightCm ?? ''}
-                    placeholder="Height"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-                  />
-                </div>
-                <div>
-                  <input
-                    name="depthCm"
-                    type="number"
-                    min={0}
-                    step="0.1"
-                    defaultValue={product?.depthCm ?? ''}
-                    placeholder="Depth"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Shown to customers on the product page. Leave blank if not applicable.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Details (materials, notes)</label>
-              <input
-                name="details"
-                defaultValue={product?.details ?? ''}
-                placeholder="e.g. natural pine · 4mm cotton cord"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Tag</label>
-              <input
-                name="tag"
-                defaultValue={product?.tag ?? ''}
-                placeholder="e.g. Bestseller, New, Made to order"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-              />
-              <p className="text-xs text-gray-400 mt-1">Shown as a badge on the product card.</p>
-            </div>
           </div>
 
-          {/* Inventory */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-700">Inventory</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Leave stock blank to allow unlimited orders.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Stock qty</label>
-                <input
-                  name="stockQty"
-                  type="number"
-                  min={0}
-                  defaultValue={product?.stockQty ?? ''}
-                  placeholder="Unlimited"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Reorder point</label>
-                <input
-                  name="reorderPoint"
-                  type="number"
-                  min={0}
-                  defaultValue={product?.reorderPoint ?? 0}
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-                />
-                <p className="text-xs text-gray-400 mt-1">Alert when stock ≤ this.</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Lead time (days)</label>
-              <input
-                name="leadTimeDays"
-                type="number"
-                min={0}
-                defaultValue={product?.leadTimeDays ?? ''}
-                placeholder="e.g. 5"
-                className="w-full max-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                For handmade/made-to-order pieces. Shown to customers when this item is out of stock. Leave blank if not applicable.
-              </p>
-            </div>
-          </div>
-
-          {/* Prepayment */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-700">Advance payment</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Require a partial payment before production begins.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
-              <select
-                name="prepaymentType"
-                value={prepaymentType}
-                onChange={(e) => setPrepaymentType(e.target.value as PrepaymentType)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
-              >
-                <option value="none">No advance required</option>
-                <option value="percentage">Percentage of price</option>
-                <option value="fixed">Fixed NPR amount</option>
-              </select>
-            </div>
-
-            {prepaymentType !== 'none' && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
-                  {prepaymentType === 'percentage' ? 'Percentage (%)' : 'Amount (NPR)'}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
-                    {prepaymentType === 'percentage' ? '%' : 'NPR'}
-                  </span>
-                  <input
-                    name="prepaymentValue"
-                    type="number"
-                    min={0}
-                    max={prepaymentType === 'percentage' ? 100 : undefined}
-                    defaultValue={product?.prepaymentValue ?? (prepaymentType === 'percentage' ? 10 : 0)}
-                    className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
-                  />
-                </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  {prepaymentType === 'percentage'
-                    ? 'Customer will be shown this % of the product price as the advance amount.'
-                    : 'Customer will be shown this fixed NPR amount as the advance payment.'}
-                </p>
-              </div>
-            )}
-
-            {/* Always send value=0 when type=none so the form still submits the field */}
-            {prepaymentType === 'none' && (
-              <input type="hidden" name="prepaymentValue" value="0" />
-            )}
-          </div>
-
-          {/* Variants — optional. When present, each variant has its own stock
-              (and optional price); product-level price/stock act as the default. */}
+          {/* Variants — promoted up next to Pricing. For a lot of stores (clothing
+              colors/sizes, macramé sizes) this is core to the product, not a
+              secondary detail, so it shouldn't be buried below settings most
+              products don't use. */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <input type="hidden" name="variants" value={variantsPayload} />
             <div className="flex items-center justify-between mb-1">
@@ -604,6 +465,213 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
             )}
           </div>
 
+          {/* Inventory */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700">Inventory</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Leave stock blank to allow unlimited orders.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Stock qty</label>
+                <input
+                  name="stockQty"
+                  type="number"
+                  min={0}
+                  defaultValue={product?.stockQty ?? ''}
+                  placeholder="Unlimited"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Reorder point</label>
+                <input
+                  name="reorderPoint"
+                  type="number"
+                  min={0}
+                  defaultValue={product?.reorderPoint ?? 0}
+                  placeholder="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                />
+                <p className="text-xs text-gray-400 mt-1">Alert when stock ≤ this.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Lead time (days)</label>
+              <input
+                name="leadTimeDays"
+                type="number"
+                min={0}
+                defaultValue={product?.leadTimeDays ?? ''}
+                placeholder="e.g. 5"
+                className="w-full max-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                For handmade/made-to-order pieces. Shown to customers when this item is out of stock. Leave blank if not applicable.
+              </p>
+            </div>
+          </div>
+
+          {/* Tags & badge — grouped together deliberately (they used to sit far
+              apart with near-identical names and were easy to mix up). */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-700">Tags &amp; badge</h2>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Badge</label>
+              <input
+                name="tag"
+                defaultValue={product?.tag ?? ''}
+                placeholder="e.g. Bestseller, New, Made to order"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">A single label shown on the product card and detail page.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Filter tags</label>
+              <input
+                name="tags"
+                defaultValue={(product?.tags ?? []).join(', ')}
+                placeholder="e.g. gift, wedding, bestseller"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Comma-separated. Lets customers filter the shop by these — different from the single Badge above.
+              </p>
+            </div>
+          </div>
+
+          {/* Physical details — collapsible and optional, since dimensions and
+              materials don't apply to every product type (e.g. apparel). */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <SectionToggle
+              title="Physical details"
+              subtitle={physicalOpen ? 'Dimensions and materials/notes.' : 'Optional — dimensions, materials. Not every product needs this.'}
+              open={physicalOpen}
+              onToggle={() => setPhysicalOpen(!physicalOpen)}
+            />
+
+            {physicalOpen && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Dimensions (cm)</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <span className="block text-[11px] text-gray-400 mb-1">Width</span>
+                      <input
+                        name="widthCm"
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        defaultValue={product?.widthCm ?? ''}
+                        placeholder="0"
+                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] text-gray-400 mb-1">Height</span>
+                      <input
+                        name="heightCm"
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        defaultValue={product?.heightCm ?? ''}
+                        placeholder="0"
+                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] text-gray-400 mb-1">Depth</span>
+                      <input
+                        name="depthCm"
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        defaultValue={product?.depthCm ?? ''}
+                        placeholder="0"
+                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Shown to customers on the product page. Leave blank if not applicable.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Details (materials, notes)</label>
+                  <input
+                    name="details"
+                    defaultValue={product?.details ?? ''}
+                    placeholder="e.g. natural pine · 4mm cotton cord"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Advance payment — collapsible, since most simple retail (ready-made
+              clothing, in-stock goods) doesn't use this; it's mainly for
+              made-to-order/custom pieces. */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <SectionToggle
+              title="Advance payment"
+              subtitle={advanceOpen ? 'Require a partial payment before production begins.' : 'Optional — for made-to-order or custom pieces.'}
+              open={advanceOpen}
+              onToggle={() => setAdvanceOpen(!advanceOpen)}
+            />
+
+            {advanceOpen && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
+                  <select
+                    name="prepaymentType"
+                    value={prepaymentType}
+                    onChange={(e) => setPrepaymentType(e.target.value as PrepaymentType)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 bg-white"
+                  >
+                    <option value="none">No advance required</option>
+                    <option value="percentage">Percentage of price</option>
+                    <option value="fixed">Fixed NPR amount</option>
+                  </select>
+                </div>
+
+                {prepaymentType !== 'none' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                      {prepaymentType === 'percentage' ? 'Percentage (%)' : 'Amount (NPR)'}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
+                        {prepaymentType === 'percentage' ? '%' : 'NPR'}
+                      </span>
+                      <input
+                        name="prepaymentValue"
+                        type="number"
+                        min={0}
+                        max={prepaymentType === 'percentage' ? 100 : undefined}
+                        defaultValue={product?.prepaymentValue ?? (prepaymentType === 'percentage' ? 10 : 0)}
+                        className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {prepaymentType === 'percentage'
+                        ? 'Customer will be shown this % of the product price as the advance amount.'
+                        : 'Customer will be shown this fixed NPR amount as the advance payment.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Always send value=0 when type=none so the form still submits the field */}
+            {prepaymentType === 'none' && (
+              <input type="hidden" name="prepaymentValue" value="0" />
+            )}
+          </div>
+
           {/* Digital product */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
             <div>
@@ -641,27 +709,12 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
 
           {/* SEO — collapsible, optional */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <button
-              type="button"
-              onClick={() => setSeoOpen(!seoOpen)}
-              className="w-full flex items-center justify-between text-left"
-            >
-              <div>
-                <h2 className="text-sm font-semibold text-gray-700">SEO</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {seoOpen
-                    ? 'Custom title and description for search engines.'
-                    : 'Optional — override the auto-generated search preview.'}
-                </p>
-              </div>
-              <svg
-                width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2"
-                className={`shrink-0 text-gray-400 transition-transform ${seoOpen ? 'rotate-180' : ''}`}
-              >
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
+            <SectionToggle
+              title="SEO"
+              subtitle={seoOpen ? 'Custom title and description for search engines.' : 'Optional — override the auto-generated search preview.'}
+              open={seoOpen}
+              onToggle={() => setSeoOpen(!seoOpen)}
+            />
 
             {seoOpen && (
               <div className="mt-4 space-y-4">
