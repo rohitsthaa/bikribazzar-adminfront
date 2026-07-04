@@ -1,10 +1,12 @@
 name: Admin — Build & Deploy (self-hosted)
 
-# Manual trigger only. Switch to `push: { branches: [main] }` once this is
-# confirmed working in production and any Vercel Git integration for this
-# project has been disconnected (Vercel's native Git integration, if still
-# connected in its dashboard, deploys on push independent of this file).
+# Auto-deploys on every push to main, plus manual trigger from the Actions tab.
+# If Vercel's native Git integration is still connected in this project's
+# dashboard (Settings → Git), disconnect it — it deploys on push independent
+# of this file and would keep building stale Vercel deployments alongside this.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 env:
