@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toggleAvailability, deleteProduct } from './actions';
 import type { Product } from '@/lib/api';
 
@@ -15,6 +16,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 type Filter = 'all' | 'live' | 'hidden' | 'low' | 'oos' | 'draft' | 'archived';
 
 function ProductCard({ p, currency, canDelete }: { p: Product; currency: string; canDelete: boolean }) {
+  const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState('');
@@ -32,7 +34,14 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
 
   return (
     <div
-      className={`group bg-white rounded-2xl border overflow-hidden transition-shadow hover:shadow-md ${
+      onClick={() => router.push(`/products/${p.id}`)}
+      // The whole card navigates to the edit page now — quicker than hunting
+      // for the "Edit" link specifically. The controls that need their own
+      // click behavior (availability toggle, delete) stop propagation below
+      // so they don't also trigger this navigation. The "Edit →" link stays
+      // as a real, keyboard-focusable link for accessibility, even though
+      // most people will just click anywhere on the card.
+      className={`group bg-white rounded-2xl border overflow-hidden transition-shadow hover:shadow-md cursor-pointer ${
         p.available ? 'border-gray-200' : 'border-gray-200 opacity-60'
       }`}
     >
@@ -72,7 +81,7 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
           </span>
         )}
         {/* Availability toggle */}
-        <div className="absolute top-2.5 right-2.5">
+        <div className="absolute top-2.5 right-2.5" onClick={(e) => e.stopPropagation()}>
           <form action={toggleAvailability.bind(null, p.id, !p.available)}>
             <button
               type="submit"
@@ -143,7 +152,7 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
             )}
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {/* Delete — inline confirm (owners only; hidden from staff) */}
             {canDelete && (confirming ? (
               <div className="flex items-center gap-1.5">

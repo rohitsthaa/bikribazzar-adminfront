@@ -75,6 +75,26 @@ function PaletteStrip({ palette, labels }: { palette: string[]; labels: string[]
   );
 }
 
+// Small preview thumbnail for the list rows — falls back to the palette dots
+// when a template has no marketing image set yet (the ImageUploader field in
+// the edit form below), since most templates were created before that field
+// existed and still only have a palette.
+function TemplateThumb({ template }: { template: TemplateMeta }) {
+  if (!template.imageUrl) {
+    return <PaletteStrip palette={template.palette} labels={template.paletteLabels} />;
+  }
+  return (
+    <div className="w-14 h-14 rounded-xl overflow-hidden border border-stone-200 bg-stone-50 flex-shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/api/image?src=${encodeURIComponent(template.imageUrl)}`}
+        alt={`${template.name} preview`}
+        className="w-full h-full object-cover"
+      />
+    </div>
+  );
+}
+
 // ── Full details edit form ──────────────────────────────────────────────────────
 
 const inputCls = 'mt-0.5 w-full text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400';
@@ -321,7 +341,7 @@ function PrivateTemplateCard({
       {/* Header */}
       <div className="px-5 py-4 flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <PaletteStrip palette={template.palette} labels={template.paletteLabels} />
+          <TemplateThumb template={template} />
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-stone-900">{template.name}</h3>
@@ -416,7 +436,7 @@ function PublicTemplateCard({
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
       <div className="px-4 py-3.5 flex items-center gap-4">
-        <PaletteStrip palette={template.palette} labels={template.paletteLabels} />
+        <TemplateThumb template={template} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-stone-800">{template.name}</p>
           <p className="text-xs text-stone-400">{template.tagline}</p>
