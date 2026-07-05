@@ -150,32 +150,41 @@ export function getInventoryLog(productId: string) {
   return apiFetch<InventoryLog[]>(`/products/${encodeURIComponent(productId)}/inventory-logs`);
 }
 
+// There is no separate per-variant route on the API — both product- and
+// variant-level restock/adjust hit the same two endpoints
+// (POST /products/:id/restock, POST /products/:id/adjust), which take an
+// optional `variantId` in the body (see RestockRequest in ProductEndpoints.cs).
+// A previous version of these four functions posted `{ qty, ... }` (restock)
+// and hit a `/variants/:variantId/restock` path (per-variant) that never
+// existed on the API — restock silently no-opped (RestockRequest.Delta
+// defaulted to 0, still logging a bogus 0-delta "restock" entry) and
+// per-variant calls 404'd. Fixed 2026-07-06 — see docs/HANDOFF.md.
 export function restockProduct(productId: string, qty: number, notes?: string, batchDate?: string) {
-  return apiFetch<Product>(`/products/${encodeURIComponent(productId)}/restock`, {
+  return apiFetch<{ ok: true }>(`/products/${encodeURIComponent(productId)}/restock`, {
     method: 'POST',
-    body: JSON.stringify({ qty, notes, batchDate }),
+    body: JSON.stringify({ delta: qty, notes, batchDate }),
   });
 }
 
 export function adjustStock(productId: string, delta: number, notes?: string) {
-  return apiFetch<Product>(`/products/${encodeURIComponent(productId)}/adjust`, {
+  return apiFetch<{ ok: true }>(`/products/${encodeURIComponent(productId)}/adjust`, {
     method: 'POST',
     body: JSON.stringify({ delta, notes }),
   });
 }
 
 export function restockVariant(productId: string, variantId: string, qty: number, notes?: string, batchDate?: string) {
-  return apiFetch<ProductVariant>(
-    `/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/restock`,
-    { method: 'POST', body: JSON.stringify({ qty, notes, batchDate }) },
-  );
+  return apiFetch<{ ok: true }>(`/products/${encodeURIComponent(productId)}/restock`, {
+    method: 'POST',
+    body: JSON.stringify({ delta: qty, variantId, notes, batchDate }),
+  });
 }
 
 export function adjustVariantStock(productId: string, variantId: string, delta: number, notes?: string) {
-  return apiFetch<ProductVariant>(
-    `/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/adjust`,
-    { method: 'POST', body: JSON.stringify({ delta, notes }) },
-  );
+  return apiFetch<{ ok: true }>(`/products/${encodeURIComponent(productId)}/adjust`, {
+    method: 'POST',
+    body: JSON.stringify({ delta, variantId, notes }),
+  });
 }
 
 // ---- Testimonials ----
