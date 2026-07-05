@@ -45,7 +45,7 @@ export default async function EditProductPage({ params }: { params: { id: string
         </div>
 
         {/* Inventory sidebar */}
-        <div className="xl:w-72 shrink-0">
+        <div id="inventory-panel" className="xl:w-72 shrink-0 scroll-mt-6">
           <InventoryPanel product={product} logs={logs} currency={currency} />
         </div>
       </div>

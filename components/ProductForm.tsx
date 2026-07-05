@@ -212,6 +212,10 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
       })),
   );
   const isNew = !product;
+  // Extracted so the read-only/editable Stock qty branches below don't each
+  // re-narrow `product` through the `isNew` alias — TS treats that as two
+  // independent (and, in one arm, contradictory) narrowings of `product`.
+  const currentStockQty = product?.stockQty;
 
   const [tab, setTab] = useState<TabKey>('details');
   const tabs: { key: TabKey; label: string; icon: string }[] = [
@@ -315,7 +319,7 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                 key={t.key}
                 type="button"
                 onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-all ${
                   tab === t.key ? 'bg-white text-gray-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'
                 }`}
               >
@@ -527,13 +531,30 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                   <SectionHeading
                     icon="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01"
                     title="Inventory"
-                    subtitle="Leave stock blank to allow unlimited orders."
+                    subtitle={isNew ? 'Leave stock blank to allow unlimited orders.' : 'Stock is set once here, then tracked as batches — see the Inventory panel.'}
                   />
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={fieldLabel}>Stock qty</label>
-                        <input name="stockQty" type="number" min={0} defaultValue={product?.stockQty ?? ''} placeholder="Unlimited" className={numInput} />
+                        {isNew ? (
+                          <input name="stockQty" type="number" min={0} defaultValue={currentStockQty ?? ''} placeholder="Unlimited" className={numInput} />
+                        ) : (
+                          <>
+                            {/* Deliberately not a form field on edit: every save used to
+                                resubmit whatever number was on screen when the page
+                                loaded, silently clobbering any restock/adjustment made
+                                in the Inventory panel (or by a sale) in the meantime.
+                                Read-only here; the Inventory panel is the only place
+                                this number actually changes, so it can't go stale. */}
+                            <div className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
+                              {currentStockQty == null ? 'Unlimited' : `${currentStockQty} in stock`}
+                            </div>
+                            <a href="#inventory-panel" className="text-xs text-[#c96a3a] hover:underline mt-1 inline-block">
+                              Manage stock in the Inventory panel →
+                            </a>
+                          </>
+                        )}
                       </div>
                       <div>
                         <label className={fieldLabel}>Reorder point</label>
