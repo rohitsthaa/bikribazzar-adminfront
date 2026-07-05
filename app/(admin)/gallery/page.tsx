@@ -27,27 +27,20 @@ export default async function GalleryPage() {
           </div>
         </div>
 
-        {/* Add image — collapsible card. Open by default only when the gallery
-            is empty, since that's the one moment the form deserves top billing;
-            once there are photos to browse, the grid should be what you see
-            first and "Add" tucks itself away like every other add-affordance
-            in the admin. */}
-        <details open={isEmpty} className="mb-8 group">
-          <summary className="flex items-center justify-between gap-3 cursor-pointer list-none bg-white rounded-2xl border border-stone-200 px-6 py-4 hover:border-stone-300 transition-colors select-none">
-            <span className="flex items-center gap-2 font-semibold text-stone-900 text-sm">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
-              </svg>
-              Add image
-            </span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400 group-open:rotate-180 transition-transform">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/>
+        {/* Add image — permanently visible, matching Testimonials (the other
+            page with a short, single-item add-form). Adding photos is a
+            routine action here, not an edge case worth hiding behind a
+            disclosure toggle — an accordion was the wrong pattern; nothing
+            else in the admin uses one for its "add" affordance. */}
+        <div className="bg-white rounded-2xl border border-stone-200 px-6 py-5 mb-8">
+          <h2 className="flex items-center gap-2 font-semibold text-stone-900 text-sm mb-4">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
             </svg>
-          </summary>
-          <div className="bg-white border border-t-0 border-stone-200 rounded-b-2xl px-6 py-5">
-            <AddGalleryForm action={addGalleryImage} />
-          </div>
-        </details>
+            Add image
+          </h2>
+          <AddGalleryForm action={addGalleryImage} />
+        </div>
 
         {/* Grid */}
         {isEmpty ? (
