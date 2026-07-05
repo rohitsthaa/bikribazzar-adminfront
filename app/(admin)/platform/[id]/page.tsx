@@ -67,22 +67,75 @@ function DomainStatusBadge({ status }: { status: string | null }) {
   );
 }
 
-// Shown until the domain is live — walks the merchant through proving
-// ownership via a DNS TXT record before anything gets provisioned.
-function DomainVerificationInstructions({ domain, token, failed }: { domain: string; token: string; failed: boolean }) {
-  return (
-    <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5 text-[11px] text-stone-500 space-y-1">
-      {failed ? (
-        <p className="font-medium text-red-500">
-          We couldn&apos;t find this record after 24 hours — double-check it below, then re-save the domain to retry.
-        </p>
-      ) : (
-        <p className="font-medium text-stone-600">Add this DNS record to prove you own {domain}:</p>
-      )}
+// Shown until the domain is live. Two DNS records are needed and merchants
+// can add both at once rather than round-tripping: a TXT record that proves
+// ownership, and a CNAME/ALIAS that actually routes traffic here — the TXT
+// record alone does NOT point the domain anywhere. Content changes by status
+// so it doesn't keep repeating "add this record" after that step is already
+// done. See docs/CUSTOM_DOMAINS_PLAN.md.
+function DomainVerificationInstructions({ domain, token, storeId, platformDomain, status }: {
+  domain: string; token: string; storeId: string; platformDomain: string; status: string;
+}) {
+  const routingTarget = `${storeId}.${platformDomain}`;
+
+  const RoutingRecord = ({ heading }: { heading: string }) => (
+    <div>
+      <p className="font-medium text-stone-600">{heading} (both {domain} and www):</p>
       <p className="font-mono text-stone-700 break-all">
-        TXT&nbsp;&nbsp;_bikribazaar-verify.{domain}&nbsp;&nbsp;{token}
+        CNAME (or ALIAS/ANAME)&nbsp;&nbsp;{domain}&nbsp;&nbsp;→&nbsp;&nbsp;{routingTarget}
       </p>
-      <p>Checked automatically every few minutes — no need to save again once it&apos;s added.</p>
+      <p className="font-mono text-stone-700 break-all">
+        CNAME&nbsp;&nbsp;www.{domain}&nbsp;&nbsp;→&nbsp;&nbsp;{routingTarget}
+      </p>
+      <p className="mt-1">
+        Set both to <strong>DNS-only</strong> (not proxied) if your DNS provider offers that — we need to
+        reach your domain directly to issue a certificate for it.
+      </p>
+    </div>
+  );
+
+  if (status === 'failed') {
+    return (
+      <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5 text-[11px] text-stone-500 space-y-3">
+        <p className="font-medium text-red-500">
+          We couldn&apos;t find the ownership record after 24 hours — double-check it below, then re-save the
+          domain to retry.
+        </p>
+        <div>
+          <p className="font-medium text-stone-600">Ownership record:</p>
+          <p className="font-mono text-stone-700 break-all">
+            TXT&nbsp;&nbsp;_bikribazaar-verify.{domain}&nbsp;&nbsp;{token}
+          </p>
+        </div>
+        <RoutingRecord heading="Routing record" />
+      </div>
+    );
+  }
+
+  if (status === 'verified') {
+    return (
+      <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5 text-[11px] text-stone-500 space-y-3">
+        <p className="font-medium text-amber-600">
+          Ownership confirmed — now provisioning a certificate. This usually takes a few minutes, but only
+          works once the domain is actually pointed at your store:
+        </p>
+        <RoutingRecord heading="Routing record" />
+        <p>No action needed if that&apos;s already in place — this will flip to &quot;Live&quot; automatically.</p>
+      </div>
+    );
+  }
+
+  // unverified / verifying — both records can be added together up front.
+  return (
+    <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5 text-[11px] text-stone-500 space-y-3">
+      <div>
+        <p className="font-medium text-stone-600">1. Prove you own {domain}:</p>
+        <p className="font-mono text-stone-700 break-all">
+          TXT&nbsp;&nbsp;_bikribazaar-verify.{domain}&nbsp;&nbsp;{token}
+        </p>
+      </div>
+      <RoutingRecord heading="2. Point the domain at your store" />
+      <p>Checked automatically every few minutes — no need to save again once these are added.</p>
     </div>
   );
 }
@@ -141,6 +194,10 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
   const theme = (store.theme ?? {}) as ThemeShape;
   const saveError = searchParams?.error ? decodeURIComponent(searchParams.error) : null;
   const saveOk = searchParams?.saved === '1';
+  const platformDomain =
+    process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
+    process.env.PLATFORM_DOMAIN ||
+    'bikribazaar.com';
 
   return (
     <main className="p-6 md:p-8 max-w-3xl space-y-8">
@@ -222,11 +279,21 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                 </div>
                 <Input name="customDomain" defaultValue={store.customDomain ?? ''} placeholder="shop.example.com" />
                 <p className="text-[11px] text-stone-400 mt-1.5">Leave blank to use the default platform subdomain.</p>
+                {store.customDomain && store.customDomainStatus === 'active' && (
+                  <p className="mt-2 text-[11px] text-green-600">
+                    ✓ Live at{' '}
+                    <a href={`https://${store.customDomain}`} target="_blank" rel="noreferrer" className="underline">
+                      https://{store.customDomain}
+                    </a>
+                  </p>
+                )}
                 {store.customDomain && store.customDomainToken && store.customDomainStatus && store.customDomainStatus !== 'active' && (
                   <DomainVerificationInstructions
                     domain={store.customDomain}
                     token={store.customDomainToken}
-                    failed={store.customDomainStatus === 'failed'}
+                    storeId={store.id}
+                    platformDomain={platformDomain}
+                    status={store.customDomainStatus}
                   />
                 )}
               </div>
