@@ -35,7 +35,16 @@ export async function saveAdminNotesAction(
 }
 
 export async function saveDeliveryAction(
-  orderId: string, data: { deliveryArea: string; address: string }
+  orderId: string,
+  data: {
+    deliveryArea: string;
+    address: string;
+    landmark?: string;
+    province?: string;
+    district?: string;
+    recipientName?: string;
+    recipientPhone?: string;
+  }
 ): Promise<{ ok: true } | { error: string }> {
   try {
     await updateOrderDelivery(orderId, data);

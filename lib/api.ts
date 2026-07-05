@@ -206,7 +206,12 @@ export type Order = {
   email: string;
   phone: string;
   address?: string;
+  landmark?: string;
+  province?: string;         // e.g. "Bagmati"
+  district?: string;         // e.g. "Kathmandu"
   deliveryArea?: string;     // e.g. "Thamel", "Patan / Lalitpur"
+  recipientName?: string;    // only set when shipping to someone other than the buyer
+  recipientPhone?: string;
   notes?: string;
   adminNotes?: string;       // internal admin-only notes
   source: OrderSource;
@@ -407,7 +412,15 @@ export function updateOrderNotes(id: string, adminNotes: string) {
   });
 }
 
-export function updateOrderDelivery(id: string, data: { deliveryArea?: string; address?: string }) {
+export function updateOrderDelivery(id: string, data: {
+  deliveryArea?: string;
+  address?: string;
+  landmark?: string;
+  province?: string;
+  district?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+}) {
   return apiFetch<Order>(`/orders/${id}/delivery`, {
     method: 'PATCH',
     body: JSON.stringify(data),

@@ -57,6 +57,17 @@ export default async function PrintPackSlip({ params }: Props) {
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">Delivery</p>
             {order.deliveryArea && <p className="font-semibold">{order.deliveryArea}</p>}
             {order.address && <p className="text-stone-600 mt-0.5">{order.address}</p>}
+            {order.landmark && <p className="text-stone-600 mt-0.5">Landmark: {order.landmark}</p>}
+            {(order.district || order.province) && (
+              <p className="text-stone-500 mt-0.5">
+                {[order.district, order.province ? `${order.province} Province` : ''].filter(Boolean).join(', ')}
+              </p>
+            )}
+            {(order.recipientName || order.recipientPhone) && (
+              <p className="font-semibold mt-1.5">
+                Ship to: {order.recipientName} {order.recipientPhone && `(${order.recipientPhone})`}
+              </p>
+            )}
             {!order.deliveryArea && !order.address && <p className="text-stone-400">Not specified</p>}
           </div>
         </div>

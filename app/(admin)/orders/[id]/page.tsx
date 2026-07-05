@@ -273,6 +273,20 @@ export default async function OrderDetailPage({ params }: Props) {
                   {order.address && (
                     <p className="text-stone-600 mt-0.5">{order.address}</p>
                   )}
+                  {order.landmark && (
+                    <p className="text-stone-600 mt-0.5">Landmark: {order.landmark}</p>
+                  )}
+                  {(order.district || order.province) && (
+                    <p className="text-stone-500 mt-0.5">
+                      {[order.district, order.province ? `${order.province} Province` : ''].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {(order.recipientName || order.recipientPhone) && (
+                    <p className="text-stone-700 mt-1.5 font-medium">
+                      Ship to: {order.recipientName}
+                      {order.recipientPhone && <span className="text-stone-500 font-normal"> · {order.recipientPhone}</span>}
+                    </p>
+                  )}
                   {!order.deliveryArea && !order.address && (
                     <p className="text-stone-400">No delivery address yet.</p>
                   )}
@@ -280,6 +294,11 @@ export default async function OrderDetailPage({ params }: Props) {
                     orderId={params.id}
                     initialArea={order.deliveryArea ?? ''}
                     initialAddress={order.address ?? ''}
+                    initialLandmark={order.landmark ?? ''}
+                    initialProvince={order.province ?? ''}
+                    initialDistrict={order.district ?? ''}
+                    initialRecipientName={order.recipientName ?? ''}
+                    initialRecipientPhone={order.recipientPhone ?? ''}
                   />
                 </div>
                 {order.notes && (

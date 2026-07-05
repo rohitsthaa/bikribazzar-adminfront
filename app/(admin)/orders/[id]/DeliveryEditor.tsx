@@ -15,14 +15,29 @@ export default function DeliveryEditor({
   orderId,
   initialArea,
   initialAddress,
+  initialLandmark,
+  initialProvince,
+  initialDistrict,
+  initialRecipientName,
+  initialRecipientPhone,
 }: {
   orderId: string;
   initialArea?: string;
   initialAddress?: string;
+  initialLandmark?: string;
+  initialProvince?: string;
+  initialDistrict?: string;
+  initialRecipientName?: string;
+  initialRecipientPhone?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [area, setArea] = useState(initialArea ?? '');
   const [address, setAddress] = useState(initialAddress ?? '');
+  const [landmark, setLandmark] = useState(initialLandmark ?? '');
+  const [province, setProvince] = useState(initialProvince ?? '');
+  const [district, setDistrict] = useState(initialDistrict ?? '');
+  const [recipientName, setRecipientName] = useState(initialRecipientName ?? '');
+  const [recipientPhone, setRecipientPhone] = useState(initialRecipientPhone ?? '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -33,7 +48,15 @@ export default function DeliveryEditor({
   function handleSave() {
     setError('');
     startTransition(async () => {
-      const result = await saveDeliveryAction(orderId, { deliveryArea: area.trim(), address: address.trim() });
+      const result = await saveDeliveryAction(orderId, {
+        deliveryArea: area.trim(),
+        address: address.trim(),
+        landmark: landmark.trim(),
+        province: province.trim(),
+        district: district.trim(),
+        recipientName: recipientName.trim(),
+        recipientPhone: recipientPhone.trim(),
+      });
       if (result && 'error' in result) {
         setError(result.error);
       } else {
@@ -92,10 +115,67 @@ export default function DeliveryEditor({
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           rows={2}
-          placeholder="Street, landmark, etc."
+          placeholder="Street, house no., etc."
           className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 resize-none bg-white text-stone-800"
         />
       </label>
+
+      <label className="block text-xs">
+        <span className="text-stone-500 uppercase tracking-wide font-medium">Landmark</span>
+        <input
+          type="text"
+          value={landmark}
+          onChange={(e) => setLandmark(e.target.value)}
+          placeholder="e.g. Near Boudha Stupa"
+          className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 bg-white text-stone-800"
+        />
+      </label>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-xs">
+          <span className="text-stone-500 uppercase tracking-wide font-medium">Province</span>
+          <input
+            type="text"
+            value={province}
+            onChange={(e) => setProvince(e.target.value)}
+            placeholder="e.g. Bagmati"
+            className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 bg-white text-stone-800"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="text-stone-500 uppercase tracking-wide font-medium">District</span>
+          <input
+            type="text"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            placeholder="e.g. Kathmandu"
+            className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 bg-white text-stone-800"
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-xs">
+          <span className="text-stone-500 uppercase tracking-wide font-medium">Recipient name</span>
+          <input
+            type="text"
+            value={recipientName}
+            onChange={(e) => setRecipientName(e.target.value)}
+            placeholder="If shipping to someone else"
+            className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 bg-white text-stone-800"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="text-stone-500 uppercase tracking-wide font-medium">Recipient phone</span>
+          <input
+            type="text"
+            value={recipientPhone}
+            onChange={(e) => setRecipientPhone(e.target.value)}
+            placeholder="98XXXXXXXX"
+            className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 bg-white text-stone-800"
+          />
+        </label>
+      </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
@@ -110,7 +190,17 @@ export default function DeliveryEditor({
         </button>
         <button
           type="button"
-          onClick={() => { setEditing(false); setArea(initialArea ?? ''); setAddress(initialAddress ?? ''); setError(''); }}
+          onClick={() => {
+            setEditing(false);
+            setArea(initialArea ?? '');
+            setAddress(initialAddress ?? '');
+            setLandmark(initialLandmark ?? '');
+            setProvince(initialProvince ?? '');
+            setDistrict(initialDistrict ?? '');
+            setRecipientName(initialRecipientName ?? '');
+            setRecipientPhone(initialRecipientPhone ?? '');
+            setError('');
+          }}
           className="px-3 py-1.5 text-stone-500 hover:text-stone-800 text-xs"
         >
           Cancel
