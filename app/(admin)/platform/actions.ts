@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, getStoreDeletionImpact, type StoreDeletionImpact } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, type StoreDeletionImpact } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -198,5 +198,24 @@ export async function restoreStoreAction(storeId: string): Promise<{ ok: true } 
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to restore store' };
+  }
+}
+
+/**
+ * Irreversibly erases a store and all its data. Only allowed by the API once
+ * the store is already soft-deleted (deleteStoreAction). There is no undo —
+ * unlike deleteStoreAction, this does not return a new id to follow, because
+ * there's no row left to look up. Callers must navigate away (e.g. to
+ * /platform/stores) on success.
+ */
+export async function permanentlyDeleteStoreAction(storeId: string): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await permanentlyDeleteStore(storeId);
+    revalidatePath('/platform');
+    revalidatePath('/platform/stores');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to permanently delete store' };
   }
 }

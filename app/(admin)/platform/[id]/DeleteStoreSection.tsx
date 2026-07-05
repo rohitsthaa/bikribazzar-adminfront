@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteStoreAction, restoreStoreAction, getStoreDeletionImpactAction } from '../actions';
+import { deleteStoreAction, restoreStoreAction, permanentlyDeleteStoreAction, getStoreDeletionImpactAction } from '../actions';
 
 type Props = {
   storeId: string;
@@ -59,29 +59,33 @@ export default function DeleteStoreSection({ storeId, storeName, isDeleted, dele
 
   if (isDeleted) {
     return (
-      <div className="rounded-2xl border border-stone-200 bg-stone-50 px-6 py-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-sm font-semibold text-stone-900">This store is deleted</h2>
-            <p className="text-xs text-stone-500 mt-1">
-              Hidden from the platform list and unreachable on the storefront since{' '}
-              {deletedAt ? new Date(deletedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'recently'}.
-              {' '}All its data (products, orders, settings) is untouched.
-              {previousId && (
-                <> Its slug <strong>{previousId}</strong> was freed up and may already be in use by another store — restoring keeps this archived id rather than reclaiming it.</>
-              )}
-            </p>
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-stone-200 bg-stone-50 px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-stone-900">This store is deleted</h2>
+              <p className="text-xs text-stone-500 mt-1">
+                Hidden from the platform list and unreachable on the storefront since{' '}
+                {deletedAt ? new Date(deletedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'recently'}.
+                {' '}All its data (products, orders, settings) is untouched.
+                {previousId && (
+                  <> Its slug <strong>{previousId}</strong> was freed up and may already be in use by another store — restoring keeps this archived id rather than reclaiming it.</>
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRestore}
+              disabled={pending}
+              className="shrink-0 px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+            >
+              {pending ? 'Restoring…' : 'Restore store'}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleRestore}
-            disabled={pending}
-            className="shrink-0 px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 disabled:opacity-60 text-white text-sm font-medium transition-colors"
-          >
-            {pending ? 'Restoring…' : 'Restore store'}
-          </button>
+          {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
         </div>
-        {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
+
+        <PermanentDeleteSection storeId={storeId} storeName={storeName} />
       </div>
     );
   }
@@ -135,6 +139,92 @@ export default function DeleteStoreSection({ storeId, storeName, isDeleted, dele
             <button
               type="button"
               onClick={() => setConfirming(false)}
+              disabled={pending}
+              className="text-xs text-stone-500 hover:text-stone-700 px-2 py-1.5 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
+    </div>
+  );
+}
+
+// ─── Permanent delete — only ever shown once a store is already soft-deleted.
+// This is the "empty trash" step: irreversible, erases every row of the
+// store's data. Gated behind typing the store's exact name, one level more
+// friction than the soft-delete confirm above since there's no restore after
+// this.
+
+function PermanentDeleteSection({ storeId, storeName }: { storeId: string; storeName: string }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState('');
+
+  const matches = confirmText.trim() === storeName;
+
+  function handlePermanentDelete() {
+    if (!matches) return;
+    setError('');
+    startTransition(async () => {
+      const result = await permanentlyDeleteStoreAction(storeId);
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      // The store row no longer exists at all — nowhere on /platform/[id] to
+      // stay on, unlike a soft delete which just moves to a new archived id.
+      router.push('/platform/stores');
+    });
+  }
+
+  return (
+    <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-5">
+      <h2 className="text-sm font-semibold text-red-900">Permanently delete</h2>
+      <p className="text-xs text-red-700/80 mt-1 mb-4">
+        Erases {storeName} and everything in it — products, orders, settings, payment config, admin logins — for good. This cannot be
+        undone. (Billing/invoice history is kept for audit purposes.)
+      </p>
+
+      {!confirming ? (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="px-4 py-2 rounded-xl border border-red-400 text-red-800 hover:bg-red-100 text-sm font-medium transition-colors"
+        >
+          Permanently delete store
+        </button>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-red-800 block mb-1.5">
+              Type <strong>{storeName}</strong> to confirm.
+            </label>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              autoFocus
+              className="w-full max-w-sm rounded-lg border border-red-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-400"
+              placeholder={storeName}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePermanentDelete}
+              disabled={pending || !matches}
+              className="text-xs font-medium text-white bg-red-700 hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {pending ? 'Deleting…' : 'Yes, permanently delete'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirming(false); setConfirmText(''); }}
               disabled={pending}
               className="text-xs text-stone-500 hover:text-stone-700 px-2 py-1.5 transition-colors"
             >

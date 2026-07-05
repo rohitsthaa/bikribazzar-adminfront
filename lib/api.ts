@@ -341,6 +341,19 @@ export function restoreStore(id: string) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}/restore`, { method: 'POST' });
 }
 
+/**
+ * Irreversibly erases a store and every row of its data (products, orders,
+ * settings, admin accounts, etc.) — the "empty trash" step after deleteStore().
+ * The API only allows this on a store that's already soft-deleted; call it with
+ * the store's current (possibly archived) id. There is no undo past this call.
+ */
+export function permanentlyDeleteStore(id: string) {
+  return apiFetch<{ ok: true; id: string; name: string; previousId: string | null }>(
+    `/stores/${encodeURIComponent(id)}/permanent`,
+    { method: 'DELETE' }
+  );
+}
+
 // ---- Platform overview (super-admin) ----
 export type PlatformOverview = {
   totals: { stores: number; active: number; suspended: number; deleted: number; orders: number; revenue: number };
