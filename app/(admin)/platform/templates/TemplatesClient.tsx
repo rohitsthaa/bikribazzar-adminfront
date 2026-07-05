@@ -77,7 +77,7 @@ function PaletteStrip({ palette, labels }: { palette: string[]; labels: string[]
 
 // ── Full details edit form ──────────────────────────────────────────────────────
 
-const inputCls = 'mt-0.5 w-full text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-stone-400';
+const inputCls = 'mt-0.5 w-full text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400';
 const labelCls = 'text-[11px] text-stone-500 block';
 
 function TemplateEditForm({

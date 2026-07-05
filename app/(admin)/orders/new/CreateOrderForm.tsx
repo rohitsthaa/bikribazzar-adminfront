@@ -126,7 +126,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Customer name"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
           />
         </div>
 
@@ -138,7 +138,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+977 98XXXXXXXX"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
             />
           </div>
           <div>
@@ -148,7 +148,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="customer@example.com"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
             />
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="e.g. Budanilkantha, Kathmandu"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
           />
         </div>
 
@@ -171,7 +171,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Any special requests or notes"
             rows={2}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent resize-none"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent resize-none"
           />
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
               <select
                 value={item.productId}
                 onChange={(e) => updateItem(idx, 'productId', e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
               >
                 <option value="">Select product…</option>
                 {products.map((p) => (
@@ -206,7 +206,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
                 max={99}
                 value={item.quantity}
                 onChange={(e) => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 text-center focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 text-center focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
               />
             </div>
 
@@ -217,7 +217,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
                 min={0}
                 value={item.priceNpr}
                 onChange={(e) => updateItem(idx, 'priceNpr', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 text-right focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 text-right focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
               />
             </div>
 

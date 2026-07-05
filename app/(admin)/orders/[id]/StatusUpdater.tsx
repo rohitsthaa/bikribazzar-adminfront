@@ -106,7 +106,7 @@ function ConfirmDialog({
                   value={feeInput}
                   onChange={(e) => setFeeInput(e.target.value)}
                   placeholder="e.g. 150"
-                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
                   autoFocus
                 />
                 <p className="text-[11px] text-stone-400 mt-1">

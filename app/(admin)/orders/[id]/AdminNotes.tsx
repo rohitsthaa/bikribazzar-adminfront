@@ -33,7 +33,7 @@ export default function AdminNotes({ orderId, initialNotes }: { orderId: string;
         onChange={(e) => { setNotes(e.target.value); setSaved(false); }}
         placeholder="e.g. Called customer — confirmed delivery Saturday morning..."
         rows={4}
-        className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-stone-300 text-stone-700 placeholder:text-stone-300"
+        className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 text-stone-700 placeholder:text-stone-300"
       />
       {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
       <div className="flex items-center justify-between mt-2">

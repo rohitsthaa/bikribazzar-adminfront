@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createStoreAdmin, deleteAdminUser, patchAdminUser, resetAdminUserPassword } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
+import { friendlyApiError } from '@/lib/errors';
 
 async function assertCanManageTeam() {
   const me = await getAdmin();
@@ -23,7 +24,7 @@ export async function createTeamMemberAction(
     revalidatePath('/settings/team');
     return { ok: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Failed to create team member' };
+    return { error: friendlyApiError(e, 'Failed to create team member.') };
   }
 }
 
@@ -36,7 +37,7 @@ export async function deleteTeamMemberAction(
     revalidatePath('/settings/team');
     return { ok: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Failed to remove team member' };
+    return { error: friendlyApiError(e, 'Failed to remove team member.') };
   }
 }
 
@@ -50,7 +51,7 @@ export async function updateTeamMemberRoleAction(
     revalidatePath('/settings/team');
     return { ok: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Failed to update role' };
+    return { error: friendlyApiError(e, 'Failed to update role.') };
   }
 }
 
@@ -64,6 +65,6 @@ export async function resetTeamMemberPasswordAction(
     await resetAdminUserPassword(memberId, newPassword);
     return { ok: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Failed to reset password' };
+    return { error: friendlyApiError(e, 'Failed to reset password.') };
   }
 }

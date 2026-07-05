@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { Testimonial } from '@/lib/api';
+import EmptyState from '@/components/EmptyState';
 
 type AddAction = (prev: unknown, formData: FormData) => Promise<{ error?: string } | undefined>;
 type EditAction = (id: number, prev: unknown, formData: FormData) => Promise<{ error?: string; ok?: boolean } | undefined>;
@@ -47,21 +48,21 @@ function AddForm({ action }: { action: AddAction }) {
           required
           rows={3}
           placeholder="What the customer said…"
-          className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-300 resize-none"
+          className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 resize-none"
         />
         <div className="flex gap-3">
           <input
             name="author"
             required
             placeholder="Customer name"
-            className="flex-1 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-300"
+            className="flex-1 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
           />
           <input
             name="sortOrder"
             type="number"
             defaultValue={0}
             placeholder="Sort"
-            className="w-20 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-300"
+            className="w-20 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
           />
         </div>
         <SubmitButton label="+ Add" pendingLabel="Adding…" />
@@ -98,20 +99,20 @@ function TestimonialRow({
             required
             rows={3}
             defaultValue={testimonial.quote}
-            className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-300 resize-none"
+            className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 resize-none"
           />
           <div className="flex gap-3">
             <input
               name="author"
               required
               defaultValue={testimonial.author}
-              className="flex-1 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-300"
+              className="flex-1 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
             />
             <input
               name="sortOrder"
               type="number"
               defaultValue={testimonial.sortOrder}
-              className="w-20 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-300"
+              className="w-20 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
             />
           </div>
           <div className="flex gap-2">
@@ -175,7 +176,16 @@ export default function TestimonialsClient({
     <div>
       <AddForm action={addAction} />
       {testimonials.length === 0 ? (
-        <p className="text-center text-stone-400 py-16 text-sm">No testimonials yet.</p>
+        <EmptyState
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21c0 1 0 0 1 0z"/>
+              <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v4z"/>
+            </svg>
+          }
+          title="No testimonials yet"
+          body="Add one above — it'll show up on the storefront."
+        />
       ) : (
         <ul className="space-y-3">
           {testimonials.map((t) => (

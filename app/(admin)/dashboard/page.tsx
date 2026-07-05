@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getOrders, getProducts, getSettings, type Order, type Product } from '@/lib/api';
 import { RevenueChart, StatusDonut, TopProductsChart } from './DashboardCharts';
 import type { RevenueDay, StatusCount, TopProduct } from './DashboardCharts';
+import EmptyState from '@/components/EmptyState';
 
 export const metadata = { title: 'Dashboard — Soul Thread Admin' };
 
@@ -248,7 +249,15 @@ export default async function DashboardPage() {
             <Link href="/orders" className="text-xs text-stone-400 hover:text-stone-700 transition-colors">View all →</Link>
           </div>
           {orders.length === 0 ? (
-            <p className="text-sm text-stone-400 py-8 text-center">No orders yet.</p>
+            <EmptyState
+              className="border-0 py-8"
+              icon={
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
+                </svg>
+              }
+              title="No orders yet"
+            />
           ) : (
             <div className="space-y-3">
               {[...orders]

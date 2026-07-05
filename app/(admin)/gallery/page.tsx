@@ -2,28 +2,47 @@ import { getGalleryImages } from '@/lib/api';
 import { addGalleryImage, removeGalleryImage } from './actions';
 import AddGalleryForm from './AddGalleryForm';
 import GalleryImage from './GalleryImage';
+import EmptyState from '@/components/EmptyState';
 
 export const metadata = { title: 'Gallery — Soul Thread Admin' };
 
 export default async function GalleryPage() {
   const images = await getGalleryImages();
+  const isEmpty = images.length === 0;
 
   return (
     <main className="p-6 md:p-8 max-w-6xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-stone-900">Gallery</h1>
-          <p className="text-sm text-stone-500 mt-0.5">
-            {images.length} {images.length === 1 ? 'image' : 'images'}
-          </p>
+        <div className="flex items-start gap-3 mb-6">
+          <span className="mt-0.5 flex-shrink-0 w-9 h-9 rounded-lg bg-[#c96a3a]/10 text-[#c96a3a] flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold text-stone-900">Gallery</h1>
+            <p className="text-sm text-stone-500 mt-0.5">
+              {images.length} {images.length === 1 ? 'image' : 'images'} · shown on the site's gallery page
+            </p>
+          </div>
         </div>
 
-        {/* Add image — collapsible card, default open */}
-        <details open className="mb-8 group">
-          <summary className="flex items-center justify-between cursor-pointer list-none bg-white rounded-2xl border border-stone-200 px-6 py-4 hover:bg-stone-50 transition-colors select-none">
-            <span className="font-semibold text-stone-900 text-sm">Add Image</span>
-            <span className="text-stone-400 text-xs group-open:rotate-180 transition-transform inline-block">
-              ▼
+        {/* Add image — collapsible card. Open by default only when the gallery
+            is empty, since that's the one moment the form deserves top billing;
+            once there are photos to browse, the grid should be what you see
+            first and "Add" tucks itself away like every other add-affordance
+            in the admin. */}
+        <details open={isEmpty} className="mb-8 group">
+          <summary className="flex items-center justify-between gap-3 cursor-pointer list-none bg-white rounded-2xl border border-stone-200 px-6 py-4 hover:border-stone-300 transition-colors select-none">
+            <span className="flex items-center gap-2 font-semibold text-stone-900 text-sm">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
+              </svg>
+              Add image
             </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400 group-open:rotate-180 transition-transform">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/>
+            </svg>
           </summary>
           <div className="bg-white border border-t-0 border-stone-200 rounded-b-2xl px-6 py-5">
             <AddGalleryForm action={addGalleryImage} />
@@ -31,8 +50,17 @@ export default async function GalleryPage() {
         </details>
 
         {/* Grid */}
-        {images.length === 0 ? (
-          <p className="text-center text-stone-400 py-16 text-sm">No images yet.</p>
+        {isEmpty ? (
+          <EmptyState
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            }
+            title="No images yet"
+            body="Photos you add above will show up here, and on the site's gallery page."
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((img) => (
@@ -55,15 +83,16 @@ export default async function GalleryPage() {
                     </form>
                   </div>
                 </div>
-                {/* Caption */}
-                {(img.alt || img.url) && (
-                  <div className="px-3 py-2.5">
-                    {img.alt && (
-                      <p className="text-xs font-medium text-stone-700 truncate">{img.alt}</p>
-                    )}
-                    <p className="text-xs text-stone-400 truncate mt-0.5">{img.url}</p>
-                  </div>
-                )}
+                {/* Caption — alt text only. The raw storage URL used to be
+                    printed here too, which is meaningless to a non-technical
+                    store owner and reads as unfinished/technical debris. */}
+                <div className="px-3 py-2.5">
+                  {img.alt ? (
+                    <p className="text-xs font-medium text-stone-700 truncate">{img.alt}</p>
+                  ) : (
+                    <p className="text-xs text-stone-300 italic truncate">No alt text</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

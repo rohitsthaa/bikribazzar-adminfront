@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getOrders, getSettings, type Order } from '@/lib/api';
+import EmptyState from '@/components/EmptyState';
 
 export const metadata = { title: 'Customers — Soul Thread Admin' };
 
@@ -116,9 +117,16 @@ export default async function CustomersPage() {
       {/* Customer list */}
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
         {customers.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-sm text-stone-400">No customers yet.</p>
-          </div>
+          <EmptyState
+            className="border-0 rounded-none py-12"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            }
+            title="No customers yet"
+            body="Customers are built from your orders — they'll show up here once the first one comes in."
+          />
         ) : (
           <div className="divide-y divide-stone-100">
             {customers.map((c) => (

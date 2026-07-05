@@ -28,24 +28,20 @@ export async function createStoreAction(fd: FormData) {
 export async function updateStoreAction(fd: FormData) {
   await assertSuper();
   const id = str(fd, 'id');
-  const theme = {
-    colors: {
-      primary: str(fd, 'primary') || undefined,
-      accent: str(fd, 'accent') || undefined,
-      bg: str(fd, 'bg') || undefined,
-    },
-    fonts: {
-      display: str(fd, 'fontDisplay') || undefined,
-      body: str(fd, 'fontBody') || undefined,
-    },
-  };
+  // Deliberately does NOT send theme/templateId — the Template & Theme section
+  // (TemplateThemeClient, saved via updateStoreTemplateThemeAction) is the
+  // sole owner of those fields. This form used to resend a snapshot of theme/
+  // templateId frozen at page load on every save, which silently reverted
+  // whatever was just changed in the Theme section if you saved General
+  // afterwards without a full page reload in between. The API's PATCH only
+  // touches fields actually present in the request, so omitting them here
+  // leaves whatever's currently saved untouched — same fix as the product
+  // stock-qty duplication.
   try {
     await updateStore(id, {
       name: str(fd, 'name'),
       status: str(fd, 'status') || 'active',
-      templateId: str(fd, 'templateId') || 'soulthread',
       customDomain: str(fd, 'customDomain') || null,
-      theme,
       isDemo: fd.get('isDemo') === 'on',
     });
   } catch (e: unknown) {

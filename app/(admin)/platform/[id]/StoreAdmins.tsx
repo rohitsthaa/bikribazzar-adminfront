@@ -80,19 +80,19 @@ export default function StoreAdmins({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="admin@store.com"
-          className="rounded-lg border border-stone-200 px-3 py-2 text-sm"
+          className="rounded-lg border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
         />
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password (min 8 chars)"
-          className="rounded-lg border border-stone-200 px-3 py-2 text-sm"
+          className="rounded-lg border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as 'store' | 'staff')}
-          className="rounded-lg border border-stone-200 px-3 py-2 text-sm bg-white"
+          className="rounded-lg border border-stone-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
         >
           <option value="store">Store admin</option>
           <option value="staff">Staff</option>

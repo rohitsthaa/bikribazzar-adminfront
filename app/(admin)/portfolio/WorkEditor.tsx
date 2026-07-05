@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import type { PortfolioWork } from '@/lib/api';
 import { createWorkAction, updateWorkAction } from './actions';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import ImageUploader from '@/components/ImageUploader';
 
 const inputCls = 'w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30';
 
@@ -18,7 +19,7 @@ export default function WorkEditor({ work, onSave, onCancel }: Props) {
   const [slug, setSlug] = useState(work?.slug ?? '');
   const [medium, setMedium] = useState(work?.medium ?? '');
   const [year, setYear] = useState(work?.year ?? '');
-  const [images, setImages] = useState((work?.images ?? []).join('\n'));
+  const [images, setImages] = useState<string[]>(work?.images ?? []);
   const [tags, setTags] = useState((work?.tags ?? []).join(', '));
   const [priceLabel, setPriceLabel] = useState(work?.priceLabel ?? '');
   const [available, setAvailable] = useState(work?.available ?? true);
@@ -37,7 +38,7 @@ export default function WorkEditor({ work, onSave, onCancel }: Props) {
       medium,
       year,
       description,
-      images: images.split('\n').map(s => s.trim()).filter(Boolean),
+      images: images.filter(Boolean),
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       priceLabel,
       available,
@@ -83,8 +84,36 @@ export default function WorkEditor({ work, onSave, onCancel }: Props) {
         <MarkdownEditor name="description" defaultValue={work?.description} placeholder="Describe this work…" rows={8} />
       </div>
       <div>
-        <label className="block text-xs font-medium text-stone-500 mb-1.5">Images <span className="text-stone-400 font-normal">(one URL per line)</span></label>
-        <textarea value={images} onChange={e => setImages(e.target.value)} rows={4} placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg" className={`${inputCls} resize-none font-mono text-xs`} />
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Images</label>
+        <div className="space-y-3">
+          {images.map((url, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <div className="flex-1">
+                <ImageUploader
+                  value={url}
+                  onChange={(newUrl) => setImages(images.map((u, j) => (j === i ? newUrl : u)))}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setImages(images.filter((_, j) => j !== i))}
+                className="shrink-0 mt-2 p-1.5 text-stone-400 hover:text-red-500 transition-colors"
+                title="Remove"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setImages([...images, ''])}
+            className="w-full max-w-sm py-2 border-2 border-dashed border-stone-200 rounded-xl text-xs text-stone-400 hover:border-[#c96a3a]/40 hover:text-[#c96a3a] transition-colors"
+          >
+            + Add image
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>

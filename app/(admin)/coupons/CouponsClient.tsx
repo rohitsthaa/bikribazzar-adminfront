@@ -4,6 +4,7 @@ import { useTransition } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { Coupon } from '@/lib/api';
 import { addCoupon, toggleCoupon, removeCoupon } from './actions';
+import EmptyState from '@/components/EmptyState';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -131,7 +132,16 @@ export default function CouponsClient({ coupons }: Props) {
       {/* Coupons list */}
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
         {coupons.length === 0 ? (
-          <div className="px-6 py-12 text-center text-stone-400 text-sm">No coupons yet.</div>
+          <EmptyState
+            className="border-0 rounded-none"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01"/>
+              </svg>
+            }
+            title="No coupons yet"
+            body="Add one above to offer a discount code at checkout."
+          />
         ) : (
           <table className="w-full text-sm">
             <thead>

@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import type { BlogPost } from '@/lib/api';
 import { createPostAction, updatePostAction } from './actions';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import ImageUploader from '@/components/ImageUploader';
 
 const inputCls = 'w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30';
 
@@ -70,15 +71,13 @@ export default function PostEditor({ post, onSave, onCancel }: Props) {
         <label className="block text-xs font-medium text-stone-500 mb-1.5">Body</label>
         <MarkdownEditor name="body" defaultValue={post?.body} placeholder="Write your post here…" rows={14} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-stone-500 mb-1.5">Cover image URL</label>
-          <input value={coverImage} onChange={e => setCoverImage(e.target.value)} placeholder="https://..." className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-stone-500 mb-1.5">Tags <span className="text-stone-400 font-normal">(comma-separated)</span></label>
-          <input value={tags} onChange={e => setTags(e.target.value)} placeholder="news, update, tips" className={inputCls} />
-        </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Cover image</label>
+        <ImageUploader value={coverImage} onChange={setCoverImage} />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Tags <span className="text-stone-400 font-normal">(comma-separated)</span></label>
+        <input value={tags} onChange={e => setTags(e.target.value)} placeholder="news, update, tips" className={inputCls} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3 pt-2 border-t border-stone-100">

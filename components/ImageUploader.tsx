@@ -37,7 +37,13 @@ export default function ImageUploader({ value, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    // Capped at max-w-sm: the 16:9 drop zone below scales with this wrapper's
+    // width, and this component gets reused in both narrow sidebars (product
+    // image rail) and full-width form cards (Gallery's "Add Image", Settings).
+    // Without a cap, the same box that's a sensible ~140px tall in a 260px
+    // sidebar stretches to 600px+ tall in a 1000px-wide card — a huge empty
+    // rectangle for what's meant to be a compact upload control.
+    <div className="space-y-3 max-w-sm">
       {/* Drop zone / preview */}
       <div
         onClick={() => !value && inputRef.current?.click()}

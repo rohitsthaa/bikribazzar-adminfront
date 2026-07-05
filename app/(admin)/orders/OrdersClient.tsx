@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Order } from '@/lib/api';
+import EmptyState from '@/components/EmptyState';
 
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
   website:   { label: 'Web',       icon: '🌐', color: 'bg-stone-100 text-stone-500' },
@@ -102,7 +103,16 @@ export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Ord
 
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
         {filtered.length === 0 ? (
-          <p className="text-center text-stone-400 py-16 text-sm">No orders in this category.</p>
+          <EmptyState
+            className="border-0 rounded-none"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+            }
+            title="No orders in this category"
+            body="Try a different filter, or check back once new orders come in."
+          />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-stone-50 border-b border-stone-200">

@@ -1,9 +1,6 @@
-import { redirect } from 'next/navigation';
-import { getAdmin } from '@/lib/auth';
-
-/** Admin root — redirect based on role. */
-export default async function AdminRoot() {
-  const admin = await getAdmin();
-  if (admin?.role === 'super') redirect('/platform');
-  redirect('/dashboard');
-}
+// SUPERSEDED — safe to delete: git rm "app/(admin)/page.tsx.bak"
+// The `.bak` extension already keeps Next.js from routing this (it only
+// matches an exact `page.tsx`), and its role-based redirect logic
+// (super -> /platform, everyone else -> /dashboard) already lives in the
+// real app/page.tsx. This is a stray leftover backup file, not live code.
+export {};

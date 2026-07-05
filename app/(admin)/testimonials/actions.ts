@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { createTestimonial, updateTestimonial, deleteTestimonial } from '@/lib/api';
+import { friendlyApiError } from '@/lib/errors';
 
 export async function addTestimonial(_: unknown, formData: FormData) {
   const quote = (formData.get('quote') as string).trim();
@@ -10,7 +11,7 @@ export async function addTestimonial(_: unknown, formData: FormData) {
   try {
     await createTestimonial({ quote, author, sortOrder });
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : 'Failed to add testimonial.' };
+    return { error: friendlyApiError(err, 'Failed to add testimonial.') };
   }
   revalidatePath('/testimonials');
 }
@@ -23,7 +24,7 @@ export async function editTestimonial(id: number, _: unknown, formData: FormData
   try {
     await updateTestimonial(id, { quote, author, sortOrder });
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : 'Failed to update testimonial.' };
+    return { error: friendlyApiError(err, 'Failed to update testimonial.') };
   }
   revalidatePath('/testimonials');
   return { ok: true };

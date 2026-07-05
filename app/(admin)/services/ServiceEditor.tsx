@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import type { Service } from '@/lib/api';
 import { createServiceAction, updateServiceAction } from './actions';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import ImageUploader from '@/components/ImageUploader';
 
 const inputCls = 'w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30';
 
@@ -52,15 +53,13 @@ export default function ServiceEditor({ service, onSave, onCancel }: Props) {
         <label className="block text-xs font-medium text-stone-500 mb-1.5">Description</label>
         <MarkdownEditor name="description" defaultValue={service?.description} placeholder="Describe this service…" rows={8} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-stone-500 mb-1.5">Price label</label>
-          <input value={priceLabel} onChange={e => setPriceLabel(e.target.value)} placeholder="From NPR 5,000 or Contact for pricing" className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-stone-500 mb-1.5">Image URL</label>
-          <input value={image} onChange={e => setImage(e.target.value)} placeholder="https://..." className={inputCls} />
-        </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Price label</label>
+        <input value={priceLabel} onChange={e => setPriceLabel(e.target.value)} placeholder="From NPR 5,000 or Contact for pricing" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Image</label>
+        <ImageUploader value={image} onChange={setImage} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>

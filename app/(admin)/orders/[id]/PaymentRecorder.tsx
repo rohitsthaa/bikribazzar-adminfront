@@ -45,6 +45,23 @@ export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr
   const currentPaid = parseInt(value, 10) || 0;
   const remaining = Math.max(0, totalNpr - currentPaid);
 
+  // A chip that lowers the amount below what's already entered would erase a
+  // recorded cash/transfer payment (e.g. clicking "Online only" after cash
+  // was collected on delivery) — confirm before applying it rather than
+  // silently wiping it, the way the status-change flow already confirms
+  // before anything customer-facing happens.
+  function handleChipClick(amount: number) {
+    if (amount < currentPaid && currentPaid > onlinePaidNpr) {
+      const ok = window.confirm(
+        `This lowers the recorded payment from ${currency} ${currentPaid.toLocaleString()} to ${currency} ${amount.toLocaleString()} — any cash/transfer amount above that will no longer be recorded. Continue?`
+      );
+      if (!ok) return;
+    }
+    setValue(amount.toString());
+    setError('');
+    setSaved(false);
+  }
+
   return (
     <div className="space-y-3">
       {/* Quick-select chips */}
@@ -53,7 +70,7 @@ export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr
           <button
             key={chip.label}
             type="button"
-            onClick={() => { setValue(chip.amount.toString()); setError(''); setSaved(false); }}
+            onClick={() => handleChipClick(chip.amount)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               parseInt(value, 10) === chip.amount
                 ? 'bg-stone-800 text-white'
@@ -82,7 +99,7 @@ export default function PaymentRecorder({ orderId, totalNpr, advanceNpr, paidNpr
             max={totalNpr}
             value={value}
             onChange={(e) => { setValue(e.target.value); setError(''); setSaved(false); }}
-            className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-stone-200 focus:border-stone-400 focus:outline-none"
+            className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/50"
           />
         </div>
         <button

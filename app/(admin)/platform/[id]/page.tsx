@@ -307,13 +307,9 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               </div>
             </div>
 
-            {/* Keep theme + fonts here too so updateStoreAction works in one form */}
-            <input type="hidden" name="primary" value={theme.colors?.primary ?? ''} />
-            <input type="hidden" name="accent" value={theme.colors?.accent ?? ''} />
-            <input type="hidden" name="bg" value={theme.colors?.bg ?? ''} />
-            <input type="hidden" name="fontDisplay" value={theme.fonts?.display ?? ''} />
-            <input type="hidden" name="fontBody" value={theme.fonts?.body ?? ''} />
-            <input type="hidden" name="templateId" value={store.templateId} />
+            {/* Theme/templateId are intentionally NOT part of this form — see
+                the comment in updateStoreAction. They're owned exclusively by
+                the Template & Theme section below. */}
 
             <SaveBtn />
           </fieldset>

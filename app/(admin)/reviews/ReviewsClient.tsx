@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import type { Review } from '@/lib/api';
 import { updateReviewStatusAction } from './actions';
+import EmptyState from '@/components/EmptyState';
 
 type Filter = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -33,18 +34,26 @@ const STATUS_BADGE: Record<string, string> = {
   rejected: 'bg-red-50 text-red-500 border border-red-200',
 };
 
-export default function ReviewsClient({ reviews: initial }: { reviews: Review[] }) {
+export default function ReviewsClient({
+  reviews: initial,
+  productNames = {},
+}: {
+  reviews: Review[];
+  productNames?: Record<string, string>;
+}) {
   const [reviews, setReviews] = useState(initial);
   const [filter, setFilter] = useState<Filter>('pending');
+  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   function handleStatus(id: number, status: 'approved' | 'rejected' | 'pending') {
+    setError(null);
     startTransition(async () => {
       try {
         const updated = await updateReviewStatusAction(id, status);
         setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r)));
       } catch {
-        alert('Failed to update review status.');
+        setError('Failed to update review status. Try again.');
       }
     });
   }
@@ -59,6 +68,12 @@ export default function ReviewsClient({ reviews: initial }: { reviews: Review[] 
 
   return (
     <div className="space-y-5">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* Filter tabs */}
       <div className="flex gap-1 bg-stone-100 rounded-xl p-1 w-fit">
         {(['pending', 'approved', 'rejected', 'all'] as Filter[]).map((f) => (
@@ -78,9 +93,14 @@ export default function ReviewsClient({ reviews: initial }: { reviews: Review[] 
 
       {/* List */}
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-stone-200 bg-white p-10 text-center text-sm text-stone-400">
-          No {filter === 'all' ? '' : filter} reviews.
-        </div>
+        <EmptyState
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          }
+          title={`No ${filter === 'all' ? '' : filter + ' '}reviews`}
+        />
       ) : (
         <div className="space-y-3">
           {visible.map((r) => (
@@ -95,7 +115,7 @@ export default function ReviewsClient({ reviews: initial }: { reviews: Review[] 
                     </span>
                   </div>
                   <p className="text-xs text-stone-400 mb-2">
-                    {r.productId} · {new Date(r.createdAt).toLocaleDateString('en-NP', {
+                    {productNames[r.productId] ?? r.productId} · {new Date(r.createdAt).toLocaleDateString('en-NP', {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}
                   </p>
