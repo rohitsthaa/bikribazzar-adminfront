@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import type { TemplateMeta, StoreSummary } from '@/lib/api';
+import type { TemplateMeta, StoreSummary, TemplateUpdateInput } from '@/lib/api';
+import ImageUploader from '@/components/ImageUploader';
 import {
   grantTemplateAccessAction,
   revokeTemplateAccessAction,
   setTemplateAccessAction,
   setShowOnMarketingAction,
+  updateTemplateDetailsAction,
 } from './actions';
 
 // ── Marketing-visibility switch ─────────────────────────────────────────────────
@@ -19,7 +21,7 @@ function MarketingToggle({
 }: {
   templateId: string;
   visible: boolean;
-  onChange: (id: string, visible: boolean) => void;
+  onChange: (id: string, patch: Partial<TemplateMeta>) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -29,7 +31,7 @@ function MarketingToggle({
     startTransition(async () => {
       const next = !visible;
       const result = await setShowOnMarketingAction(templateId, next);
-      if (!('error' in result)) onChange(templateId, next);
+      if (!('error' in result)) onChange(templateId, { showOnMarketing: next });
       setBusy(false);
     });
   }
@@ -55,13 +57,13 @@ function MarketingToggle({
   );
 }
 
-// ── Palette strip ─────────────────────────────────────────────────────────────
+// ── Palette strip (read-only display) ───────────────────────────────────────────
 
 function PaletteStrip({ palette, labels }: { palette: string[]; labels: string[] }) {
   return (
     <div className="flex gap-1.5">
       {palette.map((color, i) => (
-        <div key={color} className="flex flex-col items-center gap-1">
+        <div key={`${color}-${i}`} className="flex flex-col items-center gap-1">
           <div
             className="w-6 h-6 rounded-full border border-black/10 shadow-sm"
             style={{ background: color }}
@@ -69,6 +71,151 @@ function PaletteStrip({ palette, labels }: { palette: string[]; labels: string[]
           />
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Full details edit form ──────────────────────────────────────────────────────
+
+const inputCls = 'mt-0.5 w-full text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-stone-400';
+const labelCls = 'text-[11px] text-stone-500 block';
+
+function TemplateEditForm({
+  template,
+  onSaved,
+  onClose,
+}: {
+  template: TemplateMeta;
+  onSaved: (id: string, patch: Partial<TemplateMeta>) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(template.name);
+  const [tagline, setTagline] = useState(template.tagline);
+  const [description, setDescription] = useState(template.description);
+  const [demoUrl, setDemoUrl] = useState(template.demoUrl ?? '');
+  const [imageUrl, setImageUrl] = useState(template.imageUrl ?? '');
+  const [sortOrder, setSortOrder] = useState(template.sortOrder ?? 0);
+  const [isPremium, setIsPremium] = useState(template.isPremium ?? false);
+  const [palette, setPalette] = useState<string[]>(template.palette);
+  const [paletteLabels, setPaletteLabels] = useState<string[]>(template.paletteLabels);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  function setSwatch(i: number, hex: string) {
+    setPalette((p) => p.map((c, idx) => (idx === i ? hex : c)));
+  }
+  function setSwatchLabel(i: number, label: string) {
+    setPaletteLabels((p) => p.map((l, idx) => (idx === i ? label : l)));
+  }
+
+  function save() {
+    setSaving(true);
+    setError(null);
+    const patch: TemplateUpdateInput = {
+      name, tagline, description, demoUrl, imageUrl, sortOrder, isPremium, palette, paletteLabels,
+    };
+    startTransition(async () => {
+      const result = await updateTemplateDetailsAction(template.id, patch);
+      if ('error' in result) {
+        setError(result.error);
+      } else {
+        onSaved(template.id, patch);
+        onClose();
+      }
+      setSaving(false);
+    });
+  }
+
+  return (
+    <div className="border-t border-stone-100 px-4 py-3.5 space-y-3 bg-stone-50">
+      <div className="grid grid-cols-2 gap-3">
+        <label className={labelCls}>
+          Name
+          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className={labelCls}>
+          Demo URL
+          <input className={inputCls} value={demoUrl} onChange={(e) => setDemoUrl(e.target.value)} placeholder="https://…" />
+        </label>
+      </div>
+
+      <label className={labelCls}>
+        Tagline
+        <input className={inputCls} value={tagline} onChange={(e) => setTagline(e.target.value)} />
+      </label>
+
+      <label className={labelCls}>
+        Description
+        <textarea className={inputCls} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+      </label>
+
+      <div>
+        <p className={labelCls}>Marketing preview image</p>
+        <p className="text-[10px] text-stone-400 mt-0.5 mb-1.5">
+          Shown on the bikribazaar.com template showcase card. Leave empty to keep the CSS
+          mockup preview instead.
+        </p>
+        <ImageUploader value={imageUrl} onChange={setImageUrl} />
+      </div>
+
+      <div>
+        <p className={labelCls}>Palette</p>
+        <div className="mt-1 flex flex-wrap gap-3">
+          {palette.map((hex, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <input
+                type="color"
+                value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000'}
+                onChange={(e) => setSwatch(i, e.target.value)}
+                className="w-7 h-7 rounded border border-stone-200 cursor-pointer p-0"
+                title={hex}
+              />
+              <input
+                className="w-24 text-[11px] border border-stone-200 rounded-lg px-1.5 py-1"
+                value={paletteLabels[i] ?? ''}
+                onChange={(e) => setSwatchLabel(i, e.target.value)}
+                placeholder="Label"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-5">
+        <label className="text-[11px] text-stone-500 flex items-center gap-1.5">
+          Sort order
+          <input
+            type="number"
+            className="w-16 text-sm border border-stone-200 rounded-lg px-2 py-1"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(Number(e.target.value))}
+          />
+        </label>
+        <label className="text-[11px] text-stone-500 flex items-center gap-1.5">
+          <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} />
+          Premium
+        </label>
+      </div>
+
+      {error && <p className="text-[11px] text-red-600">{error}</p>}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-stone-900 text-white hover:bg-stone-700 transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save details'}
+        </button>
+        <button
+          onClick={onClose}
+          disabled={saving}
+          className="text-[11px] font-medium px-3 py-1.5 rounded-full text-stone-500 hover:bg-stone-100 transition-colors disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
@@ -146,17 +293,16 @@ function PrivateTemplateCard({
   stores,
   allPublicIds,
   onMakePublic,
-  showOnMarketing,
-  onToggleMarketing,
+  onOverride,
 }: {
   template: TemplateMeta;
   stores: StoreSummary[];
   allPublicIds: string[];
   onMakePublic: (id: string) => void;
-  showOnMarketing: boolean;
-  onToggleMarketing: (id: string, visible: boolean) => void;
+  onOverride: (id: string, patch: Partial<TemplateMeta>) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
   const granted = stores.filter((s) => s.allowedTemplates?.includes(template.id));
@@ -185,7 +331,13 @@ function PrivateTemplateCard({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <MarketingToggle templateId={template.id} visible={showOnMarketing} onChange={onToggleMarketing} />
+          <MarketingToggle templateId={template.id} visible={template.showOnMarketing ?? true} onChange={onOverride} />
+          <button
+            onClick={() => setEditing((e) => !e)}
+            className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors"
+          >
+            Edit details
+          </button>
           <button
             onClick={makePublic}
             disabled={busy}
@@ -209,6 +361,10 @@ function PrivateTemplateCard({
           </button>
         </div>
       </div>
+
+      {editing && (
+        <TemplateEditForm template={template} onSaved={onOverride} onClose={() => setEditing(false)} />
+      )}
 
       {/* Expanded store list */}
       {expanded && (
@@ -238,14 +394,13 @@ function PrivateTemplateCard({
 function PublicTemplateCard({
   template,
   onMakeExclusive,
-  showOnMarketing,
-  onToggleMarketing,
+  onOverride,
 }: {
   template: TemplateMeta;
   onMakeExclusive: (id: string) => void;
-  showOnMarketing: boolean;
-  onToggleMarketing: (id: string, visible: boolean) => void;
+  onOverride: (id: string, patch: Partial<TemplateMeta>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -259,24 +414,36 @@ function PublicTemplateCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 px-4 py-3.5 flex items-center gap-4">
-      <PaletteStrip palette={template.palette} labels={template.paletteLabels} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-stone-800">{template.name}</p>
-        <p className="text-xs text-stone-400">{template.tagline}</p>
+    <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+      <div className="px-4 py-3.5 flex items-center gap-4">
+        <PaletteStrip palette={template.palette} labels={template.paletteLabels} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-stone-800">{template.name}</p>
+          <p className="text-xs text-stone-400">{template.tagline}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <MarketingToggle templateId={template.id} visible={template.showOnMarketing ?? true} onChange={onOverride} />
+          <button
+            onClick={() => setEditing((e) => !e)}
+            className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors"
+          >
+            Edit details
+          </button>
+          <button
+            onClick={makeExclusive}
+            disabled={busy}
+            title="Make exclusive — only stores you grant access can use this template"
+            className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-amber-50 hover:text-amber-700 transition-colors disabled:opacity-50"
+          >
+            {busy ? '…' : 'Make exclusive'}
+          </button>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-400 font-medium">Public</span>
+        </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <MarketingToggle templateId={template.id} visible={showOnMarketing} onChange={onToggleMarketing} />
-        <button
-          onClick={makeExclusive}
-          disabled={busy}
-          title="Make exclusive — only stores you grant access can use this template"
-          className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-amber-50 hover:text-amber-700 transition-colors disabled:opacity-50"
-        >
-          {busy ? '…' : 'Make exclusive'}
-        </button>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-400 font-medium">Public</span>
-      </div>
+
+      {editing && (
+        <TemplateEditForm template={template} onSaved={onOverride} onClose={() => setEditing(false)} />
+      )}
     </div>
   );
 }
@@ -289,27 +456,28 @@ interface Props {
 }
 
 export default function TemplatesClient({ allTemplates, stores }: Props) {
-  // Local access state so toggles update immediately without a page reload
-  const [accessMap, setAccessMap] = useState<Record<string, 'public' | 'private'>>(() =>
-    Object.fromEntries(allTemplates.map((t) => [t.id, t.access ?? 'public']))
-  );
-  // Local marketing-visibility state, same pattern
-  const [marketingMap, setMarketingMap] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(allTemplates.map((t) => [t.id, t.showOnMarketing ?? true]))
-  );
+  // Local overrides so every edit (access, marketing visibility, name/tagline/palette/demoUrl/…)
+  // reflects immediately without a page reload. The server action already persisted it — this
+  // is purely optimistic-UI bookkeeping.
+  const [overrides, setOverrides] = useState<Record<string, Partial<TemplateMeta>>>({});
 
-  const privateTemplates = allTemplates.filter((t) => (accessMap[t.id] ?? t.access) === 'private');
-  const publicTemplates  = allTemplates.filter((t) => (accessMap[t.id] ?? t.access) !== 'private');
+  function applyOverride(id: string, patch: Partial<TemplateMeta>) {
+    setOverrides((m) => ({ ...m, [id]: { ...m[id], ...patch } }));
+  }
+
+  const templates = allTemplates
+    .map((t) => ({ ...t, ...overrides[t.id] }))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const privateTemplates = templates.filter((t) => (t.access ?? 'public') === 'private');
+  const publicTemplates  = templates.filter((t) => (t.access ?? 'public') !== 'private');
   const allPublicIds = publicTemplates.map((t) => t.id);
 
   function makePublic(id: string) {
-    setAccessMap((m) => ({ ...m, [id]: 'public' }));
+    applyOverride(id, { access: 'public' });
   }
   function makeExclusive(id: string) {
-    setAccessMap((m) => ({ ...m, [id]: 'private' }));
-  }
-  function toggleMarketing(id: string, visible: boolean) {
-    setMarketingMap((m) => ({ ...m, [id]: visible }));
+    applyOverride(id, { access: 'private' });
   }
 
   return (
@@ -340,8 +508,7 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
                 stores={stores}
                 allPublicIds={allPublicIds}
                 onMakePublic={makePublic}
-                showOnMarketing={marketingMap[t.id] ?? t.showOnMarketing ?? true}
-                onToggleMarketing={toggleMarketing}
+                onOverride={applyOverride}
               />
             ))}
           </div>
@@ -354,8 +521,9 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
           <h2 className="text-sm font-semibold text-stone-900">Public templates</h2>
           <p className="text-xs text-stone-400 mt-0.5">
             Available to all stores by default. The blue toggle controls whether a template
-            appears in the showcase on the marketing site (bikribazaar.com) — independent of
-            store access.
+            appears in the showcase on the marketing site (bikribazaar.com); "Edit details" edits
+            everything else — name, tagline, description, palette, demo link, sort order,
+            premium flag — directly in the database, no deploy required.
           </p>
         </div>
         <div className="space-y-2">
@@ -364,8 +532,7 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
               key={t.id}
               template={t}
               onMakeExclusive={makeExclusive}
-              showOnMarketing={marketingMap[t.id] ?? t.showOnMarketing ?? true}
-              onToggleMarketing={toggleMarketing}
+              onOverride={applyOverride}
             />
           ))}
         </div>

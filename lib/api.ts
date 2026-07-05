@@ -472,6 +472,11 @@ export type Review = {
 
 // ---- Templates ----
 
+/**
+ * A template is fully DB-driven now (template_configs table) — every field here is
+ * admin-editable via PATCH /templates/:id, not just access/showOnMarketing. There is no
+ * hardcoded catalog on the backend anymore.
+ */
 export type TemplateMeta = {
   id: string;
   access?: 'public' | 'private';
@@ -480,9 +485,32 @@ export type TemplateMeta = {
   description: string;
   palette: string[];
   paletteLabels: string[];
+  siteTypes?: string[];
+  isPremium?: boolean;
   /** Whether this template is showcased on the public marketing site (bikribazaar.com). */
   showOnMarketing?: boolean;
+  /** Live demo storefront the marketing site links to for this template. */
+  demoUrl?: string;
+  /** Preview screenshot shown on the marketing site's template showcase card. Empty/undefined = falls back to the CSS mockup preview. */
+  imageUrl?: string;
+  /** Display order in template pickers/listings (ascending). */
+  sortOrder?: number;
 };
+
+export type TemplateUpdateInput = Partial<{
+  name: string;
+  tagline: string;
+  description: string;
+  palette: string[];
+  paletteLabels: string[];
+  siteTypes: string[];
+  access: 'public' | 'private';
+  isPremium: boolean;
+  showOnMarketing: boolean;
+  demoUrl: string;
+  imageUrl: string;
+  sortOrder: number;
+}>;
 
 /** Returns store-scoped templates (filtered by x-store-id). */
 export function getTemplates() { return apiFetch<TemplateMeta[]>('/templates'); }
@@ -490,20 +518,22 @@ export function getTemplates() { return apiFetch<TemplateMeta[]>('/templates'); 
 /** Returns ALL templates including private ones. Internal-token only. Super-admin use. */
 export function getAllTemplates() { return apiFetch<TemplateMeta[]>('/templates/all'); }
 
+/** Partial update of any template field. Internal-token only. */
+export function updateTemplate(id: string, fields: TemplateUpdateInput) {
+  return apiFetch<TemplateMeta>(`/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  });
+}
+
 /** Set a template's access level (public | private). Internal-token only. */
 export function setTemplateAccess(id: string, access: 'public' | 'private') {
-  return apiFetch<{ id: string; access: string; showOnMarketing: boolean }>(`/templates/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ access }),
-  });
+  return updateTemplate(id, { access });
 }
 
 /** Toggle whether a template is showcased on the public marketing site. Internal-token only. */
 export function setTemplateShowOnMarketing(id: string, showOnMarketing: boolean) {
-  return apiFetch<{ id: string; access: string; showOnMarketing: boolean }>(`/templates/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ showOnMarketing }),
-  });
+  return updateTemplate(id, { showOnMarketing });
 }
 
 export function getReviews(status?: 'pending' | 'approved' | 'rejected' | 'all') {

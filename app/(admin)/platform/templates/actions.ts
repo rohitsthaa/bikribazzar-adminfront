@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { getStore, updateStore, setTemplateAccess, setTemplateShowOnMarketing } from '@/lib/api';
+import { getStore, updateStore, setTemplateAccess, setTemplateShowOnMarketing, updateTemplate, type TemplateUpdateInput } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 async function assertSuper() {
@@ -42,6 +42,26 @@ export async function setShowOnMarketingAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to update marketing visibility' };
+  }
+}
+
+/**
+ * Update any subset of a template's catalog fields — name, tagline, description, palette,
+ * demo URL, sort order, etc. There's no hardcoded template list on the backend anymore, so
+ * this is the only way to change any of that content (previously only access/showOnMarketing
+ * were DB-editable; everything else required a code deploy).
+ */
+export async function updateTemplateDetailsAction(
+  id: string,
+  fields: TemplateUpdateInput
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await updateTemplate(id, fields);
+    revalidatePath('/platform/templates');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to update template details' };
   }
 }
 
