@@ -98,4 +98,11 @@ export async function loginWithCredentials(email: string, password: string): Pro
 export function clearAuthCookie() {
   cookies().delete(TOKEN_COOKIE);
   cookies().delete(LEGACY_COOKIE);
+  // Also drop the store-context cookie ('st_store', see lib/store-context.ts —
+  // duplicated as a literal here rather than importing STORE_COOKIE, to avoid a
+  // circular import between auth.ts and store-context.ts, which imports getAdmin
+  // from this file). Without this, a super-admin's selected store would survive
+  // logout/login on a shared browser, which is the same class of "silently acting
+  // on a store you don't realize you're in" risk as the slug-reuse fix.
+  cookies().delete('st_store');
 }

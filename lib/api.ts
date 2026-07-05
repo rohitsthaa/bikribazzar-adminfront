@@ -291,6 +291,10 @@ export type StoreSummary = {
   deletedAt: string | null;
   previousId: string | null;  // slug this store had before it was deleted (rename cascade)
   isDemo: boolean;            // excluded from platform-wide analytics totals when true
+  // Present on the raw API response (full Store row) but usually not needed by
+  // callers — declared here so lib/store-context.ts can type-check reading it
+  // to fingerprint the st_store cookie (detects slug reuse after a delete).
+  createdAt?: string;
 };
 
 export type StoreDeletionImpact = { productCount: number; orderCount: number };
