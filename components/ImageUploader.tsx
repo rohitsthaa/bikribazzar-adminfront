@@ -19,6 +19,19 @@ export default function ImageUploader({ value, onChange }: Props) {
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      // A reverse proxy in front of this app (nginx client_max_body_size, a
+      // CDN, etc.) can reject the request before it ever reaches our own
+      // /api/upload route — that comes back as an HTML error page, not JSON.
+      // Guard against it so the UI shows a real message instead of a raw
+      // "Unexpected token '<'" parse error.
+      const contentType = res.headers.get('content-type') ?? '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          res.status === 413
+            ? 'File is too large to upload.'
+            : `Upload failed (${res.status}). Please try again.`,
+        );
+      }
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Upload failed');
       onChange(json.url);
