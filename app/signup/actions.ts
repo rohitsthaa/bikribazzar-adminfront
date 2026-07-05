@@ -75,3 +75,32 @@ export async function checkSlugAction(slug: string): Promise<{ available: boolea
     return { available: false, error: 'Could not check availability.' };
   }
 }
+
+export type SignupTemplate = {
+  id: string;
+  name: string;
+  tagline: string;
+  palette: string[];
+  paletteLabels: string[];
+  imageUrl?: string;
+};
+
+/**
+ * Real template catalog (name, tagline, palette, optional preview photo) for the
+ * template picker. Uses GET /templates (public prefix, no auth) rather than
+ * /templates/marketing — that one is filtered down to just the homepage showcase
+ * subset (showOnMarketing flag), but signup should offer every publicly-available
+ * template. With no x-store-id header the API treats this as an unscoped request
+ * and returns all non-private templates. Fails to `null` if the API is unreachable
+ * so the client can fall back to its built-in template list instead of breaking signup.
+ */
+export async function getSignupTemplatesAction(): Promise<SignupTemplate[] | null> {
+  try {
+    const res = await fetch(`${API_BASE}/templates`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data) && data.length > 0 ? data : null;
+  } catch {
+    return null;
+  }
+}

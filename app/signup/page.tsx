@@ -1,23 +1,38 @@
 'use client';
-import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useState, useEffect, useRef, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { signupAction, checkSlugAction } from './actions';
+import { BikriMark } from '@/components/BikriMark';
+import { signupAction, checkSlugAction, getSignupTemplatesAction, type SignupTemplate } from './actions';
+import { TemplateMockup, BADGE_WORDS } from './TemplateMockup';
+import { LivePreview } from './LivePreview';
+import { Confetti } from './Confetti';
 
 const PLATFORM_NAME = process.env.NEXT_PUBLIC_PLATFORM_NAME || 'BikriBazaar';
 const PLATFORM_DOMAIN = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || 'bikribazaar.com';
 
+// Cycles under the logo — small dose of personality on the page every store owner starts at.
+const TAGLINES = [
+  'Create your online store',
+  "Let's make something beautiful",
+  'Ready when you are',
+  'Live in minutes, not months',
+];
+
 // ─── Templates shown in the picker ────────────────────────────────────────
-const TEMPLATES = [
-  { id: 'aurora',   name: 'Aurora',   desc: 'Modern · Minimal · Clean',        color: '#6d28d9' },
-  { id: 'bloom',    name: 'Bloom',    desc: 'Botanical · Warm · Serif',         color: '#5a7d5a' },
-  { id: 'coastal',  name: 'Coastal',  desc: 'Ocean · Bold · Modern',            color: '#2d7d9a' },
-  { id: 'neon',     name: 'Neon',     desc: 'Dark · Electric · Bold',           color: '#00e5ff' },
-  { id: 'bubbly',   name: 'Bubbly',   desc: 'Playful · Colourful · Fun',        color: '#ff4d6d' },
-  { id: 'folio',    name: 'Folio',    desc: 'Editorial · Minimal · Portfolio',  color: '#e05c2a' },
-  { id: 'profile',  name: 'Profile',  desc: 'Professional · Trust · Business',  color: '#c9a227' },
-  { id: 'artisan',  name: 'Artisan',  desc: 'Handicraft · Golden · Warm',       color: '#b5651d' },
-  { id: 'capsule',  name: 'Capsule',  desc: 'Fashion · Y2K · Feminine',         color: '#c94070' },
-  { id: 'soulthread', name: 'Soul Thread', desc: 'Warm · Artisan · Earthy',     color: '#c96a3a' },
+// Built-in fallback, used until the real catalog (name, tagline, palette, optional
+// preview photo — same data the marketing site's template showcase reads from
+// /templates) loads, or if that request fails. Keeps signup working either way.
+const FALLBACK_TEMPLATES: SignupTemplate[] = [
+  { id: 'aurora',   name: 'Aurora',   tagline: 'Modern · Minimal · Clean',        palette: ['#6d28d9'], paletteLabels: [] },
+  { id: 'bloom',    name: 'Bloom',    tagline: 'Botanical · Warm · Serif',         palette: ['#5a7d5a'], paletteLabels: [] },
+  { id: 'coastal',  name: 'Coastal',  tagline: 'Ocean · Bold · Modern',            palette: ['#2d7d9a'], paletteLabels: [] },
+  { id: 'neon',     name: 'Neon',     tagline: 'Dark · Electric · Bold',           palette: ['#00e5ff'], paletteLabels: [] },
+  { id: 'bubbly',   name: 'Bubbly',   tagline: 'Playful · Colourful · Fun',        palette: ['#ff4d6d'], paletteLabels: [] },
+  { id: 'folio',    name: 'Folio',    tagline: 'Editorial · Minimal · Portfolio',  palette: ['#e05c2a'], paletteLabels: [] },
+  { id: 'profile',  name: 'Profile',  tagline: 'Professional · Trust · Business',  palette: ['#c9a227'], paletteLabels: [] },
+  { id: 'artisan',  name: 'Artisan',  tagline: 'Handicraft · Golden · Warm',       palette: ['#b5651d'], paletteLabels: [] },
+  { id: 'capsule',  name: 'Capsule',  tagline: 'Fashion · Y2K · Feminine',         palette: ['#c94070'], paletteLabels: [] },
+  { id: 'soulthread', name: 'Soul Thread', tagline: 'Warm · Artisan · Earthy',     palette: ['#c96a3a'], paletteLabels: [] },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -94,6 +109,13 @@ export default function SignupPage() {
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle');
   const [slugError, setSlugError] = useState('');
   const [templateId, setTemplateId] = useState('aurora');
+  const [templates, setTemplates] = useState<SignupTemplate[]>(FALLBACK_TEMPLATES);
+  const [poppedId, setPoppedId] = useState<string | null>(null);
+
+  // Fun bits: cycling tagline + confetti bursts (slug win, final success)
+  const [taglineIndex, setTaglineIndex] = useState(0);
+  const [burst, setBurst] = useState<{ id: number; count: number } | null>(null);
+  const prevSlugStatus = useRef<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle');
 
   // Step 2 fields
   const [ownerName, setOwnerName] = useState('');
@@ -101,6 +123,17 @@ export default function SignupPage() {
   const [ownerPassword, setOwnerPassword] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // ── Load the real template catalog (name, tagline, palette, preview photo) ──
+  // Starts from FALLBACK_TEMPLATES so the picker is never empty; swaps in the
+  // real data once it arrives, or silently keeps the fallback if the API is down.
+  useEffect(() => {
+    let cancelled = false;
+    getSignupTemplatesAction().then((data) => {
+      if (!cancelled && data) setTemplates(data);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Auto-generate slug from store name ──────────────────────────────────
   useEffect(() => {
@@ -126,6 +159,31 @@ export default function SignupPage() {
     const cleanup = checkSlug(slug);
     return cleanup;
   }, [slug, checkSlug]);
+
+  // ── Fun: cycling tagline under the logo ──────────────────────────────────
+  useEffect(() => {
+    const t = setInterval(() => setTaglineIndex((i) => (i + 1) % TAGLINES.length), 2600);
+    return () => clearInterval(t);
+  }, []);
+
+  // ── Fun: confetti burst the moment a slug becomes available ──────────────
+  useEffect(() => {
+    if (slugStatus === 'available' && prevSlugStatus.current !== 'available') {
+      setBurst({ id: Date.now(), count: 18 });
+    }
+    prevSlugStatus.current = slugStatus;
+  }, [slugStatus]);
+
+  // ── Fun: bigger confetti burst on the final "check your inbox" screen ────
+  useEffect(() => {
+    if (step === 3) setBurst({ id: Date.now(), count: 60 });
+  }, [step]);
+
+  function selectTemplate(id: string) {
+    setTemplateId(id);
+    setPoppedId(id);
+    setTimeout(() => setPoppedId((p) => (p === id ? null : p)), 300);
+  }
 
   // ── Step 1 validation ────────────────────────────────────────────────────
   function validateStep1() {
@@ -174,29 +232,34 @@ export default function SignupPage() {
   }
 
   // ── Template colour pill ─────────────────────────────────────────────────
-  const selectedTemplate = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
+  const selectedTemplate = templates.find((t) => t.id === templateId) ?? templates[0];
 
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 py-10">
+      <div className="w-full max-w-5xl">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-stone-800 text-white text-lg font-bold rounded-2xl mb-4">
-            BB
+          <div className="inline-flex items-center justify-center mb-4 animate-[floatY_3s_ease-in-out_infinite]">
+            <BikriMark bg="#fafaf9" size={52} />
           </div>
           <h1 className="text-2xl font-serif font-semibold tracking-tight text-stone-900">{PLATFORM_NAME}</h1>
-          <p className="text-sm text-stone-500 mt-1">Create your online store</p>
+          <p key={taglineIndex} className="text-sm text-stone-500 mt-1 animate-[fadeSlideIn_0.4s_ease]">
+            {TAGLINES[taglineIndex]}
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-7">
+        <div className="flex flex-col md:flex-row gap-6 justify-center md:items-start">
+        <div className="w-full max-w-lg mx-auto md:mx-0">
+        <div className="relative bg-white rounded-2xl shadow-sm border border-stone-200 p-7">
+          {burst && <Confetti key={burst.id} count={burst.count} colors={selectedTemplate?.palette ?? []} />}
 
           {step < 3 && <Steps current={step} total={2} />}
 
           {/* ── Step 1: Store setup ─────────────────────────────────────── */}
           {step === 1 && (
-            <div className="space-y-5">
-              <h2 className="text-lg font-semibold text-stone-900">Set up your store</h2>
+            <div key="step1" className="space-y-5 animate-[fadeSlideIn_0.35s_ease]">
+              <h2 className="text-lg font-semibold text-stone-900">Let&apos;s set up your store ✨</h2>
 
               <Input
                 label="Store name" name="storeName" value={storeName} autoFocus
@@ -228,7 +291,7 @@ export default function SignupPage() {
                 </div>
                 {slugError && <p className="text-xs text-red-500 mt-1">{slugError}</p>}
                 {slugStatus === 'available' && (
-                  <p className="text-xs text-emerald-600 mt-1">Your store will be live at <strong>{slug}.{PLATFORM_DOMAIN}</strong></p>
+                  <p className="text-xs text-emerald-600 mt-1 animate-[fadeSlideIn_0.3s_ease]">🎉 Nice — <strong>{slug}.{PLATFORM_DOMAIN}</strong> is all yours.</p>
                 )}
               </div>
 
@@ -237,20 +300,49 @@ export default function SignupPage() {
                 <label className="block text-sm font-medium text-stone-700 mb-2">
                   Choose a template<span className="text-red-500 ml-0.5">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {TEMPLATES.map((t) => (
+                <p className="hidden md:block text-xs text-stone-400 -mt-1 mb-2">Watch it come to life in the preview →</p>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {templates.map((t) => (
                     <button
                       key={t.id} type="button"
-                      onClick={() => setTemplateId(t.id)}
-                      className={`text-left rounded-xl border p-3 transition-all ${
+                      onClick={() => selectTemplate(t.id)}
+                      title={t.tagline}
+                      className={`text-left rounded-xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                         templateId === t.id
-                          ? 'border-stone-800 ring-2 ring-stone-800 bg-stone-50'
-                          : 'border-stone-200 hover:border-stone-300 bg-white'
-                      }`}
+                          ? 'border-stone-800 ring-2 ring-stone-800'
+                          : 'border-stone-200 hover:border-stone-300'
+                      } ${poppedId === t.id ? 'animate-[pop_0.3s_ease]' : ''}`}
                     >
-                      <div className="w-6 h-3 rounded mb-2" style={{ background: t.color }} />
-                      <p className="text-xs font-semibold text-stone-800 leading-tight">{t.name}</p>
-                      <p className="text-[10px] text-stone-400 mt-0.5 leading-snug">{t.desc}</p>
+                      {/* Preview: real screenshot if the catalog has one, otherwise the CSS mockup */}
+                      <div className="relative h-[84px] w-full bg-stone-100">
+                        {t.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={t.imageUrl} alt={t.name} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <TemplateMockup id={t.id} />
+                        )}
+                        {BADGE_WORDS[t.id] && (
+                          <span className="absolute top-1.5 right-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+                            {BADGE_WORDS[t.id]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="bg-white p-2.5">
+                        <p className="text-xs font-semibold text-stone-800 leading-tight">{t.name}</p>
+                        <p className="text-[10px] text-stone-400 mt-0.5 leading-snug truncate">{t.tagline}</p>
+                        {t.palette.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            {t.palette.slice(0, 4).map((c, i) => (
+                              <span
+                                key={i}
+                                title={t.paletteLabels[i] ?? c}
+                                className="h-3 w-3 rounded-full ring-1 ring-black/5"
+                                style={{ background: c }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -274,14 +366,14 @@ export default function SignupPage() {
 
           {/* ── Step 2: Account ─────────────────────────────────────────── */}
           {step === 2 && (
-            <div className="space-y-5">
+            <div key="step2" className="space-y-5 animate-[fadeSlideIn_0.35s_ease]">
               <div className="flex items-center gap-3 mb-1">
                 <button type="button" onClick={() => setStep(1)} className="text-stone-400 hover:text-stone-600 text-sm">← Back</button>
-                <h2 className="text-lg font-semibold text-stone-900">Your account</h2>
+                <h2 className="text-lg font-semibold text-stone-900">Almost there — your account</h2>
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-600">
-                <div className="w-4 h-2 rounded-sm shrink-0" style={{ background: selectedTemplate.color }} />
+                <div className="w-4 h-2 rounded-sm shrink-0" style={{ background: selectedTemplate.palette[0] }} />
                 <span className="font-medium">{storeName}</span>
                 <span className="text-stone-400 mx-1">·</span>
                 <span className="text-stone-400">{slug}.{PLATFORM_DOMAIN}</span>
@@ -335,10 +427,10 @@ export default function SignupPage() {
 
           {/* ── Step 3: Check your email ─────────────────────────────────── */}
           {step === 3 && doneEmail && (
-            <div className="text-center space-y-5">
-              <div className="text-5xl">📬</div>
+            <div key="step3" className="text-center space-y-5 animate-[fadeSlideIn_0.4s_ease]">
+              <div className="text-5xl animate-[floatY_2.4s_ease-in-out_infinite]">📬</div>
               <div>
-                <h2 className="text-xl font-semibold text-stone-900 mb-2">Check your inbox</h2>
+                <h2 className="text-xl font-semibold text-stone-900 mb-2">You&apos;re almost live! 🎉</h2>
                 <p className="text-sm text-stone-500 leading-relaxed">
                   We sent a verification link to{' '}
                   <span className="font-semibold text-stone-700">{doneEmail}</span>.
@@ -375,6 +467,16 @@ export default function SignupPage() {
           <a href="/login" className="text-stone-600 hover:underline font-medium">Sign in</a>
           {' · '}© {new Date().getFullYear()} {PLATFORM_NAME}
         </p>
+        <p className="text-center text-[11px] text-stone-300 mt-1.5">🇳🇵 Made with love in Kathmandu</p>
+        </div>
+
+        {/* Live preview — mirrors the form as you fill it in */}
+        {step < 3 && selectedTemplate && (
+          <div className="hidden md:block w-full max-w-sm">
+            <LivePreview storeName={storeName} slug={slug} platformDomain={PLATFORM_DOMAIN} template={selectedTemplate} />
+          </div>
+        )}
+        </div>
       </div>
     </div>
   );

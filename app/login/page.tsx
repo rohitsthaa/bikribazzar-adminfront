@@ -74,7 +74,12 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-stone-400 mt-6">
+        <p className="text-center text-sm text-stone-500 mt-6">
+          Don&apos;t have a store yet?{' '}
+          <a href="/signup" className="text-stone-800 hover:underline font-medium">Create one</a>
+        </p>
+
+        <p className="text-center text-xs text-stone-400 mt-3">
           &copy; {new Date().getFullYear()} BikriBazaar
         </p>
       </div>
