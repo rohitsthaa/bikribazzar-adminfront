@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 import { cache } from 'react';
 
-// Two auth paths during the transition:
-//  - `st_admin_token`: a JWT from the API admin_users login (role + storeId).
-//  - `st_admin`: the legacy shared ADMIN_PASSWORD cookie (always super-admin).
-// Legacy is kept as a fallback so we can't get locked out; remove it once the
-// email/password login is verified in production.
+// `st_admin_token`: a JWT from the API admin_users login (role + storeId).
+// The legacy shared-`ADMIN_PASSWORD` cookie (`st_admin`) was removed 2026-07-06
+// once email/password login was verified working in production — see
+// docs/HANDOFF.md. `LEGACY_COOKIE` is kept only so `clearAuthCookie()` can
+// still scrub any stale cookie a browser might have from before the cutover.
 const TOKEN_COOKIE = 'st_admin_token';
 const LEGACY_COOKIE = 'st_admin';
 
@@ -59,14 +59,8 @@ export const getAdmin = cache(async (): Promise<AdminIdentity | null> => {
         return { id: a.id, email: a.email, role: a.role, storeId: a.storeId };
       }
     } catch {
-      // fall through to legacy
+      // API unreachable or token invalid — fall through to unauthenticated.
     }
-  }
-
-  // 2) Legacy fallback: shared password cookie → synthetic super-admin.
-  const legacy = store.get(LEGACY_COOKIE)?.value;
-  if (legacy && legacy === process.env.ADMIN_PASSWORD) {
-    return { id: null, email: 'legacy-admin', role: 'super', storeId: null };
   }
 
   return null;
@@ -99,21 +93,6 @@ export async function loginWithCredentials(email: string, password: string): Pro
   } catch {
     return false;
   }
-}
-
-/** Legacy fallback: set the shared-password cookie if it matches. */
-export function setLegacyAuthCookie(password: string): boolean {
-  const correct = !!process.env.ADMIN_PASSWORD && password === process.env.ADMIN_PASSWORD;
-  if (correct) {
-    cookies().set(LEGACY_COOKIE, password, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-  }
-  return correct;
 }
 
 export function clearAuthCookie() {

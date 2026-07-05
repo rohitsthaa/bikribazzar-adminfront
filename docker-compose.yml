@@ -33,7 +33,6 @@ services:
       API_BASE_URL: http://bikribazaar-api:3001
       API_INTERNAL_TOKEN: ${API_INTERNAL_TOKEN:?API_INTERNAL_TOKEN is required — must match bikribazaar-api's value}
       REVALIDATE_SECRET: ${REVALIDATE_SECRET:?REVALIDATE_SECRET is required — must match the storefront's value}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       NEXT_PUBLIC_PLATFORM_DOMAIN: ${NEXT_PUBLIC_PLATFORM_DOMAIN:-bikribazaar.com}
       NEXT_PUBLIC_PLATFORM_NAME: ${NEXT_PUBLIC_PLATFORM_NAME:-Bikri Bazaar}
       NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}

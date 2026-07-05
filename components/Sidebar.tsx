@@ -178,6 +178,9 @@ function PlatformNavItem({ href, label, Icon, active }: {
 }
 
 function UserChip({ email, dark }: { email: string; dark?: boolean }) {
+  // 'legacy-admin' was the synthetic identity returned for the shared
+  // ADMIN_PASSWORD cookie, removed 2026-07-06 — every real admin now has a
+  // real email, but the fallback display stays as a harmless safety net.
   const initial = email !== 'legacy-admin' ? email[0].toUpperCase() : '?';
   return (
     <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl">
