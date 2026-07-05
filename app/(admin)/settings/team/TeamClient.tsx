@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import type { AdminUserView } from '@/lib/api';
-import { createTeamMemberAction, deleteTeamMemberAction, updateTeamMemberRoleAction } from './actions';
+import {
+  createTeamMemberAction,
+  deleteTeamMemberAction,
+  resetTeamMemberPasswordAction,
+  updateTeamMemberRoleAction,
+} from './actions';
 
 const ROLE_LABELS: Record<string, string> = {
   store: 'Store admin',
@@ -17,6 +22,117 @@ function Avatar({ email, role }: { email: string; role: string }) {
     <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-white text-xs font-bold flex-shrink-0 ${bg}`}>
       {initial}
     </span>
+  );
+}
+
+// ── Confirm-delete button ────────────────────────────────────────────────────
+// Same two-step pattern as the Platform console's Users page (UsersClient.tsx)
+// — a bare "Remove" that turns into Confirm/Cancel, rather than deleting
+// immediately on first click.
+
+function DeleteButton({ onConfirm, disabled }: { onConfirm: () => void; disabled: boolean }) {
+  const [confirm, setConfirm] = useState(false);
+  if (confirm) {
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          onClick={onConfirm}
+          disabled={disabled}
+          className="text-xs font-medium text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded-lg disabled:opacity-50 transition-colors"
+        >
+          Confirm
+        </button>
+        <button
+          onClick={() => setConfirm(false)}
+          className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={() => setConfirm(true)}
+      disabled={disabled}
+      className="text-xs text-stone-400 hover:text-red-600 transition-colors disabled:opacity-50 flex-shrink-0 px-2 py-1 rounded-lg hover:bg-red-50"
+    >
+      Remove
+    </button>
+  );
+}
+
+// ── Reset-password control ───────────────────────────────────────────────────
+// Bare "Reset password" link expands into an inline password field + Save/Cancel.
+
+function ResetPasswordControl({
+  onSave,
+  disabled,
+}: {
+  onSave: (newPassword: string) => Promise<string | void>;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const [localError, setLocalError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="text-xs text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-50 flex-shrink-0 px-2 py-1 rounded-lg hover:bg-stone-100"
+      >
+        Reset password
+      </button>
+    );
+  }
+
+  async function handleSave() {
+    if (value.length < 8) {
+      setLocalError('At least 8 characters.');
+      return;
+    }
+    setLocalError('');
+    setSaving(true);
+    const err = await onSave(value);
+    setSaving(false);
+    if (err) {
+      setLocalError(err);
+    } else {
+      setOpen(false);
+      setValue('');
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-1">
+        <input
+          type="password"
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="New password"
+          className="w-32 rounded-lg border border-stone-200 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving || disabled}
+          className="text-xs font-medium text-white bg-stone-900 hover:bg-stone-700 px-2 py-1 rounded-lg disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          onClick={() => { setOpen(false); setValue(''); setLocalError(''); }}
+          className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1"
+        >
+          Cancel
+        </button>
+      </div>
+      {localError && <p className="text-[11px] text-red-600">{localError}</p>}
+    </div>
   );
 }
 
@@ -60,6 +176,11 @@ export default function TeamClient({
       const res = await updateTeamMemberRoleAction(id, newRole);
       if ('error' in res) setError(res.error);
     });
+  }
+
+  async function handleResetPassword(id: number, newPassword: string): Promise<string | void> {
+    const res = await resetTeamMemberPasswordAction(id, newPassword);
+    if ('error' in res) return res.error;
   }
 
   const selfAndOthers = members.filter((m) => m.id === meId);
@@ -133,15 +254,15 @@ export default function TeamClient({
                     </select>
                   )}
 
-                  {/* Remove (not self, not super) */}
+                  {/* Reset password + Remove (not self, not super) */}
                   {!isMe && m.role !== 'super' && (
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      disabled={pending}
-                      className="text-xs text-stone-400 hover:text-red-600 transition-colors disabled:opacity-50 flex-shrink-0 px-2 py-1 rounded-lg hover:bg-red-50"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <ResetPasswordControl
+                        onSave={(pw) => handleResetPassword(m.id, pw)}
+                        disabled={pending}
+                      />
+                      <DeleteButton onConfirm={() => handleDelete(m.id)} disabled={pending} />
+                    </div>
                   )}
                 </li>
               );

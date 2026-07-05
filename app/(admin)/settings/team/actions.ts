@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createStoreAdmin, deleteAdminUser, patchAdminUser } from '@/lib/api';
+import { createStoreAdmin, deleteAdminUser, patchAdminUser, resetAdminUserPassword } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
 
@@ -51,5 +51,19 @@ export async function updateTeamMemberRoleAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to update role' };
+  }
+}
+
+export async function resetTeamMemberPasswordAction(
+  memberId: number,
+  newPassword: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertCanManageTeam();
+    if (newPassword.length < 8) return { error: 'Password must be at least 8 characters.' };
+    await resetAdminUserPassword(memberId, newPassword);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to reset password' };
   }
 }

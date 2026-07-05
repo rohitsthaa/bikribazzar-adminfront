@@ -369,10 +369,16 @@ export function createStoreAdmin(data: { email: string; password: string; storeI
     body: JSON.stringify({ ...data, role: data.role ?? 'store' }),
   });
 }
-export function patchAdminUser(id: number, data: { role?: string; storeId?: string | null }) {
+export function patchAdminUser(id: number, data: { role?: string; storeId?: string | null; newPassword?: string }) {
   return apiFetch<AdminUserView>(`/admin-auth/users/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+export function resetAdminUserPassword(id: number, newPassword: string) {
+  return apiFetch<AdminUserView>(`/admin-auth/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ newPassword }),
   });
 }
 export function deleteAdminUser(id: number) {
