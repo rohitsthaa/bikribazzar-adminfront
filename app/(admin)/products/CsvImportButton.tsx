@@ -8,6 +8,20 @@ import { importProductsCsv, type CsvRow, type ImportResult } from './actions';
 const TEMPLATE_HEADERS = ['id', 'name', 'description', 'priceNpr', 'category', 'details', 'tag', 'available', 'stockQty', 'reorderPoint'];
 const TEMPLATE_EXAMPLE = ['macrame-shelf-single', 'Single-Tier Hanging Shelf', 'Handwoven cotton cord shelf with natural pine', '2400', 'shelf', '30×15 cm · natural pine · cotton cord', 'new', 'true', '10', '3'];
 
+// Shown to the user inside the modal so column meaning isn't a guessing game.
+const COLUMN_GUIDE: { key: string; required: boolean; hint: string }[] = [
+  { key: 'id', required: false, hint: 'Slug/SKU. Leave blank to auto-generate from name.' },
+  { key: 'name', required: true, hint: 'Product title.' },
+  { key: 'description', required: false, hint: 'Falls back to name if blank.' },
+  { key: 'priceNpr', required: true, hint: 'Price in NPR, numbers only.' },
+  { key: 'category', required: false, hint: 'Defaults to "general".' },
+  { key: 'details', required: false, hint: 'Size / material line shown on product page.' },
+  { key: 'tag', required: false, hint: 'Badge like "new" or "bestseller".' },
+  { key: 'available', required: false, hint: '"false" hides it from the shop; anything else = visible.' },
+  { key: 'stockQty', required: false, hint: 'Units in stock. Leave blank for unlimited stock.' },
+  { key: 'reorderPoint', required: false, hint: 'Low-stock alert threshold — flags the product once stockQty drops to this number or below. 0 = no alert.' },
+];
+
 function downloadTemplate() {
   const csv = [TEMPLATE_HEADERS, TEMPLATE_EXAMPLE]
     .map((row) => row.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))
@@ -180,6 +194,23 @@ export default function CsvImportButton() {
                     </button>
                   </div>
 
+                  {/* Column glossary */}
+                  <details className="group rounded-xl border border-stone-100 open:bg-stone-50/60">
+                    <summary className="cursor-pointer select-none px-4 py-2.5 text-sm font-medium text-stone-600 hover:text-stone-900 list-none flex items-center justify-between">
+                      What do the columns mean?
+                      <span className="text-stone-400 transition-transform group-open:rotate-180">⌄</span>
+                    </summary>
+                    <ul className="px-4 pb-3 space-y-1.5">
+                      {COLUMN_GUIDE.map((c) => (
+                        <li key={c.key} className="text-xs text-stone-600 leading-relaxed">
+                          <span className="font-mono font-medium text-stone-800">{c.key}</span>
+                          {c.required && <span className="text-red-500"> *</span>}
+                          {' — '}{c.hint}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+
                   {/* File picker */}
                   <div>
                     <label className="block text-sm font-medium text-stone-700 mb-1.5">Select CSV file</label>
@@ -212,7 +243,7 @@ export default function CsvImportButton() {
                         <table className="w-full text-xs">
                           <thead className="bg-stone-50">
                             <tr>
-                              {['ID', 'Name', 'Price', 'Category', 'Stock'].map((h) => (
+                              {['ID', 'Name', 'Price', 'Category', 'Stock', 'Reorder at'].map((h) => (
                                 <th key={h} className="px-3 py-2 text-left font-medium text-stone-500">{h}</th>
                               ))}
                             </tr>
@@ -225,6 +256,7 @@ export default function CsvImportButton() {
                                 <td className="px-3 py-2 text-stone-700">NPR {r.priceNpr.toLocaleString()}</td>
                                 <td className="px-3 py-2 text-stone-600">{r.category}</td>
                                 <td className="px-3 py-2 text-stone-600">{r.stockQty ?? '–'}</td>
+                                <td className="px-3 py-2 text-stone-600">{r.reorderPoint > 0 ? r.reorderPoint : '–'}</td>
                               </tr>
                             ))}
                           </tbody>
