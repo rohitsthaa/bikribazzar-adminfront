@@ -46,6 +46,47 @@ function SaveBtn({ label = 'Save changes' }: { label?: string }) {
   return <SubmitButton label={label} />;
 }
 
+// ── Custom domain verification (see docs/CUSTOM_DOMAINS_PLAN.md) ────────────
+
+const DOMAIN_STATUS_META: Record<string, { label: string; dot: string; text: string }> = {
+  unverified: { label: 'Awaiting DNS', dot: 'bg-stone-400', text: 'text-stone-500' },
+  verifying: { label: 'Checking DNS…', dot: 'bg-amber-500', text: 'text-amber-600' },
+  verified: { label: 'Verified — provisioning', dot: 'bg-amber-500', text: 'text-amber-600' },
+  active: { label: 'Live', dot: 'bg-green-500', text: 'text-green-600' },
+  failed: { label: 'Failed', dot: 'bg-red-400', text: 'text-red-500' },
+};
+
+function DomainStatusBadge({ status }: { status: string | null }) {
+  if (!status) return null;
+  const meta = DOMAIN_STATUS_META[status] ?? { label: status, dot: 'bg-stone-400', text: 'text-stone-500' };
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-stone-50 ${meta.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
+}
+
+// Shown until the domain is live — walks the merchant through proving
+// ownership via a DNS TXT record before anything gets provisioned.
+function DomainVerificationInstructions({ domain, token, failed }: { domain: string; token: string; failed: boolean }) {
+  return (
+    <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5 text-[11px] text-stone-500 space-y-1">
+      {failed ? (
+        <p className="font-medium text-red-500">
+          We couldn&apos;t find this record after 24 hours — double-check it below, then re-save the domain to retry.
+        </p>
+      ) : (
+        <p className="font-medium text-stone-600">Add this DNS record to prove you own {domain}:</p>
+      )}
+      <p className="font-mono text-stone-700 break-all">
+        TXT&nbsp;&nbsp;_bikribazaar-verify.{domain}&nbsp;&nbsp;{token}
+      </p>
+      <p>Checked automatically every few minutes — no need to save again once it&apos;s added.</p>
+    </div>
+  );
+}
+
 function SectionCard({ title, description, children }: {
   title: string; description?: string; children: React.ReactNode;
 }) {
@@ -175,9 +216,19 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                 </Select>
               </div>
               <div className="sm:col-span-2">
-                <Label>Custom domain <span className="text-stone-400 font-normal">(optional)</span></Label>
+                <div className="flex items-center gap-2">
+                  <Label>Custom domain <span className="text-stone-400 font-normal">(optional)</span></Label>
+                  <DomainStatusBadge status={store.customDomainStatus} />
+                </div>
                 <Input name="customDomain" defaultValue={store.customDomain ?? ''} placeholder="shop.example.com" />
                 <p className="text-[11px] text-stone-400 mt-1.5">Leave blank to use the default platform subdomain.</p>
+                {store.customDomain && store.customDomainToken && store.customDomainStatus && store.customDomainStatus !== 'active' && (
+                  <DomainVerificationInstructions
+                    domain={store.customDomain}
+                    token={store.customDomainToken}
+                    failed={store.customDomainStatus === 'failed'}
+                  />
+                )}
               </div>
               <div className="sm:col-span-2">
                 <ToggleField

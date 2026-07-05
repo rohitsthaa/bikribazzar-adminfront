@@ -281,6 +281,11 @@ export type StoreSummary = {
   templateId: string;
   theme: Record<string, unknown>;
   customDomain: string | null;
+  // Server-driven — never sent in updateStore(). null when customDomain is
+  // unset; otherwise "unverified" | "verifying" | "verified" | "active" | "failed".
+  // See docs/CUSTOM_DOMAINS_PLAN.md.
+  customDomainStatus: string | null;
+  customDomainToken: string | null;
   siteType: string;
   allowedTemplates: string[] | null;
   deletedAt: string | null;
