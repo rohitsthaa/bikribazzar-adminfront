@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, getStoreDeletionImpact, type StoreDeletionImpact } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -46,6 +46,7 @@ export async function updateStoreAction(fd: FormData) {
       templateId: str(fd, 'templateId') || 'soulthread',
       customDomain: str(fd, 'customDomain') || null,
       theme,
+      isDemo: fd.get('isDemo') === 'on',
     });
   } catch (e: unknown) {
     // Re-throw Next.js internal errors (redirect / notFound)
@@ -152,5 +153,54 @@ export async function deleteStoreAdminAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to delete admin' };
+  }
+}
+
+/** Product/order counts for the delete-store confirmation warning. Never blocks deletion. */
+export async function getStoreDeletionImpactAction(
+  storeId: string
+): Promise<StoreDeletionImpact | { error: string }> {
+  try {
+    await assertSuper();
+    return await getStoreDeletionImpact(storeId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to check store data' };
+  }
+}
+
+/**
+ * Soft-deletes a store. Deliberately does not check for products/orders itself
+ * — the confirmation UI (getStoreDeletionImpactAction) warns about those, but
+ * this always proceeds once the admin confirms. Nothing is actually erased; see
+ * restoreStoreAction to undo.
+ *
+ * The store's slug is renamed to an archived id so it's immediately reusable
+ * by a new store — callers must redirect to `newId` (the config page at the
+ * old id no longer exists).
+ */
+export async function deleteStoreAction(storeId: string): Promise<{ ok: true; newId: string } | { error: string }> {
+  try {
+    await assertSuper();
+    const updated = await deleteStore(storeId);
+    revalidatePath('/platform');
+    revalidatePath('/platform/stores');
+    revalidatePath(`/platform/${storeId}`);
+    revalidatePath(`/platform/${updated.id}`);
+    return { ok: true, newId: updated.id };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to delete store' };
+  }
+}
+
+export async function restoreStoreAction(storeId: string): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await restoreStore(storeId);
+    revalidatePath('/platform');
+    revalidatePath('/platform/stores');
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to restore store' };
   }
 }

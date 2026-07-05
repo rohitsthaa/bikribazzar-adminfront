@@ -75,6 +75,14 @@ function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: stri
               {s.status}
             </span>
           )}
+          {s.isDemo && (
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-500"
+              title="Excluded from platform-wide analytics totals"
+            >
+              Demo
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           <span className="text-[11px] text-stone-400 font-mono">{s.id}</span>
@@ -168,22 +176,27 @@ function EmptyState({ query }: { query: string }) {
 
 export default function StoresClient({ stores, platformDomain }: { stores: StoreSummary[]; platformDomain: string }) {
   const [query, setQuery]   = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'suspended'>('all');
+  const [status, setStatus] = useState<'all' | 'active' | 'suspended' | 'deleted'>('all');
 
+  // "All" hides deleted stores by default — they're soft-deleted precisely so
+  // they don't clutter the main view; the dedicated "Deleted" tab is where you
+  // go to find and restore one.
   const filtered = stores.filter((s) => {
     const q = query.toLowerCase();
     const matchesQuery = !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
     const matchesStatus =
-      status === 'all'       ? true :
-      status === 'suspended' ? s.status !== 'active' :
+      status === 'all'       ? s.status !== 'deleted' :
+      status === 'deleted'   ? s.status === 'deleted' :
+      status === 'suspended' ? (s.status !== 'active' && s.status !== 'deleted') :
                                s.status === 'active';
     return matchesQuery && matchesStatus;
   });
 
   const counts = {
-    all:       stores.length,
+    all:       stores.filter((s) => s.status !== 'deleted').length,
     active:    stores.filter((s) => s.status === 'active').length,
-    suspended: stores.filter((s) => s.status !== 'active').length,
+    suspended: stores.filter((s) => s.status !== 'active' && s.status !== 'deleted').length,
+    deleted:   stores.filter((s) => s.status === 'deleted').length,
   };
 
   return (
@@ -210,7 +223,7 @@ export default function StoresClient({ stores, platformDomain }: { stores: Store
 
         {/* Status tabs */}
         <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 flex-shrink-0">
-          {(['all', 'active', 'suspended'] as const).map((s) => (
+          {(['all', 'active', 'suspended', 'deleted'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatus(s)}

@@ -278,7 +278,12 @@ export type StoreSummary = {
   customDomain: string | null;
   siteType: string;
   allowedTemplates: string[] | null;
+  deletedAt: string | null;
+  previousId: string | null;  // slug this store had before it was deleted (rename cascade)
+  isDemo: boolean;            // excluded from platform-wide analytics totals when true
 };
+
+export type StoreDeletionImpact = { productCount: number; orderCount: number };
 
 export type StorePaymentConfigView = {
   usingDefaults: boolean; // true when the store has no saved override (inheriting platform defaults)
@@ -293,10 +298,10 @@ export type StorePaymentConfigView = {
 
 export function getStores() { return apiFetch<StoreSummary[]>('/stores'); }
 export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`); }
-export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string }) {
+export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string; isDemo?: boolean }) {
   return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null }>) {
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean }>) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function getStorePaymentConfig(id: string) {
@@ -306,11 +311,31 @@ export function updateStorePaymentConfig(id: string, data: Record<string, unknow
   return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/payment-config`, { method: 'PUT', body: JSON.stringify(data) });
 }
 
+/** How much data a store has (products/orders) — shown as a warning before deleting. Never blocks deletion. */
+export function getStoreDeletionImpact(id: string) {
+  return apiFetch<StoreDeletionImpact>(`/stores/${encodeURIComponent(id)}/deletion-impact`);
+}
+
+/**
+ * Soft-deletes a store — hides it from lists/storefront but keeps all its
+ * data. The store's `id` in the response is a NEW archived slug (the original
+ * slug is freed for reuse immediately) — callers should redirect to it rather
+ * than the id they called this with. Reversible via restoreStore(newId).
+ */
+export function deleteStore(id: string) {
+  return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** Undoes a soft delete. Operates on the store's current (archived) id — it does not reclaim the original slug. */
+export function restoreStore(id: string) {
+  return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}/restore`, { method: 'POST' });
+}
+
 // ---- Platform overview (super-admin) ----
 export type PlatformOverview = {
-  totals: { stores: number; active: number; suspended: number; orders: number; revenue: number };
+  totals: { stores: number; active: number; suspended: number; deleted: number; orders: number; revenue: number };
   stores: Array<{
-    id: string; name: string; status: string; templateId: string;
+    id: string; name: string; status: string; templateId: string; deletedAt: string | null; isDemo: boolean;
     orderCount: number; revenue: number; pending: number;
     lastOrderAt: string | null; lowStock: number; hasPaymentConfig: boolean;
   }>;

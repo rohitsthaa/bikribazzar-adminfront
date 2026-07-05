@@ -7,6 +7,7 @@ import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import TemplateThemeClient from './TemplateThemeClient';
 import TemplateAccessClient from './TemplateAccessClient';
+import DeleteStoreSection from './DeleteStoreSection';
 import SubmitButton from '@/components/SubmitButton';
 
 export const dynamic = 'force-dynamic';
@@ -152,37 +153,52 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
 
       {/* ── Section 1: General ── */}
       <SectionCard title="General" description="Core store identity and availability.">
+        {store.status === 'deleted' && (
+          <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 mb-4">
+            This store is deleted — restore it below before editing its settings.
+          </p>
+        )}
         <form action={updateStoreAction} className="space-y-5">
           <input type="hidden" name="id" value={store.id} />
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Store name</Label>
-              <Input name="name" defaultValue={store.name} />
+          <fieldset disabled={store.status === 'deleted'} className="space-y-5 disabled:opacity-50">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Store name</Label>
+                <Input name="name" defaultValue={store.name} />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select name="status" defaultValue={store.status === 'deleted' ? 'active' : store.status}>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Custom domain <span className="text-stone-400 font-normal">(optional)</span></Label>
+                <Input name="customDomain" defaultValue={store.customDomain ?? ''} placeholder="shop.example.com" />
+                <p className="text-[11px] text-stone-400 mt-1.5">Leave blank to use the default platform subdomain.</p>
+              </div>
+              <div className="sm:col-span-2">
+                <ToggleField
+                  name="isDemo"
+                  label="Demo store"
+                  description="Excludes this store's orders/revenue from platform-wide analytics totals. Its own dashboard still works normally."
+                  defaultChecked={store.isDemo}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Status</Label>
-              <Select name="status" defaultValue={store.status}>
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-              </Select>
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Custom domain <span className="text-stone-400 font-normal">(optional)</span></Label>
-              <Input name="customDomain" defaultValue={store.customDomain ?? ''} placeholder="shop.example.com" />
-              <p className="text-[11px] text-stone-400 mt-1.5">Leave blank to use the default platform subdomain.</p>
-            </div>
-          </div>
 
-          {/* Keep theme + fonts here too so updateStoreAction works in one form */}
-          <input type="hidden" name="primary" value={theme.colors?.primary ?? ''} />
-          <input type="hidden" name="accent" value={theme.colors?.accent ?? ''} />
-          <input type="hidden" name="bg" value={theme.colors?.bg ?? ''} />
-          <input type="hidden" name="fontDisplay" value={theme.fonts?.display ?? ''} />
-          <input type="hidden" name="fontBody" value={theme.fonts?.body ?? ''} />
-          <input type="hidden" name="templateId" value={store.templateId} />
+            {/* Keep theme + fonts here too so updateStoreAction works in one form */}
+            <input type="hidden" name="primary" value={theme.colors?.primary ?? ''} />
+            <input type="hidden" name="accent" value={theme.colors?.accent ?? ''} />
+            <input type="hidden" name="bg" value={theme.colors?.bg ?? ''} />
+            <input type="hidden" name="fontDisplay" value={theme.fonts?.display ?? ''} />
+            <input type="hidden" name="fontBody" value={theme.fonts?.body ?? ''} />
+            <input type="hidden" name="templateId" value={store.templateId} />
 
-          <SaveBtn />
+            <SaveBtn />
+          </fieldset>
         </form>
       </SectionCard>
 
@@ -300,6 +316,15 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
 
       {/* ── Section 5: Team ── */}
       <StoreAdmins storeId={store.id} storeName={store.name} admins={admins} />
+
+      {/* ── Section 6: Delete / restore ── */}
+      <DeleteStoreSection
+        storeId={store.id}
+        storeName={store.name}
+        isDeleted={store.status === 'deleted' || !!store.deletedAt}
+        deletedAt={store.deletedAt}
+        previousId={store.previousId}
+      />
 
     </main>
   );
