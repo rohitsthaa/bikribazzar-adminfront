@@ -6,7 +6,10 @@ import { cache } from 'react';
 // once email/password login was verified working in production — see
 // docs/HANDOFF.md. `LEGACY_COOKIE` is kept only so `clearAuthCookie()` can
 // still scrub any stale cookie a browser might have from before the cutover.
-const TOKEN_COOKIE = 'st_admin_token';
+// `TOKEN_COOKIE` is exported so lib/api.ts can forward the raw JWT as an
+// Authorization bearer header on every API call — the API cross-checks it
+// against x-store-id as defense-in-depth (2026-07-06, see docs/HANDOFF.md).
+export const TOKEN_COOKIE = 'st_admin_token';
 const LEGACY_COOKIE = 'st_admin';
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';

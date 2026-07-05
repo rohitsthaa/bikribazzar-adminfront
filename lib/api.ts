@@ -3,12 +3,20 @@
  * Attaches the internal token for write operations.
  */
 
+import { cookies } from 'next/headers';
 import { currentStoreId } from './store-context';
+import { TOKEN_COOKIE } from './auth';
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // Forwarding the admin's own session JWT lets the API cross-check it against
+  // x-store-id (defense-in-depth against a bug in currentStoreId()'s scoping,
+  // or the internal token ever leaking) — see HttpContextExtensions.cs's
+  // RequireInternalToken(). Read directly from the cookie rather than via
+  // getAdmin(), which only returns the decoded identity, not the raw token.
+  const sessionToken = cookies().get(TOKEN_COOKIE)?.value;
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     cache: 'no-store',
@@ -16,6 +24,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
       'Content-Type': 'application/json',
       'x-internal-token': TOKEN,
       'x-store-id': await currentStoreId(),  // scope every admin call to the selected store
+      ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
       ...(init.headers ?? {}),
     },
   });
