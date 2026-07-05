@@ -74,6 +74,15 @@ function parseCompareAtPrice(raw: string | null, isNew: boolean): number | null 
   return Number.isFinite(n) ? n : null;
 }
 
+// Same -1-sentinel-on-edit pattern as parseCompareAtPrice — blanking the field
+// means "go back to the store default fee", which needs to actually clear the
+// per-product override via PATCH, not just leave it untouched.
+function parseDeliveryFeeOverride(raw: string | null, isNew: boolean): number | null {
+  if (raw == null || raw.trim() === '') return isNew ? null : -1;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 function parseTags(raw: string | null): string[] {
   if (raw == null) return [];
   return raw.split(',').map((t) => t.trim()).filter(Boolean);
@@ -142,6 +151,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
     leadTimeDays: parseOptionalNumber(formData.get('leadTimeDays') as string),
     sku: (formData.get('sku') as string) || null,
     compareAtPriceNpr: parseCompareAtPrice(formData.get('compareAtPriceNpr') as string, isNew),
+    deliveryFeeNpr: parseDeliveryFeeOverride(formData.get('deliveryFeeNpr') as string, isNew),
     tags: parseTags(formData.get('tags') as string),
     status: (formData.get('status') as 'draft' | 'active' | 'archived') || 'active',
   };

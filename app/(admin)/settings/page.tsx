@@ -36,6 +36,8 @@ export default async function SettingsPage() {
         initialFontFamily={settings.font_family ?? ''}
         initialLogoUrl={settings.logo_url ?? ''}
         initialOgImage={settings.og_image ?? ''}
+        initialValleyFee={settings.delivery_fee ?? '0'}
+        initialNationwideFee={settings.nationwide_fee ?? '0'}
       />
     </main>
   );

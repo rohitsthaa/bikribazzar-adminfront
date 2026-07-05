@@ -55,6 +55,20 @@ export async function saveCurrency(symbol: string) {
   revalidatePath('/settings');
 }
 
+// Default delivery fees, shown to customers at checkout and used whenever a
+// product doesn't have its own delivery fee override. `delivery_fee` applies
+// to Kathmandu Valley areas, `nationwide_fee` to "Outside Valley" orders —
+// the API computes the actual per-order fee server-side from these plus any
+// per-product override (see ProductForm's "Delivery fee override" field).
+export async function saveDeliveryFees(valleyFeeNpr: string, nationwideFeeNpr: string) {
+  await assertCanSettings();
+  await Promise.all([
+    updateSetting('delivery_fee', valleyFeeNpr.trim() || '0'),
+    updateSetting('nationwide_fee', nationwideFeeNpr.trim() || '0'),
+  ]);
+  revalidatePath('/settings');
+}
+
 export async function saveBranding(data: {
   tagline: string; metaDescription: string; fontFamily: string; logoUrl: string; ogImage: string;
 }) {
