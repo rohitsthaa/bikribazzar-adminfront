@@ -56,11 +56,16 @@ export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
   return { created, updated, errors: [] };
 }
 
-// Blank field → null (not specified). Same "blank on edit doesn't clear" limitation
-// as stockQty/tag below — a blank value is indistinguishable from "not provided"
-// once it reaches the API's PATCH handler.
-function parseOptionalNumber(raw: string | null): number | null {
-  if (raw == null || raw.trim() === '') return null;
+// Shared -1-sentinel-on-edit pattern: on create, a blank field is unambiguous
+// (just null). On edit, PATCH is a partial update, so plain `null` is
+// indistinguishable from "field not sent" once it reaches the API — blanking
+// the field needs to send -1 instead so the API's PATCH handler knows to
+// actually clear it. Used for every optional numeric product field where
+// "clear it back to unset" is a real, expected admin action (sale price,
+// delivery fee override, dimensions, lead time) — negative values are never
+// legitimate for any of these, so -1 is safe to reserve as the sentinel.
+function parseOptionalNumberWithClearSentinel(raw: string | null, isNew: boolean): number | null {
+  if (raw == null || raw.trim() === '') return isNew ? null : -1;
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
@@ -69,18 +74,14 @@ function parseOptionalNumber(raw: string | null): number | null {
 // field) actually clears it via PATCH — see PatchProductRequest in the API.
 // On create there's no ambiguity to resolve, so blank is just null.
 function parseCompareAtPrice(raw: string | null, isNew: boolean): number | null {
-  if (raw == null || raw.trim() === '') return isNew ? null : -1;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
+  return parseOptionalNumberWithClearSentinel(raw, isNew);
 }
 
 // Same -1-sentinel-on-edit pattern as parseCompareAtPrice — blanking the field
 // means "go back to the store default fee", which needs to actually clear the
 // per-product override via PATCH, not just leave it untouched.
 function parseDeliveryFeeOverride(raw: string | null, isNew: boolean): number | null {
-  if (raw == null || raw.trim() === '') return isNew ? null : -1;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
+  return parseOptionalNumberWithClearSentinel(raw, isNew);
 }
 
 function parseTags(raw: string | null): string[] {
@@ -145,10 +146,10 @@ export async function saveProduct(_: unknown, formData: FormData) {
     isDigital: formData.get('isDigital') === 'true',
     metaTitle: (formData.get('metaTitle') as string) || null,
     metaDescription: (formData.get('metaDescription') as string) || null,
-    widthCm: parseOptionalNumber(formData.get('widthCm') as string),
-    heightCm: parseOptionalNumber(formData.get('heightCm') as string),
-    depthCm: parseOptionalNumber(formData.get('depthCm') as string),
-    leadTimeDays: parseOptionalNumber(formData.get('leadTimeDays') as string),
+    widthCm: parseOptionalNumberWithClearSentinel(formData.get('widthCm') as string, isNew),
+    heightCm: parseOptionalNumberWithClearSentinel(formData.get('heightCm') as string, isNew),
+    depthCm: parseOptionalNumberWithClearSentinel(formData.get('depthCm') as string, isNew),
+    leadTimeDays: parseOptionalNumberWithClearSentinel(formData.get('leadTimeDays') as string, isNew),
     sku: (formData.get('sku') as string) || null,
     compareAtPriceNpr: parseCompareAtPrice(formData.get('compareAtPriceNpr') as string, isNew),
     deliveryFeeNpr: parseDeliveryFeeOverride(formData.get('deliveryFeeNpr') as string, isNew),
