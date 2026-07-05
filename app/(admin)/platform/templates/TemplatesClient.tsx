@@ -3,7 +3,57 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { TemplateMeta, StoreSummary } from '@/lib/api';
-import { grantTemplateAccessAction, revokeTemplateAccessAction, setTemplateAccessAction } from './actions';
+import {
+  grantTemplateAccessAction,
+  revokeTemplateAccessAction,
+  setTemplateAccessAction,
+  setShowOnMarketingAction,
+} from './actions';
+
+// ── Marketing-visibility switch ─────────────────────────────────────────────────
+
+function MarketingToggle({
+  templateId,
+  visible,
+  onChange,
+}: {
+  templateId: string;
+  visible: boolean;
+  onChange: (id: string, visible: boolean) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [, startTransition] = useTransition();
+
+  async function toggle() {
+    setBusy(true);
+    startTransition(async () => {
+      const next = !visible;
+      const result = await setShowOnMarketingAction(templateId, next);
+      if (!('error' in result)) onChange(templateId, next);
+      setBusy(false);
+    });
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      title={
+        visible
+          ? 'Showing on the marketing site — click to hide'
+          : 'Hidden from the marketing site — click to show'
+      }
+      className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-50 ${
+        visible
+          ? 'bg-sky-50 text-sky-700 hover:bg-stone-100 hover:text-stone-500'
+          : 'bg-stone-100 text-stone-400 hover:bg-sky-50 hover:text-sky-700'
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${visible ? 'bg-sky-500' : 'bg-stone-300'}`} />
+      {busy ? '…' : visible ? 'On marketing site' : 'Hidden from marketing'}
+    </button>
+  );
+}
 
 // ── Palette strip ─────────────────────────────────────────────────────────────
 
@@ -96,11 +146,15 @@ function PrivateTemplateCard({
   stores,
   allPublicIds,
   onMakePublic,
+  showOnMarketing,
+  onToggleMarketing,
 }: {
   template: TemplateMeta;
   stores: StoreSummary[];
   allPublicIds: string[];
   onMakePublic: (id: string) => void;
+  showOnMarketing: boolean;
+  onToggleMarketing: (id: string, visible: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -131,6 +185,7 @@ function PrivateTemplateCard({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <MarketingToggle templateId={template.id} visible={showOnMarketing} onChange={onToggleMarketing} />
           <button
             onClick={makePublic}
             disabled={busy}
@@ -183,9 +238,13 @@ function PrivateTemplateCard({
 function PublicTemplateCard({
   template,
   onMakeExclusive,
+  showOnMarketing,
+  onToggleMarketing,
 }: {
   template: TemplateMeta;
   onMakeExclusive: (id: string) => void;
+  showOnMarketing: boolean;
+  onToggleMarketing: (id: string, visible: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -207,6 +266,7 @@ function PublicTemplateCard({
         <p className="text-xs text-stone-400">{template.tagline}</p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
+        <MarketingToggle templateId={template.id} visible={showOnMarketing} onChange={onToggleMarketing} />
         <button
           onClick={makeExclusive}
           disabled={busy}
@@ -233,6 +293,10 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
   const [accessMap, setAccessMap] = useState<Record<string, 'public' | 'private'>>(() =>
     Object.fromEntries(allTemplates.map((t) => [t.id, t.access ?? 'public']))
   );
+  // Local marketing-visibility state, same pattern
+  const [marketingMap, setMarketingMap] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(allTemplates.map((t) => [t.id, t.showOnMarketing ?? true]))
+  );
 
   const privateTemplates = allTemplates.filter((t) => (accessMap[t.id] ?? t.access) === 'private');
   const publicTemplates  = allTemplates.filter((t) => (accessMap[t.id] ?? t.access) !== 'private');
@@ -243,6 +307,9 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
   }
   function makeExclusive(id: string) {
     setAccessMap((m) => ({ ...m, [id]: 'private' }));
+  }
+  function toggleMarketing(id: string, visible: boolean) {
+    setMarketingMap((m) => ({ ...m, [id]: visible }));
   }
 
   return (
@@ -273,6 +340,8 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
                 stores={stores}
                 allPublicIds={allPublicIds}
                 onMakePublic={makePublic}
+                showOnMarketing={marketingMap[t.id] ?? t.showOnMarketing ?? true}
+                onToggleMarketing={toggleMarketing}
               />
             ))}
           </div>
@@ -283,11 +352,21 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
       <section className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold text-stone-900">Public templates</h2>
-          <p className="text-xs text-stone-400 mt-0.5">Available to all stores by default.</p>
+          <p className="text-xs text-stone-400 mt-0.5">
+            Available to all stores by default. The blue toggle controls whether a template
+            appears in the showcase on the marketing site (bikribazaar.com) — independent of
+            store access.
+          </p>
         </div>
         <div className="space-y-2">
           {publicTemplates.map((t) => (
-            <PublicTemplateCard key={t.id} template={t} onMakeExclusive={makeExclusive} />
+            <PublicTemplateCard
+              key={t.id}
+              template={t}
+              onMakeExclusive={makeExclusive}
+              showOnMarketing={marketingMap[t.id] ?? t.showOnMarketing ?? true}
+              onToggleMarketing={toggleMarketing}
+            />
           ))}
         </div>
       </section>

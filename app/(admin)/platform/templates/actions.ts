@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { getStore, updateStore, setTemplateAccess } from '@/lib/api';
+import { getStore, updateStore, setTemplateAccess, setTemplateShowOnMarketing } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 async function assertSuper() {
@@ -23,6 +23,25 @@ export async function setTemplateAccessAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to update access' };
+  }
+}
+
+/**
+ * Toggle whether a template is showcased on the public marketing site (bikribazaar.com).
+ * Independent of access — a template can be public (selectable by stores) but hidden from
+ * the marketing showcase (e.g. still being polished), or vice versa.
+ */
+export async function setShowOnMarketingAction(
+  id: string,
+  showOnMarketing: boolean
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await setTemplateShowOnMarketing(id, showOnMarketing);
+    revalidatePath('/platform/templates');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to update marketing visibility' };
   }
 }
 

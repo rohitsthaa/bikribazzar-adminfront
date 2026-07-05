@@ -480,6 +480,8 @@ export type TemplateMeta = {
   description: string;
   palette: string[];
   paletteLabels: string[];
+  /** Whether this template is showcased on the public marketing site (bikribazaar.com). */
+  showOnMarketing?: boolean;
 };
 
 /** Returns store-scoped templates (filtered by x-store-id). */
@@ -490,9 +492,17 @@ export function getAllTemplates() { return apiFetch<TemplateMeta[]>('/templates/
 
 /** Set a template's access level (public | private). Internal-token only. */
 export function setTemplateAccess(id: string, access: 'public' | 'private') {
-  return apiFetch<{ id: string; access: string }>(`/templates/${id}`, {
+  return apiFetch<{ id: string; access: string; showOnMarketing: boolean }>(`/templates/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ access }),
+  });
+}
+
+/** Toggle whether a template is showcased on the public marketing site. Internal-token only. */
+export function setTemplateShowOnMarketing(id: string, showOnMarketing: boolean) {
+  return apiFetch<{ id: string; access: string; showOnMarketing: boolean }>(`/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ showOnMarketing }),
   });
 }
 
