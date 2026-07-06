@@ -779,6 +779,19 @@ export function createInvoice(storeId: string, data: {
   });
 }
 
+/**
+ * Store-owner self-serve upgrade request — idempotent (see PlanEndpoints.cs
+ * `POST /stores/:id/invoices/self-serve`): reuses a pending invoice for the same plan,
+ * supersedes one for a different plan. No dates/amount to pick — period and price are
+ * always auto-computed from the plan, unlike the super-admin's `createInvoice` above.
+ */
+export function createSelfServeInvoice(storeId: string, planId: string) {
+  return apiFetch<SubscriptionInvoiceView>(`/stores/${encodeURIComponent(storeId)}/invoices/self-serve`, {
+    method: 'POST',
+    body: JSON.stringify({ planId }),
+  });
+}
+
 /** Mark an invoice paid (also moves the store onto that plan) or void. */
 export function patchInvoice(id: number, data: { status: 'paid' | 'void'; note?: string }) {
   return apiFetch<SubscriptionInvoiceView>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(data) });

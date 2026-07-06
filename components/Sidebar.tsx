@@ -133,6 +133,7 @@ const STORE_NAV_GROUPS = [
     { href: '/reviews',        label: 'Reviews',      Icon: Icons.Reviews },
     { href: '/settings/team',  label: 'Team',         Icon: Icons.Team },
     { href: '/settings',       label: 'Settings',     Icon: Icons.Settings },
+    { href: '/billing',        label: 'Billing',      Icon: Icons.Plans },
   ],
 ];
 
@@ -409,7 +410,7 @@ export default function Sidebar({
             <div key={gi}>
               {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
               {group.map((item) => {
-                if ((item.href === '/settings' || item.href === '/settings/team') && !canSettings) return null;
+                if ((item.href === '/settings' || item.href === '/settings/team' || item.href === '/billing') && !canSettings) return null;
                 // For /settings, don't match /settings/team as active (it has its own nav item)
                 const active = item.href === '/settings'
                   ? pathname === '/settings'
