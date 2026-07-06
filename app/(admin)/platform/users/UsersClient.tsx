@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { AdminUserView, StoreSummary } from '@/lib/api';
-import { patchAdminUserAction, deleteAdminUserAction, createPlatformAdminAction } from './actions';
+import { patchAdminUserAction, deleteAdminUserAction, createPlatformAdminAction, updateAdminUserEmailAction } from './actions';
 
 // ── Role badge ────────────────────────────────────────────────────────────────
 
@@ -70,6 +70,79 @@ function DeleteButton({ onConfirm, disabled }: { onConfirm: () => void; disabled
     >
       Remove
     </button>
+  );
+}
+
+// ── Inline-editable email ───────────────────────────────────────────────────────
+
+function EditableEmail({
+  userId,
+  email,
+  disabled,
+}: {
+  userId: number;
+  email: string;
+  disabled: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(email);
+  const [error, setError] = useState('');
+  const [saving, start] = useTransition();
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setValue(email); setError(''); setEditing(true); }}
+        disabled={disabled}
+        title="Click to edit email"
+        className="text-stone-800 font-medium truncate max-w-[180px] text-left hover:underline decoration-dotted disabled:no-underline disabled:cursor-default"
+      >
+        {email}
+      </button>
+    );
+  }
+
+  function save() {
+    setError('');
+    if (value.trim() === email) { setEditing(false); return; }
+    start(async () => {
+      const res = await updateAdminUserEmailAction(userId, value);
+      if ('error' in res) setError(res.error);
+      else setEditing(false);
+    });
+  }
+
+  return (
+    <div className="min-w-[160px]">
+      <div className="flex items-center gap-1">
+        <input
+          type="email"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={saving}
+          autoFocus
+          className="w-full text-sm rounded-lg border border-indigo-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        />
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded-lg disabled:opacity-50"
+        >
+          {saving ? '…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          disabled={saving}
+          className="text-xs text-stone-400 hover:text-stone-700 px-1"
+        >
+          ✕
+        </button>
+      </div>
+      {error && <p className="text-[11px] text-red-600 mt-1">{error}</p>}
+    </div>
   );
 }
 
@@ -140,6 +213,16 @@ export default function UsersClient({
 
   const fmtDate = (s: string) =>
     new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const fmtLastLogin = (s: string | null) => {
+    if (!s) return <span className="text-stone-300">Never</span>;
+    const diffMs = Date.now() - new Date(s).getTime();
+    const days = Math.floor(diffMs / 86_400_000);
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days}d ago`;
+    return fmtDate(s);
+  };
 
   return (
     <div className="space-y-4">
@@ -258,6 +341,7 @@ export default function UsersClient({
                 <th className="text-left text-xs font-medium text-stone-400 uppercase tracking-wide px-4 py-3">Role</th>
                 <th className="text-left text-xs font-medium text-stone-400 uppercase tracking-wide px-4 py-3 hidden md:table-cell">Verified</th>
                 <th className="text-left text-xs font-medium text-stone-400 uppercase tracking-wide px-4 py-3 hidden lg:table-cell">Joined</th>
+                <th className="text-left text-xs font-medium text-stone-400 uppercase tracking-wide px-4 py-3 hidden lg:table-cell">Last login</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -268,7 +352,7 @@ export default function UsersClient({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar email={u.email} role={u.role} />
-                      <span className="text-stone-800 font-medium truncate max-w-[180px]">{u.email}</span>
+                      <EditableEmail userId={u.id} email={u.email} disabled={pending} />
                     </div>
                   </td>
 
@@ -325,6 +409,11 @@ export default function UsersClient({
                   {/* Joined */}
                   <td className="px-4 py-3 text-stone-400 hidden lg:table-cell">
                     {fmtDate(u.createdAt)}
+                  </td>
+
+                  {/* Last login */}
+                  <td className="px-4 py-3 text-stone-400 hidden lg:table-cell">
+                    {fmtLastLogin(u.lastLoginAt)}
                   </td>
 
                   {/* Actions */}

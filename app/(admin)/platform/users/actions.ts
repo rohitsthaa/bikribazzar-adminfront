@@ -23,6 +23,22 @@ export async function patchAdminUserAction(
   }
 }
 
+export async function updateAdminUserEmailAction(
+  id: number,
+  email: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return { error: 'Email cannot be blank.' };
+    await patchAdminUser(id, { email: trimmed });
+    revalidatePath('/platform/users');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to update email' };
+  }
+}
+
 export async function deleteAdminUserAction(
   id: number,
 ): Promise<{ ok: true } | { error: string }> {

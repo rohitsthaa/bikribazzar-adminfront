@@ -325,6 +325,8 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
           customDomain={store.customDomain ?? null}
           initialTemplateId={store.templateId}
           initialTheme={theme}
+          allTemplates={allTemplates}
+          allowedTemplates={store.allowedTemplates ?? null}
         />
       </SectionCard>
 

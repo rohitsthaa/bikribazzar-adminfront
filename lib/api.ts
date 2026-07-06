@@ -399,6 +399,7 @@ export type AdminUserView = {
   storeId: string | null;
   emailVerified: boolean;
   createdAt: string;
+  lastLoginAt: string | null;
 };
 
 /** All admin users across the platform (super-admin only). */
@@ -414,7 +415,7 @@ export function createStoreAdmin(data: { email: string; password: string; storeI
     body: JSON.stringify({ ...data, role: data.role ?? 'store' }),
   });
 }
-export function patchAdminUser(id: number, data: { role?: string; storeId?: string | null; newPassword?: string }) {
+export function patchAdminUser(id: number, data: { email?: string; role?: string; storeId?: string | null; newPassword?: string }) {
   return apiFetch<AdminUserView>(`/admin-auth/users/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),

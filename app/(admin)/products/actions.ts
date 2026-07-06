@@ -62,12 +62,26 @@ export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
 // the field needs to send -1 instead so the API's PATCH handler knows to
 // actually clear it. Used for every optional numeric product field where
 // "clear it back to unset" is a real, expected admin action (sale price,
-// delivery fee override, dimensions, lead time) — negative values are never
-// legitimate for any of these, so -1 is safe to reserve as the sentinel.
+// delivery fee override, dimensions, lead time, stock qty going back to
+// "unlimited") — negative values are never legitimate for any of these, so
+// -1 is safe to reserve as the sentinel.
 function parseOptionalNumberWithClearSentinel(raw: string | null, isNew: boolean): number | null {
   if (raw == null || raw.trim() === '') return isNew ? null : -1;
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
+}
+
+// Same ambiguity, string-field version: on create, blank is unambiguous (null =
+// not set). On edit, the API's `!= null` PATCH guard treats a JSON `null` as
+// "field omitted, leave untouched" — so blanking a string field on edit must
+// send an explicit "" instead, which the API reads as "clear this field" (see
+// details/tag/digitalAssetUrl/metaTitle/metaDescription/sku handling in
+// ProductEndpoints.cs). Previously every one of these sent `null` on blank
+// regardless of create vs. edit, so blanking them on an existing product
+// silently did nothing.
+function parseOptionalStringWithClearSentinel(raw: string | null, isNew: boolean): string | null {
+  if (raw == null || raw.trim() === '') return isNew ? null : '';
+  return raw;
 }
 
 // CompareAtPriceNpr uses a -1 sentinel on edit so "end the sale" (blanking the
@@ -125,32 +139,31 @@ export async function saveProduct(_: unknown, formData: FormData) {
   const role = (await getAdmin())?.role;
   const canPrice = can(role, 'setPrice'); // staff can't set/change price
 
-  const stockQtyRaw = formData.get('stockQty') as string;
   const data = {
     id,
     name: formData.get('name') as string,
     description: formData.get('description') as string,
     priceNpr: Number(formData.get('priceNpr') ?? 0),
     category: formData.get('category') as string,
-    details: (formData.get('details') as string) || null,
-    tag: (formData.get('tag') as string) || null,
+    details: parseOptionalStringWithClearSentinel(formData.get('details') as string, isNew),
+    tag: parseOptionalStringWithClearSentinel(formData.get('tag') as string, isNew),
     image: (formData.get('image') as string) || '',
     images: JSON.parse((formData.get('images') as string) || '[]') as string[],
     available: formData.get('available') === 'true',
     sortOrder: Number(formData.get('sortOrder') ?? 0),
     prepaymentType: (formData.get('prepaymentType') as 'none' | 'percentage' | 'fixed') || 'none',
     prepaymentValue: Number(formData.get('prepaymentValue') ?? 0),
-    stockQty: stockQtyRaw === '' || stockQtyRaw === null ? null : Number(stockQtyRaw),
+    stockQty: parseOptionalNumberWithClearSentinel(formData.get('stockQty') as string, isNew),
     reorderPoint: Number(formData.get('reorderPoint') ?? 0),
-    digitalAssetUrl: (formData.get('digitalAssetUrl') as string) || null,
+    digitalAssetUrl: parseOptionalStringWithClearSentinel(formData.get('digitalAssetUrl') as string, isNew),
     isDigital: formData.get('isDigital') === 'true',
-    metaTitle: (formData.get('metaTitle') as string) || null,
-    metaDescription: (formData.get('metaDescription') as string) || null,
+    metaTitle: parseOptionalStringWithClearSentinel(formData.get('metaTitle') as string, isNew),
+    metaDescription: parseOptionalStringWithClearSentinel(formData.get('metaDescription') as string, isNew),
     widthCm: parseOptionalNumberWithClearSentinel(formData.get('widthCm') as string, isNew),
     heightCm: parseOptionalNumberWithClearSentinel(formData.get('heightCm') as string, isNew),
     depthCm: parseOptionalNumberWithClearSentinel(formData.get('depthCm') as string, isNew),
     leadTimeDays: parseOptionalNumberWithClearSentinel(formData.get('leadTimeDays') as string, isNew),
-    sku: (formData.get('sku') as string) || null,
+    sku: parseOptionalStringWithClearSentinel(formData.get('sku') as string, isNew),
     compareAtPriceNpr: parseCompareAtPrice(formData.get('compareAtPriceNpr') as string, isNew),
     deliveryFeeNpr: parseDeliveryFeeOverride(formData.get('deliveryFeeNpr') as string, isNew),
     tags: parseTags(formData.get('tags') as string),
