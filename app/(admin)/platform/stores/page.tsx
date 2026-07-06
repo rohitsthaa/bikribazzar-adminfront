@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getPlatformOverview } from '@/lib/api';
+import { getPlatformOverview, getAllTemplates } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import StoresClient from './StoresClient';
 import NewStoreDialog from '../NewStoreDialog';
@@ -10,7 +10,10 @@ export default async function PlatformStoresPage() {
   const admin = await getAdmin();
   if (admin?.role !== 'super') redirect('/dashboard');
 
-  const overview = await getPlatformOverview().catch(() => null);
+  const [overview, allTemplates] = await Promise.all([
+    getPlatformOverview().catch(() => null),
+    getAllTemplates().catch(() => []),
+  ]);
   const stores = overview?.stores ?? [];
 
   const active    = stores.filter((s) => s.status === 'active').length;
@@ -34,7 +37,7 @@ export default async function PlatformStoresPage() {
             {stores.length} total · {active} active{suspended ? ` · ${suspended} suspended` : ''}
           </p>
         </div>
-        <NewStoreDialog />
+        <NewStoreDialog allTemplates={allTemplates} />
       </div>
 
       <StoresClient stores={stores} platformDomain={platformDomain} />

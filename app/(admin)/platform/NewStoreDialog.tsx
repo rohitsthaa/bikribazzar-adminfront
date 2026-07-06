@@ -2,9 +2,10 @@
 
 import { useState, useRef, useTransition } from 'react';
 import { createStoreAction } from './actions';
-import { TEMPLATES } from './templates';
+import type { TemplateMeta } from '@/lib/api';
 
-export default function NewStoreDialog() {
+export default function NewStoreDialog({ allTemplates }: { allTemplates: TemplateMeta[] }) {
+  const templates = [...allTemplates].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [isPending, start] = useTransition();
@@ -95,8 +96,12 @@ export default function NewStoreDialog() {
                   name="templateId"
                   className="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60"
                 >
-                  {TEMPLATES.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.isPremium ? ' (Premium)' : ''}
+                      {t.access === 'private' ? ' (Private)' : ''}
+                    </option>
                   ))}
                 </select>
               </label>
