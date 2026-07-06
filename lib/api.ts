@@ -313,6 +313,13 @@ export type StoreSummary = {
   // callers — declared here so lib/store-context.ts can type-check reading it
   // to fingerprint the st_store cookie (detects slug reuse after a delete).
   createdAt?: string;
+  // Subscription/billing fields — always present on the raw GET /stores/:id response
+  // (it returns the full Store row), just not previously declared here since nothing
+  // read them yet. See PlanConfig/SubscriptionInvoice + docs/SUBSCRIPTIONS_PLAN.md.
+  plan: string;                        // PlanConfig.Id, e.g. "starter" | "growth"
+  subscriptionStatus: string;          // "active" | "trialing" | "past_due" | "lapsed"
+  trialEndsAt: string | null;
+  nextBillingAt: string | null;
 };
 
 export type StoreDeletionImpact = { productCount: number; orderCount: number };
@@ -333,7 +340,7 @@ export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${
 export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string; isDemo?: boolean }) {
   return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean }>) {
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean; plan: string; subscriptionStatus: string }>) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function getStorePaymentConfig(id: string) {
@@ -698,4 +705,81 @@ export function updateService(id: number, data: Partial<Service>) {
 }
 export function deleteService(id: number) {
   return apiFetch<{ ok: boolean }>(`/services/${id}`, { method: 'DELETE', body: '{}' });
+}
+
+// ---- Plans (subscription catalog) + invoices (manual billing) ----
+// See bikribazzar-api/Endpoints/PlanEndpoints.cs and docs/SUBSCRIPTIONS_PLAN.md. Plans are
+// DB-seeded (migration 20260707100300_SeedPlanCatalog) and edited in place from Platform →
+// Plans, same zero-deploy pattern as the template catalog — there's no "create a new plan"
+// endpoint, only PATCH on the seeded rows (retire one via isActive:false instead of deleting).
+
+export type PlanConfigView = {
+  id: string;
+  name: string;
+  priceNpr: number;
+  maxProducts: number | null; // null = unlimited
+  allowPremiumTemplates: boolean;
+  allowCustomDomain: boolean;
+  allowOnlinePayments: boolean;
+  showBadge: boolean;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type PlanConfigUpdateInput = Partial<{
+  name: string;
+  priceNpr: number;
+  maxProducts: number;
+  clearMaxProducts: boolean; // set true to explicitly clear back to unlimited (null)
+  allowPremiumTemplates: boolean;
+  allowCustomDomain: boolean;
+  allowOnlinePayments: boolean;
+  showBadge: boolean;
+  sortOrder: number;
+  isActive: boolean;
+}>;
+
+/** Active plans only — public endpoint (signup/upgrade picker). */
+export function getPlans() { return apiFetch<PlanConfigView[]>('/plans'); }
+
+/** Every plan including inactive/retired ones. Internal-token only — Platform → Plans. */
+export function getAllPlans() { return apiFetch<PlanConfigView[]>('/plans/all'); }
+
+export function updatePlanConfig(id: string, fields: PlanConfigUpdateInput) {
+  return apiFetch<PlanConfigView>(`/plans/${id}`, { method: 'PATCH', body: JSON.stringify(fields) });
+}
+
+export type SubscriptionInvoiceView = {
+  id: number;
+  storeId: string;
+  planId: string;
+  amountNpr: number;
+  periodStart: string;
+  periodEnd: string;
+  dueAt: string;
+  status: 'pending' | 'paid' | 'void' | 'overdue' | 'lapsed';
+  paidAt: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Billing history for a store, newest period first. */
+export function getStoreInvoices(storeId: string) {
+  return apiFetch<SubscriptionInvoiceView[]>(`/stores/${encodeURIComponent(storeId)}/invoices`);
+}
+
+/** Generate the next invoice for a store (super-admin action). */
+export function createInvoice(storeId: string, data: {
+  planId: string; periodStart: string; periodEnd: string; dueAt?: string; amountNpr?: number;
+}) {
+  return apiFetch<SubscriptionInvoiceView>(`/stores/${encodeURIComponent(storeId)}/invoices`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/** Mark an invoice paid (also moves the store onto that plan) or void. */
+export function patchInvoice(id: number, data: { status: 'paid' | 'void'; note?: string }) {
+  return apiFetch<SubscriptionInvoiceView>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }

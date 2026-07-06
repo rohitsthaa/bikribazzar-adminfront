@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, type StoreDeletionImpact } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, createInvoice, patchInvoice, type StoreDeletionImpact } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -217,5 +217,59 @@ export async function permanentlyDeleteStoreAction(storeId: string): Promise<{ o
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to permanently delete store' };
+  }
+}
+
+// ── Billing (see docs/SUBSCRIPTIONS_PLAN.md) ────────────────────────────────
+
+/**
+ * Direct super-admin override of a store's plan/subscription status — bypasses the
+ * normal invoice-paid flow (PlanEndpoints.cs `PATCH /invoices/:id`). Useful for
+ * comping a store, fixing a stuck status, or backfilling a plan without generating
+ * a paper trail invoice. Does not touch nextBillingAt/trialEndsAt.
+ */
+export async function overrideStorePlanAction(
+  storeId: string,
+  plan: string,
+  subscriptionStatus: string
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await updateStore(storeId, { plan, subscriptionStatus });
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to override plan' };
+  }
+}
+
+/** Generate the next billing invoice for a store (manual billing — no autopay). */
+export async function createInvoiceAction(
+  storeId: string,
+  data: { planId: string; periodStart: string; periodEnd: string; dueAt?: string; amountNpr?: number }
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await createInvoice(storeId, data);
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to create invoice' };
+  }
+}
+
+/** Mark an invoice paid (moves the store onto that plan) or void. */
+export async function patchInvoiceAction(
+  storeId: string,
+  invoiceId: number,
+  data: { status: 'paid' | 'void'; note?: string }
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await patchInvoice(invoiceId, data);
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to update invoice' };
   }
 }

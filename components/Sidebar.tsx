@@ -68,6 +68,13 @@ const Icons = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   ),
+  Plans:        () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/>
+      <line x1="2" y1="10" x2="22" y2="10"/>
+      <line x1="6" y1="15" x2="10" y2="15"/>
+    </svg>
+  ),
   Blog:         () => I('M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'),
   Portfolio:    () => I('M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'),
   Services:     () => I('M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2'),
@@ -290,6 +297,7 @@ export default function Sidebar({
                  !pathname.startsWith('/platform/stores') &&
                  !pathname.startsWith('/platform/templates') &&
                  !pathname.startsWith('/platform/users') &&
+                 !pathname.startsWith('/platform/plans') &&
                  pathname !== '/platform')
               }
             />
@@ -298,6 +306,12 @@ export default function Sidebar({
               label="Templates"
               Icon={Icons.Design}
               active={pathname === '/platform/templates' || pathname.startsWith('/platform/templates/')}
+            />
+            <PlatformNavItem
+              href="/platform/plans"
+              label="Plans"
+              Icon={Icons.Plans}
+              active={pathname === '/platform/plans' || pathname.startsWith('/platform/plans/')}
             />
             <PlatformNavItem
               href="/platform/users"

@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { getStore, getStorePaymentConfig, getStoreAdmins, getAllTemplates } from '@/lib/api';
+import { getStore, getStorePaymentConfig, getStoreAdmins, getAllTemplates, getAllPlans, getStoreInvoices } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import { updateStoreAction, updatePaymentConfigAction } from '../actions';
 import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import TemplateThemeClient from './TemplateThemeClient';
 import TemplateAccessClient from './TemplateAccessClient';
+import BillingClient from './BillingClient';
 import DeleteStoreSection from './DeleteStoreSection';
 import SubmitButton from '@/components/SubmitButton';
 
@@ -185,10 +186,12 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
   try { store = await getStore(params.id); } catch { notFound(); }
   if (!store) notFound();
 
-  const [pay, admins, allTemplates] = await Promise.all([
+  const [pay, admins, allTemplates, allPlans, invoices] = await Promise.all([
     getStorePaymentConfig(params.id).catch(() => null),
     getStoreAdmins(params.id).catch(() => []),
     getAllTemplates().catch(() => []),
+    getAllPlans().catch(() => []),
+    getStoreInvoices(params.id).catch(() => []),
   ]);
 
   const theme = (store.theme ?? {}) as ThemeShape;
@@ -430,10 +433,26 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
         />
       </SectionCard>
 
-      {/* ── Section 5: Team ── */}
+      {/* ── Section 5: Billing ── */}
+      <SectionCard
+        title="Billing"
+        description="Plan, subscription status, and manual invoice history. See docs/SUBSCRIPTIONS_PLAN.md."
+      >
+        <BillingClient
+          storeId={store.id}
+          plan={store.plan}
+          subscriptionStatus={store.subscriptionStatus}
+          trialEndsAt={store.trialEndsAt}
+          nextBillingAt={store.nextBillingAt}
+          plans={allPlans}
+          invoices={invoices}
+        />
+      </SectionCard>
+
+      {/* ── Section 6: Team ── */}
       <StoreAdmins storeId={store.id} storeName={store.name} admins={admins} />
 
-      {/* ── Section 6: Delete / restore ── */}
+      {/* ── Section 7: Delete / restore ── */}
       <DeleteStoreSection
         storeId={store.id}
         storeName={store.name}
