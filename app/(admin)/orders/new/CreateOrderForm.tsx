@@ -31,6 +31,13 @@ export default function CreateOrderForm({ products, currency }: Props) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  // Only distinction the backend's delivery-fee calc actually needs (see
+  // PricingService.ComputeDeliveryFeeNpr / OrderEndpoints.BuildAndSaveManualOrderAsync) —
+  // "Outside Valley" is the exact sentinel it checks for nationwide pricing; anything
+  // else is treated as in-valley. Previously this form had no way to indicate this at
+  // all, so admin-created orders always defaulted to a 0 delivery fee that had to be
+  // fixed up by hand afterwards.
+  const [deliveryArea, setDeliveryArea] = useState<'Kathmandu Valley' | 'Outside Valley'>('Kathmandu Valley');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<LineItem[]>([{ productId: '', quantity: 1, priceNpr: 0 }]);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +80,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         address: address.trim() || undefined,
+        deliveryArea,
         notes: notes.trim() || undefined,
         source,
         items: validItems.map((i) => ({
@@ -153,16 +161,32 @@ export default function CreateOrderForm({ products, currency }: Props) {
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-stone-500 mb-1">Delivery address</label>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="e.g. Budanilkantha, Kathmandu"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
-          />
+        <div className="grid sm:grid-cols-[1fr_auto] gap-4">
+          <div>
+            <label className="block text-xs font-medium text-stone-500 mb-1">Delivery address</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="e.g. Budanilkantha, Kathmandu"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-stone-500 mb-1">Delivery area</label>
+            <select
+              value={deliveryArea}
+              onChange={(e) => setDeliveryArea(e.target.value as 'Kathmandu Valley' | 'Outside Valley')}
+              className="px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-transparent"
+            >
+              <option value="Kathmandu Valley">Kathmandu Valley</option>
+              <option value="Outside Valley">Outside Valley</option>
+            </select>
+          </div>
         </div>
+        <p className="text-[11px] text-stone-400 -mt-2">
+          Determines the delivery fee — set once here instead of fixing it up after the order is created.
+        </p>
 
         <div>
           <label className="block text-xs font-medium text-stone-500 mb-1">Notes</label>
