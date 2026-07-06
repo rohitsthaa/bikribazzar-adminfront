@@ -16,15 +16,32 @@ export async function createTeamMemberAction(
   email: string,
   password: string,
   role: 'store' | 'staff',
+  /** Tab keys (lib/tabs.ts) to restrict this account to. Omit/undefined = unrestricted. Only meaningful for 'staff'. */
+  allowedTabs?: string[],
 ): Promise<{ ok: true } | { error: string }> {
   try {
     await assertCanManageTeam();
     const storeId = await currentStoreId();
-    await createStoreAdmin({ email: email.trim().toLowerCase(), password, storeId, role });
+    await createStoreAdmin({ email: email.trim().toLowerCase(), password, storeId, role, allowedTabs });
     revalidatePath('/settings/team');
     return { ok: true };
   } catch (e) {
     return { error: friendlyApiError(e, 'Failed to create team member.') };
+  }
+}
+
+export async function updateTeamMemberTabsAction(
+  memberId: number,
+  /** null = clear the restriction (unrestricted). */
+  allowedTabs: string[] | null,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertCanManageTeam();
+    await patchAdminUser(memberId, { allowedTabs });
+    revalidatePath('/settings/team');
+    return { ok: true };
+  } catch (e) {
+    return { error: friendlyApiError(e, 'Failed to update tab access.') };
   }
 }
 

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { cache } from 'react';
+import { parseAllowedTabs } from './tabs';
 
 // `st_admin_token`: a JWT from the API admin_users login (role + storeId).
 // The legacy shared-`ADMIN_PASSWORD` cookie (`st_admin`) was removed 2026-07-06
@@ -20,6 +21,9 @@ export type AdminIdentity = {
   email: string;
   role: AdminRole;
   storeId: string | null;
+  // Tab keys (see lib/tabs.ts) this admin is restricted to, or null if unrestricted (every
+  // tab their role permits — the default, and the only state for non-staff roles in practice).
+  allowedTabs: string[] | null;
 };
 
 // Capability map. Staff is a store-scoped role that can run the shop day-to-day
@@ -59,7 +63,13 @@ export const getAdmin = cache(async (): Promise<AdminIdentity | null> => {
       });
       if (res.ok) {
         const a = await res.json();
-        return { id: a.id, email: a.email, role: a.role, storeId: a.storeId };
+        return {
+          id: a.id,
+          email: a.email,
+          role: a.role,
+          storeId: a.storeId,
+          allowedTabs: parseAllowedTabs(a.allowedTabs),
+        };
       }
     } catch {
       // API unreachable or token invalid — fall through to unauthenticated.

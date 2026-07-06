@@ -2,12 +2,16 @@
 
 import { useState, useTransition } from 'react';
 import type { AdminUserView } from '@/lib/api';
+import { STAFF_TOGGLE_TABS, parseAllowedTabs } from '@/lib/tabs';
 import {
   createTeamMemberAction,
   deleteTeamMemberAction,
   resetTeamMemberPasswordAction,
   updateTeamMemberRoleAction,
+  updateTeamMemberTabsAction,
 } from './actions';
+
+const ALL_TAB_KEYS = STAFF_TOGGLE_TABS.map((t) => t.key);
 
 const ROLE_LABELS: Record<string, string> = {
   store: 'Store admin',
@@ -136,6 +140,112 @@ function ResetPasswordControl({
   );
 }
 
+// ── Tab access checkbox grid ─────────────────────────────────────────────────
+// Shared by the "Add team member" form and the per-member edit control below.
+// Selection is tracked as "which tabs are checked" — all-checked means
+// unrestricted (sent as undefined/null, not an explicit full list), so a newly
+// added tab in lib/tabs.ts is visible by default rather than silently hidden
+// for staff accounts created before it existed.
+
+function TabCheckboxGrid({
+  selected,
+  onChange,
+  disabled,
+}: {
+  selected: Set<string>;
+  onChange: (next: Set<string>) => void;
+  disabled?: boolean;
+}) {
+  const allSelected = selected.size === ALL_TAB_KEYS.length;
+
+  function toggleAll() {
+    onChange(allSelected ? new Set() : new Set(ALL_TAB_KEYS));
+  }
+
+  function toggleOne(key: string) {
+    const next = new Set(selected);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    onChange(next);
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-xs font-medium text-stone-600">
+        <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={disabled} />
+        All tabs
+      </label>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 pl-0.5">
+        {STAFF_TOGGLE_TABS.map(({ key, label }) => (
+          <label key={key} className="flex items-center gap-2 text-xs text-stone-600">
+            <input
+              type="checkbox"
+              checked={selected.has(key)}
+              onChange={() => toggleOne(key)}
+              disabled={disabled}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Per-member tab-access edit control ───────────────────────────────────────
+
+function TabAccessControl({
+  currentAllowedTabs,
+  onSave,
+  disabled,
+}: {
+  currentAllowedTabs: string | null;
+  onSave: (tabs: string[] | null) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(parseAllowedTabs(currentAllowedTabs) ?? ALL_TAB_KEYS),
+  );
+
+  if (!open) {
+    const parsed = parseAllowedTabs(currentAllowedTabs);
+    const summary = parsed ? `${parsed.length} of ${ALL_TAB_KEYS.length} tabs` : 'All tabs';
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="text-xs text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-50 px-2 py-1 rounded-lg hover:bg-stone-100 text-left"
+      >
+        {summary}
+      </button>
+    );
+  }
+
+  return (
+    <div className="w-full rounded-xl border border-stone-200 bg-stone-50 p-3 space-y-3">
+      <TabCheckboxGrid selected={selected} onChange={setSelected} disabled={disabled} />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            onSave(selected.size === ALL_TAB_KEYS.length ? null : Array.from(selected));
+            setOpen(false);
+          }}
+          disabled={disabled}
+          className="text-xs font-medium text-white bg-stone-900 hover:bg-stone-700 px-3 py-1 rounded-lg disabled:opacity-50"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TeamClient({
   members,
   meId,
@@ -146,6 +256,7 @@ export default function TeamClient({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'store' | 'staff'>('staff');
+  const [newMemberTabs, setNewMemberTabs] = useState<Set<string>>(new Set(ALL_TAB_KEYS));
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
 
@@ -156,9 +267,22 @@ export default function TeamClient({
       return;
     }
     start(async () => {
-      const res = await createTeamMemberAction(email, password, role);
+      // All tabs selected == unrestricted, so send undefined rather than the full explicit
+      // list (keeps new tabs added later visible by default for this account).
+      const allowedTabs = role === 'staff' && newMemberTabs.size < ALL_TAB_KEYS.length
+        ? Array.from(newMemberTabs)
+        : undefined;
+      const res = await createTeamMemberAction(email, password, role, allowedTabs);
       if ('error' in res) setError(res.error);
-      else { setEmail(''); setPassword(''); setRole('staff'); }
+      else { setEmail(''); setPassword(''); setRole('staff'); setNewMemberTabs(new Set(ALL_TAB_KEYS)); }
+    });
+  }
+
+  function handleUpdateTabs(id: number, tabs: string[] | null) {
+    setError('');
+    start(async () => {
+      const res = await updateTeamMemberTabsAction(id, tabs);
+      if ('error' in res) setError(res.error);
     });
   }
 
@@ -193,7 +317,8 @@ export default function TeamClient({
       {/* Info banner */}
       <div className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-3 text-sm text-stone-600">
         <strong>Store admin</strong> — full access including settings and pricing.{' '}
-        <strong>Staff</strong> — can handle orders, inventory, and products but not store settings.
+        <strong>Staff</strong> — can handle orders, inventory, and products but not store settings,
+        and can be limited to only the tabs they need.
         <br />
         New accounts receive a verification email before they can log in.
       </div>
@@ -209,59 +334,73 @@ export default function TeamClient({
             {displayOrder.map((m) => {
               const isMe = m.id === meId;
               return (
-                <li key={m.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <Avatar email={m.email} role={m.role} />
+                <li key={m.id} className="flex flex-col gap-2 px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <Avatar email={m.email} role={m.role} />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-stone-800 truncate">{m.email}</span>
-                      {isMe && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                          You
-                        </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-stone-800 truncate">{m.email}</span>
+                        {isMe && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                            You
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Email verification warning */}
+                      {!m.emailVerified && (
+                        <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                          Awaiting email verification
+                        </p>
                       )}
                     </div>
 
-                    {/* Email verification warning */}
-                    {!m.emailVerified && (
-                      <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                        Awaiting email verification
-                      </p>
+                    {/* Role control */}
+                    {m.role === 'super' ? (
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 flex-shrink-0">
+                        Super admin
+                      </span>
+                    ) : isMe ? (
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">
+                        {ROLE_LABELS[m.role]}
+                      </span>
+                    ) : (
+                      <select
+                        defaultValue={m.role}
+                        disabled={pending}
+                        onChange={(e) => handleRoleChange(m.id, e.target.value as 'store' | 'staff')}
+                        className="text-[11px] font-medium rounded-full border border-stone-200 bg-white text-stone-700 px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 disabled:opacity-50 cursor-pointer flex-shrink-0"
+                      >
+                        <option value="store">Store admin</option>
+                        <option value="staff">Staff</option>
+                      </select>
+                    )}
+
+                    {/* Reset password + Remove (not self, not super) */}
+                    {!isMe && m.role !== 'super' && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <ResetPasswordControl
+                          onSave={(pw) => handleResetPassword(m.id, pw)}
+                          disabled={pending}
+                        />
+                        <DeleteButton onConfirm={() => handleDelete(m.id)} disabled={pending} />
+                      </div>
                     )}
                   </div>
 
-                  {/* Role control */}
-                  {m.role === 'super' ? (
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 flex-shrink-0">
-                      Super admin
-                    </span>
-                  ) : isMe ? (
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">
-                      {ROLE_LABELS[m.role]}
-                    </span>
-                  ) : (
-                    <select
-                      defaultValue={m.role}
-                      disabled={pending}
-                      onChange={(e) => handleRoleChange(m.id, e.target.value as 'store' | 'staff')}
-                      className="text-[11px] font-medium rounded-full border border-stone-200 bg-white text-stone-700 px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 disabled:opacity-50 cursor-pointer flex-shrink-0"
-                    >
-                      <option value="store">Store admin</option>
-                      <option value="staff">Staff</option>
-                    </select>
-                  )}
-
-                  {/* Reset password + Remove (not self, not super) */}
-                  {!isMe && m.role !== 'super' && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <ResetPasswordControl
-                        onSave={(pw) => handleResetPassword(m.id, pw)}
+                  {/* Tab access (staff only — store admins/super always see everything) */}
+                  {m.role === 'staff' && (
+                    <div className="flex items-center gap-2 pl-11">
+                      <span className="text-[11px] text-stone-400 flex-shrink-0">Tabs:</span>
+                      <TabAccessControl
+                        currentAllowedTabs={m.allowedTabs}
+                        onSave={(tabs) => handleUpdateTabs(m.id, tabs)}
                         disabled={pending}
                       />
-                      <DeleteButton onConfirm={() => handleDelete(m.id)} disabled={pending} />
                     </div>
                   )}
                 </li>
@@ -299,6 +438,13 @@ export default function TeamClient({
             <option value="store">Store admin</option>
           </select>
         </div>
+
+        {role === 'staff' && (
+          <div className="rounded-xl border border-stone-200 p-3">
+            <p className="text-xs font-medium text-stone-600 mb-2">Tabs this staff member can access</p>
+            <TabCheckboxGrid selected={newMemberTabs} onChange={setNewMemberTabs} disabled={pending} />
+          </div>
+        )}
 
         <button
           type="button"

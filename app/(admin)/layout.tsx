@@ -36,11 +36,30 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // The Sidebar determines its own mode from usePathname() — no prop needed.
   const isPlatformRoute = isSuper && pathname.startsWith('/platform');
 
+  // Server-side enforcement of the per-admin tab restriction (see lib/tabs.ts) — hiding a
+  // nav item in the Sidebar is a UX nicety, not a security boundary, so a staff account
+  // whose Team-page config hides e.g. Products still can't reach /products/* by typing the
+  // URL directly. 'dashboard'/'settings'/'billing' are exempt: Dashboard is always the
+  // landing page, and Settings/Team/Billing are already hard-gated by role via canSettings
+  // (this check only ever *restricts further*, never grants beyond the role ceiling).
+  const firstSegment = pathname.split('/').filter(Boolean)[0] ?? '';
+  const tabExempt = new Set(['dashboard', 'settings', 'billing']);
+  if (
+    !isPlatformRoute &&
+    admin.allowedTabs &&
+    firstSegment &&
+    !tabExempt.has(firstSegment) &&
+    !admin.allowedTabs.includes(firstSegment)
+  ) {
+    redirect('/dashboard');
+  }
+
   return (
     <div className="flex min-h-screen bg-stone-50">
       <Sidebar
         isSuper={isSuper}
         canSettings={can(admin.role, 'settings')}
+        allowedTabs={admin.allowedTabs}
         storeName={storeName}
         storeUrl={storeUrl}
         adminEmail={admin.email}

@@ -407,6 +407,8 @@ export type AdminUserView = {
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt: string | null;
+  // Comma-separated tab keys (see lib/tabs.ts), or null if unrestricted.
+  allowedTabs: string | null;
 };
 
 /** All admin users across the platform (super-admin only). */
@@ -416,16 +418,39 @@ export function getAllAdminUsers() {
 export function getStoreAdmins(storeId: string) {
   return apiFetch<AdminUserView[]>(`/admin-auth/users?storeId=${encodeURIComponent(storeId)}`);
 }
-export function createStoreAdmin(data: { email: string; password: string; storeId: string; role?: 'store' | 'staff' }) {
+export function createStoreAdmin(data: {
+  email: string;
+  password: string;
+  storeId: string;
+  role?: 'store' | 'staff';
+  /** Tab keys to restrict this account to. Omit/undefined = unrestricted. */
+  allowedTabs?: string[];
+}) {
+  const { allowedTabs, ...rest } = data;
   return apiFetch<AdminUserView>('/admin-auth/users', {
     method: 'POST',
-    body: JSON.stringify({ ...data, role: data.role ?? 'store' }),
+    body: JSON.stringify({
+      ...rest,
+      role: data.role ?? 'store',
+      ...(allowedTabs !== undefined ? { allowedTabs: allowedTabs.join(',') } : {}),
+    }),
   });
 }
-export function patchAdminUser(id: number, data: { email?: string; role?: string; storeId?: string | null; newPassword?: string }) {
+export function patchAdminUser(id: number, data: {
+  email?: string;
+  role?: string;
+  storeId?: string | null;
+  newPassword?: string;
+  /** Tab keys to restrict this account to; empty array or null clears the restriction. Omit to leave unchanged. */
+  allowedTabs?: string[] | null;
+}) {
+  const { allowedTabs, ...rest } = data;
   return apiFetch<AdminUserView>(`/admin-auth/users/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...rest,
+      ...(allowedTabs !== undefined ? { allowedTabs: allowedTabs && allowedTabs.length > 0 ? allowedTabs.join(',') : '' } : {}),
+    }),
   });
 }
 export function resetAdminUserPassword(id: number, newPassword: string) {

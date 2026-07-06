@@ -209,12 +209,16 @@ function UserChip({ email, dark }: { email: string; dark?: boolean }) {
 export default function Sidebar({
   isSuper = false,
   canSettings = true,
+  allowedTabs = null,
   storeName,
   storeUrl,
   adminEmail,
 }: {
   isSuper?: boolean;
   canSettings?: boolean;
+  // Per-admin tab restriction (see lib/tabs.ts) set by a store/super admin when adding a
+  // staff member. null = unrestricted (every tab canSettings/role already permits).
+  allowedTabs?: string[] | null;
   storeName?: string;
   storeUrl?: string | null;
   adminEmail?: string;
@@ -411,6 +415,18 @@ export default function Sidebar({
               {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
               {group.map((item) => {
                 if ((item.href === '/settings' || item.href === '/settings/team' || item.href === '/billing') && !canSettings) return null;
+                // Per-admin tab restriction, set when this staff account was added/edited on
+                // the Team page. Dashboard and the three settings-gated items above are never
+                // subject to it — Dashboard is always the landing page, and Settings/Team/
+                // Billing are already hard-gated by role via canSettings just above.
+                if (
+                  allowedTabs &&
+                  item.href !== '/dashboard' &&
+                  item.href !== '/settings' &&
+                  item.href !== '/settings/team' &&
+                  item.href !== '/billing' &&
+                  !allowedTabs.includes(item.href.slice(1))
+                ) return null;
                 // For /settings, don't match /settings/team as active (it has its own nav item)
                 const active = item.href === '/settings'
                   ? pathname === '/settings'
