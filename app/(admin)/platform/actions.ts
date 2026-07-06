@@ -258,6 +258,27 @@ export async function createInvoiceAction(
   }
 }
 
+/**
+ * Grant or extend a free trial — sets SubscriptionStatus="trialing" + TrialEndsAt together.
+ * Reuses all the existing "trialing bypasses plan gates" enforcement (ProductEndpoints/
+ * StoreEndpoints) that a normal 14-day signup trial already gets — no separate "Growth trial"
+ * concept needed, since a trialing store already gets full feature access regardless of its
+ * Plan field. See docs/SUBSCRIPTIONS_PLAN.md.
+ */
+export async function startTrialAction(
+  storeId: string,
+  trialEndsAt: string
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await updateStore(storeId, { subscriptionStatus: 'trialing', trialEndsAt });
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to start trial' };
+  }
+}
+
 /** Mark an invoice paid (moves the store onto that plan) or void. */
 export async function patchInvoiceAction(
   storeId: string,

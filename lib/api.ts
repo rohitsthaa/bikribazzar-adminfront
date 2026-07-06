@@ -340,7 +340,7 @@ export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${
 export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string; isDemo?: boolean }) {
   return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean; plan: string; subscriptionStatus: string }>) {
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean; plan: string; subscriptionStatus: string; trialEndsAt: string }>) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function getStorePaymentConfig(id: string) {

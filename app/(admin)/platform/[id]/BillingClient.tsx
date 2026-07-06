@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import type { PlanConfigView, SubscriptionInvoiceView } from '@/lib/api';
-import { overrideStorePlanAction, createInvoiceAction, patchInvoiceAction } from '../actions';
+import { overrideStorePlanAction, createInvoiceAction, patchInvoiceAction, startTrialAction } from '../actions';
 
 const inputCls = 'w-full rounded-lg border border-stone-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/60';
 const labelCls = 'text-xs font-medium text-stone-600 mb-1 block';
@@ -64,7 +64,19 @@ function PlanOverview({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState({ plan, subscriptionStatus });
+  const [trialEnd, setTrialEnd] = useState(trialEndsAt);
   const [, startTransition] = useTransition();
+
+  // ── Start/extend trial (separate from the generic override below — this is the
+  // common "let this customer try Growth free" action, not a stuck-status fix) ──
+  const [trialPanelOpen, setTrialPanelOpen] = useState(false);
+  const [trialDate, setTrialDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toISOString().slice(0, 10);
+  });
+  const [trialSaving, setTrialSaving] = useState(false);
+  const [trialError, setTrialError] = useState<string | null>(null);
 
   const planMeta = plans.find((p) => p.id === current.plan);
 
@@ -83,6 +95,24 @@ function PlanOverview({
     });
   }
 
+  function saveTrial() {
+    setTrialSaving(true);
+    setTrialError(null);
+    const iso = new Date(trialDate).toISOString();
+    startTransition(async () => {
+      const result = await startTrialAction(storeId, iso);
+      if ('error' in result) {
+        setTrialError(result.error);
+      } else {
+        setCurrent((c) => ({ ...c, subscriptionStatus: 'trialing' }));
+        setStatus('trialing');
+        setTrialEnd(iso);
+        setTrialPanelOpen(false);
+      }
+      setTrialSaving(false);
+    });
+  }
+
   return (
     <div className="rounded-xl border border-stone-100 p-5">
       <div className="flex items-start justify-between gap-4">
@@ -97,17 +127,62 @@ function PlanOverview({
             </p>
           )}
           <div className="flex gap-5 mt-2.5 text-xs text-stone-500">
-            {trialEndsAt && <span>Trial ends {fmtDate(trialEndsAt)}</span>}
+            {trialEnd && <span>Trial ends {fmtDate(trialEnd)}</span>}
             <span>Next billing {fmtDate(nextBillingAt)}</span>
           </div>
         </div>
-        <button
-          onClick={() => setEditing((e) => !e)}
-          className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors flex-shrink-0"
-        >
-          {editing ? 'Close' : 'Override'}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setTrialPanelOpen((e) => !e)}
+            className="text-[11px] font-medium px-3 py-1 rounded-full bg-sky-50 text-sky-700 hover:bg-sky-100 transition-colors"
+          >
+            {trialPanelOpen ? 'Close' : 'Start/extend trial'}
+          </button>
+          <button
+            onClick={() => setEditing((e) => !e)}
+            className="text-[11px] font-medium px-3 py-1 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors"
+          >
+            {editing ? 'Close' : 'Override'}
+          </button>
+        </div>
       </div>
+
+      {trialPanelOpen && (
+        <div className="mt-4 pt-4 border-t border-stone-100 space-y-3">
+          <p className="text-[11px] text-stone-400">
+            Lets this store try any plan's features free until the date below — a trialing
+            store bypasses premium-template/product-cap/online-payment gates regardless of its
+            actual Plan, same as a brand-new signup's 14-day trial. Existing plan/status aren't
+            otherwise touched.
+          </p>
+          <div className="max-w-[200px]">
+            <label className={labelCls}>Trial ends</label>
+            <input
+              type="date"
+              className={inputCls}
+              value={trialDate}
+              onChange={(e) => setTrialDate(e.target.value)}
+            />
+          </div>
+          {trialError && <p className="text-[11px] text-red-600">{trialError}</p>}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveTrial}
+              disabled={trialSaving}
+              className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-sky-600 text-white hover:bg-sky-700 transition-colors disabled:opacity-50"
+            >
+              {trialSaving ? 'Saving…' : 'Start/extend trial'}
+            </button>
+            <button
+              onClick={() => setTrialPanelOpen(false)}
+              disabled={trialSaving}
+              className="text-[11px] font-medium px-3 py-1.5 rounded-full text-stone-500 hover:bg-stone-100 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div className="mt-4 pt-4 border-t border-stone-100 space-y-3">
@@ -163,10 +238,16 @@ function GenerateInvoiceForm({
   storeId,
   plans,
   defaultPlanId,
+  pendingInvoice,
 }: {
   storeId: string;
   plans: PlanConfigView[];
   defaultPlanId: string;
+  /** An already-pending/overdue invoice, if one exists — shown as a heads-up so an admin
+   *  doesn't accidentally leave two pending invoices for the same store. This form doesn't
+   *  block generating a second one (e.g. deliberately replacing a wrong one) — void the old
+   *  one from the history list below first if that's the intent. */
+  pendingInvoice: SubscriptionInvoiceView | null;
 }) {
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -202,6 +283,13 @@ function GenerateInvoiceForm({
   return (
     <div className="rounded-xl border border-stone-100 p-5 space-y-3">
       <p className="text-xs font-medium text-stone-600">Generate next invoice</p>
+      {pendingInvoice && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          This store already has a {pendingInvoice.status} invoice for <strong>{pendingInvoice.planId}</strong> ·
+          {' '}Rs {pendingInvoice.amountNpr.toLocaleString()}. Generating another leaves both outstanding —
+          void the old one below first if this is meant to replace it (e.g. applying a discount).
+        </p>
+      )}
       <div className="grid sm:grid-cols-3 gap-3">
         <div>
           <label className={labelCls}>Plan</label>
@@ -221,7 +309,7 @@ function GenerateInvoiceForm({
         </div>
       </div>
       <div className="sm:w-1/3">
-        <label className={labelCls}>Amount override <span className="text-stone-400 font-normal">(optional)</span></label>
+        <label className={labelCls}>Amount override <span className="text-stone-400 font-normal">(optional — use for a discount)</span></label>
         <input
           type="number"
           className={inputCls}
@@ -229,6 +317,11 @@ function GenerateInvoiceForm({
           onChange={(e) => setAmountNpr(e.target.value)}
           placeholder="Defaults to plan price"
         />
+        <p className="text-[10px] text-stone-400 mt-1">
+          E.g. enter a lower amount to give this specific invoice a one-off discount. If the
+          store owner later requests this same upgrade themselves from their own Billing page,
+          they&apos;ll be shown and can pay THIS discounted invoice rather than a new full-price one.
+        </p>
       </div>
       {error && <p className="text-[11px] text-red-600">{error}</p>}
       <button
@@ -324,6 +417,7 @@ export default function BillingClient({
         storeId={storeId}
         plans={plans}
         defaultPlanId={plan}
+        pendingInvoice={invoices.find((i) => i.status === 'pending' || i.status === 'overdue') ?? null}
       />
 
       <div>
