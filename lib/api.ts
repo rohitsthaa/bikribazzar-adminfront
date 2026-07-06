@@ -309,6 +309,10 @@ export type StoreSummary = {
   deletedAt: string | null;
   previousId: string | null;  // slug this store had before it was deleted (rename cascade)
   isDemo: boolean;            // excluded from platform-wide analytics totals when true
+  // Super-admin-only kill switch (Platform → store page → "Customer accounts"). When
+  // false, the storefront hides sign-in/register and the API hard-blocks
+  // POST /auth/register + /auth/login with a 403. Defaults to true.
+  customerAuthEnabled: boolean;
   // Present on the raw API response (full Store row) but usually not needed by
   // callers — declared here so lib/store-context.ts can type-check reading it
   // to fingerprint the st_store cookie (detects slug reuse after a delete).
@@ -340,7 +344,7 @@ export function getStore(id: string) { return apiFetch<StoreSummary>(`/stores/${
 export function createStore(data: { id: string; name: string; templateId?: string; theme?: Record<string, unknown>; customDomain?: string | null; siteType?: string; isDemo?: boolean }) {
   return apiFetch<StoreSummary>('/stores', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean; plan: string; subscriptionStatus: string; trialEndsAt: string }>) {
+export function updateStore(id: string, data: Partial<{ name: string; status: string; templateId: string; theme: Record<string, unknown>; customDomain: string | null; siteType: string; allowedTemplates: string[] | null; isDemo: boolean; customerAuthEnabled: boolean; plan: string; subscriptionStatus: string; trialEndsAt: string }>) {
   return apiFetch<StoreSummary>(`/stores/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function getStorePaymentConfig(id: string) {

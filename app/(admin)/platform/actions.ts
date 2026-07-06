@@ -43,6 +43,7 @@ export async function updateStoreAction(fd: FormData) {
       status: str(fd, 'status') || 'active',
       customDomain: str(fd, 'customDomain') || null,
       isDemo: fd.get('isDemo') === 'on',
+      customerAuthEnabled: fd.get('customerAuthEnabled') === 'on',
     });
   } catch (e: unknown) {
     // Re-throw Next.js internal errors (redirect / notFound)

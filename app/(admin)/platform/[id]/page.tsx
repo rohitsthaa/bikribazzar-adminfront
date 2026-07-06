@@ -308,6 +308,14 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                   defaultChecked={store.isDemo}
                 />
               </div>
+              <div className="sm:col-span-2">
+                <ToggleField
+                  name="customerAuthEnabled"
+                  label="Customer accounts"
+                  description="Lets shoppers create an account and sign in on the storefront. Turning this off hides sign-in/register and blocks it at the API — checkout stays guest-only either way. Doesn't log out anyone already signed in."
+                  defaultChecked={store.customerAuthEnabled}
+                />
+              </div>
             </div>
 
             {/* Theme/templateId are intentionally NOT part of this form — see
