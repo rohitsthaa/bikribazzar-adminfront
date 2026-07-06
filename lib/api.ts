@@ -541,6 +541,13 @@ export type Review = {
   body: string | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  // Verified-purchase gate (see bikribazzar-api's ReviewEndpoints.FindVerifiedOrderAsync) —
+  // every review submitted after that gate shipped has both; reviewerContact is the
+  // email/phone the reviewer entered to prove the order was theirs, shown here (admin-only,
+  // internal-token gated) so a moderator can spot-check before approving.
+  reviewerContact?: string | null;
+  orderId?: number | null;
+  isVerifiedPurchase?: boolean;
 };
 
 // ---- Templates ----

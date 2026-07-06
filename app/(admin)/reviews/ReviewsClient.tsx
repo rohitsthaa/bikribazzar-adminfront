@@ -113,11 +113,17 @@ export default function ReviewsClient({
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[r.status]}`}>
                       {r.status}
                     </span>
+                    {r.isVerifiedPurchase && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Verified purchase
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-stone-400 mb-2">
                     {productNames[r.productId] ?? r.productId} · {new Date(r.createdAt).toLocaleDateString('en-NP', {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}
+                    {r.reviewerContact && <> · verified via <span className="text-stone-500">{r.reviewerContact}</span></>}
                   </p>
                   {r.body && (
                     <p className="text-sm text-stone-600 leading-relaxed">{r.body}</p>
