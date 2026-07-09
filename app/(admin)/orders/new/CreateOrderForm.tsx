@@ -6,7 +6,6 @@ import type { Product, OrderSource } from '@/lib/api';
 import { createAdminOrderAction } from '../actions';
 
 const SOURCES: Array<{ value: OrderSource; label: string; icon: string; color: string }> = [
-  { value: 'whatsapp',  label: 'WhatsApp',  icon: '💬', color: 'bg-green-50 border-green-300 text-green-800 ring-green-400' },
   { value: 'tiktok',   label: 'TikTok',    icon: '🎵', color: 'bg-pink-50 border-pink-300 text-pink-800 ring-pink-400' },
   { value: 'instagram',label: 'Instagram', icon: '📸', color: 'bg-purple-50 border-purple-300 text-purple-800 ring-purple-400' },
   { value: 'phone',    label: 'Phone',     icon: '📞', color: 'bg-blue-50 border-blue-300 text-blue-800 ring-blue-400' },
@@ -26,7 +25,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [source, setSource] = useState<OrderSource>('whatsapp');
+  const [source, setSource] = useState<OrderSource>('instagram');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

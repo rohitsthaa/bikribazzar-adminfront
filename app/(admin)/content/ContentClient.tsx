@@ -26,12 +26,11 @@ interface Props {
   initialAboutImage: string;
   initialCustomTitle: string;
   initialCustomBody: string;
-  whatsapp: string;
 }
 
 export default function ContentClient({
   initialAboutTitle, initialAboutBody, initialAboutImage,
-  initialCustomTitle, initialCustomBody, whatsapp,
+  initialCustomTitle, initialCustomBody,
 }: Props) {
   // About
   const [aboutTitle, setAboutTitle] = useState(initialAboutTitle);
@@ -141,12 +140,10 @@ export default function ContentClient({
               rows={5}
             />
           </div>
-          {whatsapp && (
-            <p className="text-xs text-stone-400">
-              CTA button links to your WhatsApp ({whatsapp}). Change in{' '}
-              <a href="/settings" className="underline hover:text-stone-700">Settings → Contact</a>.
-            </p>
-          )}
+          <p className="text-xs text-stone-400">
+            Customers submit their custom request through a form on this page — requests land in{' '}
+            <a href="/orders" className="underline hover:text-stone-700">Orders</a> tagged “Custom”.
+          </p>
           <div className="flex items-center gap-3">
             <button type="submit" disabled={isPendingCustom} className={btnCls}>
               {isPendingCustom ? 'Saving…' : 'Save'}

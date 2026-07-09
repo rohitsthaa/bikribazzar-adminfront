@@ -28,7 +28,6 @@ export default async function ContentPage() {
         initialAboutImage={settings.about_image ?? ''}
         initialCustomTitle={settings.custom_title ?? ''}
         initialCustomBody={settings.custom_body ?? ''}
-        whatsapp={settings.contact_whatsapp ?? ''}
       />
     </main>
   );

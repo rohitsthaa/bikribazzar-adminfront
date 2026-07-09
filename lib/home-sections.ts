@@ -23,7 +23,7 @@ export const SECTION_REGISTRY: Record<string, Array<{ id: string; label: string;
     { id: 'story',        label: 'Our story',      description: 'Brand story and handcraft values' },
     { id: 'testimonials', label: 'Testimonials',   description: 'Customer reviews carousel' },
     { id: 'gallery',      label: 'Gallery strip',  description: 'Photo gallery row' },
-    { id: 'cta',          label: 'Call to action', description: 'WhatsApp / contact CTA' },
+    { id: 'cta',          label: 'Call to action', description: 'Contact CTA' },
   ],
   aurora: [
     { id: 'hero',         label: 'Hero',          description: 'Full-width header with headline' },
@@ -35,13 +35,13 @@ export const SECTION_REGISTRY: Record<string, Array<{ id: string; label: string;
     { id: 'hero',         label: 'Hero',          description: 'Brand header with botanical feel' },
     { id: 'collection',   label: 'Collection',    description: 'Featured products grid' },
     { id: 'testimonials', label: 'Testimonials',   description: 'Customer reviews' },
-    { id: 'cta',          label: 'Call to action', description: 'WhatsApp / contact CTA' },
+    { id: 'cta',          label: 'Call to action', description: 'Contact CTA' },
   ],
   coastal: [
     { id: 'hero',         label: 'Hero',          description: 'Bold ocean-blue hero section' },
     { id: 'collection',   label: 'Collection',    description: 'Featured products grid' },
     { id: 'testimonials', label: 'Testimonials',   description: 'Customer reviews' },
-    { id: 'cta',          label: 'Call to action', description: 'WhatsApp / contact CTA' },
+    { id: 'cta',          label: 'Call to action', description: 'Contact CTA' },
   ],
   neon: [
     { id: 'hero',         label: 'Hero',          description: 'Dark electric hero with glow effect' },

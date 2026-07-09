@@ -25,7 +25,7 @@ export default async function SettingsPage() {
         initialBankName={settings.payment_bank_name ?? ''}
         initialAccountName={settings.payment_account_name ?? ''}
         initialAccountNo={settings.payment_account_no ?? ''}
-        initialWhatsapp={settings.contact_whatsapp ?? ''}
+        initialPhone={settings.contact_phone ?? ''}
         initialInstagram={settings.contact_instagram ?? ''}
         initialContactEmail={settings.contact_email ?? ''}
         initialLocation={settings.contact_location ?? ''}

@@ -11,7 +11,7 @@ export type SignupPayload = {
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
-  whatsappNumber: string;
+  phone: string;
 };
 
 // Signup no longer returns a JWT — user must verify email first.

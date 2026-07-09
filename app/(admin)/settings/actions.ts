@@ -32,10 +32,10 @@ export async function saveBankDetails(bankName: string, accountName: string, acc
   revalidatePath('/settings');
 }
 
-export async function saveContactInfo(whatsapp: string, instagram: string, email: string, location: string) {
+export async function saveContactInfo(phone: string, instagram: string, email: string, location: string) {
   await assertCanSettings();
   await Promise.all([
-    updateSetting('contact_whatsapp', whatsapp),
+    updateSetting('contact_phone', phone),
     updateSetting('contact_instagram', instagram),
     updateSetting('contact_email', email),
     updateSetting('contact_location', location),

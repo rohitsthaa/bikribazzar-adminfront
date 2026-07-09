@@ -121,7 +121,7 @@ export default function SignupPage() {
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
+  const [phone, setPhone] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // ── Load the real template catalog (name, tagline, palette, preview photo) ──
@@ -203,7 +203,8 @@ export default function SignupPage() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) errs.ownerEmail = 'Enter a valid email.';
     if (!ownerPassword) errs.ownerPassword = 'Password is required.';
     else if (ownerPassword.length < 8) errs.ownerPassword = 'At least 8 characters.';
-    if (whatsapp && !/^[0-9]{7,15}$/.test(whatsapp)) errs.whatsapp = 'Digits only, 7–15 characters.';
+    if (!phone.trim()) errs.phone = 'Phone number is required.';
+    else if (!/^[0-9]{7,15}$/.test(phone.replace(/\D/g, ''))) errs.phone = 'Enter a valid phone number (7–15 digits).';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -220,7 +221,7 @@ export default function SignupPage() {
         ownerName: ownerName.trim(),
         ownerEmail: ownerEmail.trim().toLowerCase(),
         ownerPassword,
-        whatsappNumber: whatsapp.replace(/\D/g, ''),
+        phone: phone.trim(),
       });
       if (!result.ok) {
         setGlobalError(result.error);
@@ -398,12 +399,11 @@ export default function SignupPage() {
                 error={fieldErrors.ownerPassword} required
               />
               <Input
-                label="WhatsApp number" name="whatsapp" value={whatsapp}
-                onChange={setWhatsapp} placeholder="9841234567"
-                error={fieldErrors.whatsapp}
-                hint="Customers will order via this number. You can update it later."
+                label="Phone number" name="phone" type="tel" value={phone}
+                onChange={setPhone} placeholder="9841234567"
+                error={fieldErrors.phone} required
+                hint="Shown as your store's contact number. You can update it later."
               />
-
               {globalError && (
                 <div className="px-3.5 py-2.5 bg-red-50 border border-red-100 rounded-xl">
                   <p className="text-sm text-red-600">{globalError}</p>

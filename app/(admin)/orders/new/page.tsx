@@ -16,7 +16,7 @@ export default async function NewOrderPage() {
     <main className="p-6 md:p-8 max-w-3xl">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-stone-900">New Order</h1>
-        <p className="text-sm text-stone-400 mt-0.5">Record an order from WhatsApp, TikTok, phone, or walk-in</p>
+        <p className="text-sm text-stone-400 mt-0.5">Record an order from Instagram, TikTok, phone, or walk-in</p>
       </div>
       <CreateOrderForm products={available} currency={currency} />
     </main>

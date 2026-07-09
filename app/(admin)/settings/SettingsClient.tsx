@@ -85,7 +85,7 @@ export default function SettingsClient({
   initialBankName,
   initialAccountName,
   initialAccountNo,
-  initialWhatsapp,
+  initialPhone,
   initialInstagram,
   initialContactEmail,
   initialLocation,
@@ -104,7 +104,7 @@ export default function SettingsClient({
   initialBankName: string;
   initialAccountName: string;
   initialAccountNo: string;
-  initialWhatsapp: string;
+  initialPhone: string;
   initialInstagram: string;
   initialContactEmail: string;
   initialLocation: string;
@@ -136,7 +136,7 @@ export default function SettingsClient({
   const [bankPending, startBankTransition] = useTransition();
 
   // Contact info — no Soul-Thread placeholders; each store sets its own.
-  const [whatsapp, setWhatsapp] = useState(initialWhatsapp);
+  const [phone, setPhone] = useState(initialPhone);
   const [instagram, setInstagram] = useState(initialInstagram);
   const [contactEmail, setContactEmail] = useState(initialContactEmail);
   const [location, setLocation] = useState(initialLocation);
@@ -225,7 +225,7 @@ export default function SettingsClient({
 
   function handleContactSave() {
     startContactTransition(async () => {
-      await saveContactInfo(whatsapp, instagram, contactEmail, location);
+      await saveContactInfo(phone, instagram, contactEmail, location);
       setContactSaved(true);
       setTimeout(() => setContactSaved(false), 2000);
     });
@@ -262,18 +262,18 @@ export default function SettingsClient({
       {/* Contact Info */}
       <SettingCard
         title="Contact & social info"
-        description="WhatsApp number, Instagram URL, email and location shown across the site."
+        description="Phone number, Instagram URL, email and location shown across the site."
         onSave={handleContactSave}
         isPending={contactPending}
         saved={contactSaved}
       >
         <Field
-          label="WhatsApp number (with country code)"
-          value={whatsapp}
-          onChange={setWhatsapp}
-          placeholder="977XXXXXXXXXX"
+          label="Phone number"
+          value={phone}
+          onChange={setPhone}
+          placeholder="9841234567"
           mono
-          hint="Used in wa.me/ links. Include country code, no + or spaces."
+          hint="Your store's contact number."
         />
         <Field
           label="Instagram URL"

@@ -216,7 +216,8 @@ export function deleteGalleryImage(id: number) {
 
 // ---- Orders ----
 
-export type OrderSource = 'website' | 'tiktok' | 'instagram' | 'whatsapp' | 'phone' | 'walkin' | 'other';
+// 'custom' is a storefront custom-order form submission.
+export type OrderSource = 'website' | 'custom' | 'tiktok' | 'instagram' | 'phone' | 'walkin' | 'other';
 
 export type Order = {
   id: number;

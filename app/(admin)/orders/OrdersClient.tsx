@@ -6,9 +6,9 @@ import EmptyState from '@/components/EmptyState';
 
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
   website:   { label: 'Web',       icon: '🌐', color: 'bg-stone-100 text-stone-500' },
+  custom:    { label: 'Custom',    icon: '✨', color: 'bg-indigo-50 text-indigo-600' },
   tiktok:    { label: 'TikTok',    icon: '🎵', color: 'bg-pink-50 text-pink-600' },
   instagram: { label: 'Instagram', icon: '📸', color: 'bg-purple-50 text-purple-600' },
-  whatsapp:  { label: 'WhatsApp',  icon: '💬', color: 'bg-green-50 text-green-700' },
   phone:     { label: 'Phone',     icon: '📞', color: 'bg-blue-50 text-blue-600' },
   walkin:    { label: 'Walk-in',   icon: '🚶', color: 'bg-amber-50 text-amber-700' },
   other:     { label: 'Other',     icon: '📋', color: 'bg-stone-100 text-stone-500' },

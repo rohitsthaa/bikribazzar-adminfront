@@ -258,7 +258,7 @@ function PendingInvoicePanel({ invoice, planName }: { invoice: SubscriptionInvoi
           Upgrade to {planName} — Rs {invoice.amountNpr.toLocaleString()} due
         </p>
         <p className="text-xs text-amber-700 mt-0.5">
-          Pay now to activate immediately, or pay by bank transfer / WhatsApp and we&apos;ll confirm
+          Pay now to activate immediately, or pay by bank transfer and we&apos;ll confirm
           it within one business day.
         </p>
       </div>
@@ -268,7 +268,7 @@ function PendingInvoicePanel({ invoice, planName }: { invoice: SubscriptionInvoi
       </div>
       <PayWithFonepayButton invoice={invoice} />
       <p className="text-[11px] text-amber-700">
-        Prefer bank transfer or WhatsApp? Reach out with your store name and we&apos;ll confirm this
+        Prefer bank transfer? Reach out with your store name and we&apos;ll confirm this
         invoice once payment comes through — no need to wait here.
       </p>
     </div>
