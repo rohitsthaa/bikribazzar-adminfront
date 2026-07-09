@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import QRCode from 'qrcode';
 import type { PlanConfigView, SubscriptionInvoiceView } from '@/lib/api';
 import { requestUpgradeAction, switchToFreePlanAction } from './actions';
 
@@ -119,6 +121,133 @@ function PayWithKhaltiButton({ invoice }: { invoice: SubscriptionInvoiceView }) 
   );
 }
 
+// ── Fonepay: QR + poll (no redirect, unlike eSewa/Khalti) ────────────────────
+
+function PayWithFonepayButton({ invoice }: { invoice: SubscriptionInvoiceView }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  const [referenceLabel, setReferenceLabel] = useState('');
+  const [status, setStatus] = useState<'idle' | 'waiting' | 'paid' | 'failed'>('idle');
+
+  // Poll verify while the QR is on screen. Fonepay has no browser redirect — the only way this
+  // page learns the payment succeeded is by asking. Backend also reconciles abandoned QRs, so
+  // closing the modal never loses a real payment; it just stops this foreground poll.
+  useEffect(() => {
+    if (status !== 'waiting' || !referenceLabel) return;
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/billing/fonepay/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referenceLabel }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (data?.status === 'COMPLETE') {
+          setStatus('paid');
+          clearInterval(timer);
+          router.push('/billing?upgraded=1');
+        } else if (data?.status === 'FAILED') {
+          setStatus('failed');
+          setError(data?.message ?? 'The payment did not go through.');
+          clearInterval(timer);
+        }
+      } catch {
+        /* transient — keep polling */
+      }
+    }, 3000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [status, referenceLabel, router]);
+
+  async function start() {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/billing/fonepay/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: invoice.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.qrString) {
+        setError(data?.error ?? 'Could not start the payment.');
+        setLoading(false);
+        return;
+      }
+      const url = await QRCode.toDataURL(data.qrString, { width: 240, margin: 1 });
+      setQrDataUrl(url);
+      setReferenceLabel(data.referenceLabel);
+      setStatus('waiting');
+    } catch {
+      setError('Something went wrong. Please try again.');
+    }
+    setLoading(false);
+  }
+
+  function close() {
+    setStatus('idle');
+    setQrDataUrl('');
+    setReferenceLabel('');
+    setError('');
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        onClick={start}
+        disabled={loading}
+        className="w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60 transition-colors"
+        style={{ backgroundColor: '#D8232A' }}
+      >
+        {loading ? 'Generating QR…' : `Pay Rs ${invoice.amountNpr.toLocaleString()} with Fonepay`}
+      </button>
+      {error && status === 'idle' && <p className="text-[11px] text-red-600">{error}</p>}
+
+      {status !== 'idle' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6 text-center space-y-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {status === 'failed' ? (
+              <>
+                <p className="text-sm font-semibold text-stone-900">Payment not completed</p>
+                <p className="text-xs text-stone-500">{error}</p>
+                <button onClick={close} className="w-full rounded-lg bg-stone-900 text-white px-4 py-2 text-sm font-medium">
+                  Close
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-stone-900">Scan to pay Rs {invoice.amountNpr.toLocaleString()}</p>
+                {qrDataUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrDataUrl} alt="Fonepay QR code" width={240} height={240} className="mx-auto rounded-lg" />
+                )}
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  Open your mobile banking or Fonepay app, scan this QR, and approve the payment.
+                  This window updates automatically once it&apos;s confirmed.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-stone-400">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  Waiting for payment…
+                </div>
+                <button onClick={close} className="text-xs text-stone-400 underline">
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Pending-invoice panel (shown once an upgrade has been requested) ────────
 
 function PendingInvoicePanel({ invoice, planName }: { invoice: SubscriptionInvoiceView; planName: string }) {
@@ -137,6 +266,7 @@ function PendingInvoicePanel({ invoice, planName }: { invoice: SubscriptionInvoi
         <PayWithEsewaButton invoice={invoice} />
         <PayWithKhaltiButton invoice={invoice} />
       </div>
+      <PayWithFonepayButton invoice={invoice} />
       <p className="text-[11px] text-amber-700">
         Prefer bank transfer or WhatsApp? Reach out with your store name and we&apos;ll confirm this
         invoice once payment comes through — no need to wait here.
