@@ -470,9 +470,20 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                             defaultValue={product?.categoryId ?? categories[0]?.id}
                             className={`${textInput} bg-white`}
                           >
-                            {categories.map((c) => (
-                              <option key={c.id} value={c.id}>{c.label}</option>
-                            ))}
+                            {categories.filter((c) => c.parentId === null).map((parent) => {
+                              const children = categories.filter((c) => c.parentId === parent.id);
+                              if (children.length === 0) {
+                                return <option key={parent.id} value={parent.id}>{parent.label}</option>;
+                              }
+                              return (
+                                <optgroup key={parent.id} label={parent.label}>
+                                  <option value={parent.id}>{parent.label} (all)</option>
+                                  {children.map((child) => (
+                                    <option key={child.id} value={child.id}>{child.label}</option>
+                                  ))}
+                                </optgroup>
+                              );
+                            })}
                           </select>
                         ) : (
                           <div className={`${textInput} bg-gray-50 text-gray-500 flex items-center justify-between gap-2`}>

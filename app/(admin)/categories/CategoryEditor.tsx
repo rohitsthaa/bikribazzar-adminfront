@@ -7,6 +7,7 @@ const inputCls = 'w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-s
 
 interface Props {
   category?: Category;
+  allCategories: Category[];
   onSave: (category: Category) => void;
   onCancel: () => void;
 }
@@ -15,14 +16,20 @@ function slugify(s: string) {
   return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-export default function CategoryEditor({ category, onSave, onCancel }: Props) {
+export default function CategoryEditor({ category, allCategories, onSave, onCancel }: Props) {
   const isNew = !category;
   const [label, setLabel] = useState(category?.label ?? '');
   const [key, setKey] = useState(category?.key ?? '');
   const [keyTouched, setKeyTouched] = useState(!isNew);
   const [sortOrder, setSortOrder] = useState(category?.sortOrder ?? 0);
+  const [parentId, setParentId] = useState<number | null>(category?.parentId ?? null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, start] = useTransition();
+
+  // Only top-level categories can be a parent — the tree is capped at 2 levels.
+  // Exclude the category being edited itself (can't be its own parent).
+  const parentOptions = allCategories.filter((c) => c.parentId === null && c.id !== category?.id);
+  const hasChildren = !isNew && allCategories.some((c) => c.parentId === category!.id);
 
   function handleLabelChange(value: string) {
     setLabel(value);
@@ -32,7 +39,7 @@ export default function CategoryEditor({ category, onSave, onCancel }: Props) {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const data = { key: key.trim(), label: label.trim(), sortOrder };
+    const data = { key: key.trim(), label: label.trim(), sortOrder, parentId };
     start(async () => {
       const res = isNew
         ? await createCategoryAction(data)
@@ -51,6 +58,31 @@ export default function CategoryEditor({ category, onSave, onCancel }: Props) {
       <div>
         <label className="block text-xs font-medium text-stone-500 mb-1.5">Key <span className="text-stone-400 font-normal">(used internally to tag products — must be unique)</span></label>
         <input value={key} onChange={e => { setKey(e.target.value); setKeyTouched(true); }} required placeholder="e.g. dresses" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">
+          Parent category <span className="text-stone-400 font-normal">(optional — makes this a subcategory)</span>
+        </label>
+        {hasChildren ? (
+          <div className={`${inputCls} bg-stone-50 text-stone-400`}>
+            None — this category has its own subcategories
+          </div>
+        ) : parentOptions.length > 0 ? (
+          <select
+            value={parentId ?? ''}
+            onChange={e => setParentId(e.target.value ? Number(e.target.value) : null)}
+            className={inputCls}
+          >
+            <option value="">None — top-level category</option>
+            {parentOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+        ) : (
+          <div className={`${inputCls} bg-stone-50 text-stone-400`}>
+            None — no top-level categories to nest under yet
+          </div>
+        )}
       </div>
       <div>
         <label className="block text-xs font-medium text-stone-500 mb-1.5">Sort order</label>

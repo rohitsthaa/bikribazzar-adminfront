@@ -755,16 +755,19 @@ export type Category = {
   storeId: string;
   key: string;
   label: string;
+  parentId: number | null;   // null = top-level; set = subcategory (max 2 levels deep)
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };
 
+export type CategoryWrite = { key: string; label: string; sortOrder: number; parentId: number | null };
+
 export function getCategories() { return apiFetch<Category[]>('/categories'); }
-export function createCategory(data: { key: string; label: string; sortOrder: number }) {
+export function createCategory(data: CategoryWrite) {
   return apiFetch<Category>('/categories', { method: 'POST', body: JSON.stringify(data) });
 }
-export function updateCategory(id: number, data: { key: string; label: string; sortOrder: number }) {
+export function updateCategory(id: number, data: CategoryWrite) {
   return apiFetch<Category>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 export function deleteCategory(id: number) {
