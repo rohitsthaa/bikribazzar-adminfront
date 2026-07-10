@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState, useActionState } from 'react';
+import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 import SubmitButton from './SubmitButton';
@@ -474,8 +475,15 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                             ))}
                           </select>
                         ) : (
-                          <div className={`${textInput} bg-gray-50 text-gray-400`}>
-                            No categories yet — add one in Categories settings
+                          <div className={`${textInput} bg-gray-50 text-gray-500 flex items-center justify-between gap-2`}>
+                            <span>No categories yet</span>
+                            <Link
+                              href="/categories"
+                              target="_blank"
+                              className="text-[#c96a3a] font-medium hover:underline whitespace-nowrap"
+                            >
+                              + Add one
+                            </Link>
                           </div>
                         )}
                       </div>
