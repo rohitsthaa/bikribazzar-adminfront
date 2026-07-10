@@ -52,7 +52,9 @@ export type Product = {
   name: string;
   description: string;
   priceNpr: number;
-  category: string;
+  categoryId: number | null;
+  category?: string | null;       // resolved Category.Key — read-only, returned by the API
+  categoryLabel?: string | null;  // resolved Category.Label — read-only, returned by the API
   details: string | null;
   tag: string | null;
   image: string;
@@ -94,18 +96,20 @@ export type InventoryLog = {
 export function getProducts() { return apiFetch<Product[]>('/products?all=1'); }
 export function getProduct(id: string) { return apiFetch<Product>(`/products/${encodeURIComponent(id)}`); }
 
-export function createProduct(data: Omit<Product, 'createdAt' | 'updatedAt'>) {
+type ProductWrite = Omit<Product, 'createdAt' | 'updatedAt' | 'category' | 'categoryLabel'>;
+
+export function createProduct(data: ProductWrite) {
   return apiFetch<Product>('/products', { method: 'POST', body: JSON.stringify(data) });
 }
 
-export function bulkImportProducts(items: Array<Omit<Product, 'createdAt' | 'updatedAt'>>) {
+export function bulkImportProducts(items: Array<ProductWrite>) {
   return apiFetch<{ created: number; updated: number }>('/products/bulk', {
     method: 'POST',
     body: JSON.stringify(items),
   });
 }
 
-export function updateProduct(id: string, data: Partial<Product>) {
+export function updateProduct(id: string, data: Partial<ProductWrite>) {
   return apiFetch<Product>(`/products/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify(data),

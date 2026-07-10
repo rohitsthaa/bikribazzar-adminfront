@@ -1,19 +1,10 @@
 'use client';
 import { useRef, useState, useActionState } from 'react';
-import type { Product } from '@/lib/api';
+import type { Product, Category } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 import SubmitButton from './SubmitButton';
 
 type PrepaymentType = 'none' | 'percentage' | 'fixed';
-
-type Category = { key: string; label: string };
-
-const DEFAULT_CATEGORIES: Category[] = [
-  { key: 'shelf',  label: 'Hanging Shelves' },
-  { key: 'hanger', label: 'Plant Hangers' },
-  { key: 'wall',   label: 'Wall Hangings' },
-  { key: 'custom', label: 'Custom Orders' },
-];
 
 type Props = {
   product?: Product;
@@ -166,7 +157,7 @@ function Submit({ isNew }: { isNew: boolean }) {
   );
 }
 
-export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES, canSetPrice = true }: Props) {
+export default function ProductForm({ product, action, categories = [], canSetPrice = true }: Props) {
   const [state, formAction] = useActionState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
@@ -472,15 +463,21 @@ export default function ProductForm({ product, action, categories = DEFAULT_CATE
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={fieldLabel}>Category</label>
-                        <select
-                          name="category"
-                          defaultValue={product?.category ?? categories[0]?.key}
-                          className={`${textInput} bg-white`}
-                        >
-                          {categories.map((c) => (
-                            <option key={c.key} value={c.key}>{c.label}</option>
-                          ))}
-                        </select>
+                        {categories.length > 0 ? (
+                          <select
+                            name="categoryId"
+                            defaultValue={product?.categoryId ?? categories[0]?.id}
+                            className={`${textInput} bg-white`}
+                          >
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>{c.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className={`${textInput} bg-gray-50 text-gray-400`}>
+                            No categories yet — add one in Categories settings
+                          </div>
+                        )}
                       </div>
 
                       <div>

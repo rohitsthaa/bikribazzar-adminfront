@@ -105,8 +105,8 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
             <h3 className="font-semibold text-gray-900 text-sm leading-snug truncate">{p.name}</h3>
             <p className="text-xs text-gray-400 mt-0.5 font-mono">{p.id}</p>
           </div>
-          <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${CATEGORY_COLORS[p.category] ?? 'bg-gray-100 text-gray-600'}`}>
-            {p.category}
+          <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${(p.category && CATEGORY_COLORS[p.category]) ?? 'bg-gray-100 text-gray-600'}`}>
+            {p.category ?? 'Uncategorized'}
           </span>
         </div>
 

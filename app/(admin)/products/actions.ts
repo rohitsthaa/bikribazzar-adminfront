@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage } from '@/lib/api';
+import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
@@ -29,12 +29,18 @@ export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
   const admin = await getAdmin();
   if (!admin) throw new Error('Unauthorized');
 
+  // CSV rows carry a free-text category key (matches what a merchant would export/
+  // edit by hand); resolve it against the store's real categories. No match (or
+  // blank) -> uncategorized, rather than silently inventing a category row.
+  const categories = await getCategories().catch(() => []);
+  const categoryIdByKey = new Map(categories.map((c) => [c.key.toLowerCase(), c.id]));
+
   const payload = rows.map((row, i) => ({
     id: row.id,
     name: row.name,
     description: row.description,
     priceNpr: row.priceNpr,
-    category: row.category,
+    categoryId: categoryIdByKey.get(row.category.toLowerCase()) ?? null,
     details: row.details || null,
     tag: row.tag || null,
     image: '',
@@ -144,7 +150,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
     name: formData.get('name') as string,
     description: formData.get('description') as string,
     priceNpr: Number(formData.get('priceNpr') ?? 0),
-    category: formData.get('category') as string,
+    categoryId: formData.get('categoryId') ? Number(formData.get('categoryId')) : null,
     details: parseOptionalStringWithClearSentinel(formData.get('details') as string, isNew),
     tag: parseOptionalStringWithClearSentinel(formData.get('tag') as string, isNew),
     image: (formData.get('image') as string) || '',
