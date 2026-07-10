@@ -20,3 +20,6 @@ Sentry.init({
 });
 
 console.log(dsn ? '[sentry] enabled (client)' : '[sentry] disabled — NEXT_PUBLIC_SENTRY_DSN not set (client)');
+
+// Required so the SDK can instrument App Router client-side navigations as spans.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
