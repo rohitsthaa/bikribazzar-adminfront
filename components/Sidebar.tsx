@@ -37,6 +37,12 @@ const Icons = {
   ),
   Coupons:      () => I('M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01M12 2l9 9'),
   Products:     () => I('M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01'),
+  Categories:   () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+  ),
   Gallery:      () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
@@ -121,6 +127,7 @@ const STORE_NAV_GROUPS = [
   ],
   [
     { href: '/products',     label: 'Products',     Icon: Icons.Products },
+    { href: '/categories',   label: 'Categories',   Icon: Icons.Categories },
     { href: '/gallery',      label: 'Gallery',      Icon: Icons.Gallery },
     { href: '/content',      label: 'Content',      Icon: Icons.Content },
     { href: '/blog',         label: 'Blog',         Icon: Icons.Blog },

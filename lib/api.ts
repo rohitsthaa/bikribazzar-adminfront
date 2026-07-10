@@ -744,6 +744,29 @@ export function deleteService(id: number) {
   return apiFetch<{ ok: boolean }>(`/services/${id}`, { method: 'DELETE', body: '{}' });
 }
 
+// ---- Categories ----
+
+export type Category = {
+  id: number;
+  storeId: string;
+  key: string;
+  label: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getCategories() { return apiFetch<Category[]>('/categories'); }
+export function createCategory(data: { key: string; label: string; sortOrder: number }) {
+  return apiFetch<Category>('/categories', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateCategory(id: number, data: { key: string; label: string; sortOrder: number }) {
+  return apiFetch<Category>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+export function deleteCategory(id: number) {
+  return apiFetch<{ ok: boolean }>(`/categories/${id}`, { method: 'DELETE', body: '{}' });
+}
+
 // ---- Plans (subscription catalog) + invoices (manual billing) ----
 // See bikribazzar-api/Endpoints/PlanEndpoints.cs and docs/SUBSCRIPTIONS_PLAN.md. Plans are
 // DB-seeded (migration 20260707100300_SeedPlanCatalog) and edited in place from Platform →

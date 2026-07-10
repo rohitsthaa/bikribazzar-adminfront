@@ -1,15 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
-import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCategories, saveCurrency, saveBranding, saveDeliveryFees } from './actions';
-
-const DEFAULT_CATEGORIES = [
-  { key: 'shelf', label: 'Hanging Shelves' },
-  { key: 'hanger', label: 'Plant Hangers' },
-  { key: 'wall', label: 'Wall Hangings' },
-  { key: 'custom', label: 'Custom Orders' },
-];
+import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCurrency, saveBranding, saveDeliveryFees } from './actions';
 
 function SettingCard({
   title,
@@ -89,7 +83,6 @@ export default function SettingsClient({
   initialInstagram,
   initialContactEmail,
   initialLocation,
-  initialCategories,
   initialCurrency,
   initialTagline,
   initialMetaDescription,
@@ -108,7 +101,6 @@ export default function SettingsClient({
   initialInstagram: string;
   initialContactEmail: string;
   initialLocation: string;
-  initialCategories: string;
   initialCurrency: string;
   initialTagline: string;
   initialMetaDescription: string;
@@ -188,17 +180,6 @@ export default function SettingsClient({
     });
   }
 
-  // Categories
-  const parsedInitial = (() => {
-    try { return initialCategories ? JSON.parse(initialCategories) : DEFAULT_CATEGORIES; }
-    catch { return DEFAULT_CATEGORIES; }
-  })();
-  const [categories, setCategories] = useState<Array<{ key: string; label: string }>>(parsedInitial);
-  const [newCatKey, setNewCatKey] = useState('');
-  const [newCatLabel, setNewCatLabel] = useState('');
-  const [catSaved, setCatSaved] = useState(false);
-  const [catPending, startCatTransition] = useTransition();
-
   function handleAboutSave() {
     startAboutTransition(async () => {
       await saveAboutImage(aboutImage);
@@ -229,32 +210,6 @@ export default function SettingsClient({
       setContactSaved(true);
       setTimeout(() => setContactSaved(false), 2000);
     });
-  }
-
-  function handleCatSave() {
-    startCatTransition(async () => {
-      await saveCategories(categories);
-      setCatSaved(true);
-      setTimeout(() => setCatSaved(false), 2000);
-    });
-  }
-
-  function addCategory() {
-    const key = newCatKey.trim().toLowerCase().replace(/\s+/g, '-');
-    const label = newCatLabel.trim();
-    if (!key || !label) return;
-    if (categories.some((c) => c.key === key)) return;
-    setCategories([...categories, { key, label }]);
-    setNewCatKey('');
-    setNewCatLabel('');
-  }
-
-  function removeCategory(key: string) {
-    setCategories(categories.filter((c) => c.key !== key));
-  }
-
-  function updateCategoryLabel(key: string, label: string) {
-    setCategories(categories.map((c) => c.key === key ? { ...c, label } : c));
   }
 
   return (
@@ -381,69 +336,18 @@ export default function SettingsClient({
       </SettingCard>
 
       {/* Categories */}
-      <SettingCard
-        title="Product categories"
-        description="Categories shown in the shop filter and product form. The key is used in URLs, the label is shown to customers."
-        onSave={handleCatSave}
-        isPending={catPending}
-        saved={catSaved}
-      >
-        <div className="space-y-2">
-          {categories.map((cat) => (
-            <div key={cat.key} className="flex items-center gap-2">
-              <span className="w-24 shrink-0 font-mono text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-stone-500">
-                {cat.key}
-              </span>
-              <input
-                type="text"
-                value={cat.label}
-                onChange={(e) => updateCategoryLabel(cat.key, e.target.value)}
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-stone-300"
-              />
-              <button
-                type="button"
-                onClick={() => removeCategory(cat.key)}
-                className="shrink-0 p-2 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
-                title="Remove category"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          ))}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 flex items-center justify-between gap-4">
+        <div>
+          <h3 className="font-medium text-gray-900">Product categories</h3>
+          <p className="text-sm text-gray-500 mt-0.5">Categories shown in the shop filter and product form now have their own page.</p>
         </div>
-
-        {/* Add new */}
-        <div className="border-t border-gray-100 pt-3 space-y-2">
-          <p className="text-xs text-gray-400 font-medium">Add new category</p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newCatKey}
-              onChange={(e) => setNewCatKey(e.target.value)}
-              placeholder="key (e.g. seasonal)"
-              className="w-32 font-mono border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
-            />
-            <input
-              type="text"
-              value={newCatLabel}
-              onChange={(e) => setNewCatLabel(e.target.value)}
-              placeholder="Label (e.g. Seasonal)"
-              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
-            />
-            <button
-              type="button"
-              onClick={addCategory}
-              disabled={!newCatKey.trim() || !newCatLabel.trim()}
-              className="shrink-0 px-3 py-2 bg-stone-100 hover:bg-stone-200 disabled:opacity-40 text-stone-700 text-sm rounded-xl transition-colors font-medium"
-            >
-              Add
-            </button>
-          </div>
-          <p className="text-xs text-gray-400">Key becomes the URL slug — lowercase, no spaces. Hit Save after making changes.</p>
-        </div>
-      </SettingCard>
+        <Link
+          href="/categories"
+          className="shrink-0 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm rounded-xl transition-colors font-medium"
+        >
+          Manage categories →
+        </Link>
+      </div>
 
       {/* About image */}
       <SettingCard

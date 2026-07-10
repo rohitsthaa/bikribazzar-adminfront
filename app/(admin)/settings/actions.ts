@@ -43,12 +43,6 @@ export async function saveContactInfo(phone: string, instagram: string, email: s
   revalidatePath('/settings');
 }
 
-export async function saveCategories(categories: Array<{ key: string; label: string }>) {
-  await assertCanSettings();
-  await updateSetting('product_categories', JSON.stringify(categories));
-  revalidatePath('/settings');
-}
-
 export async function saveCurrency(symbol: string) {
   await assertCanSettings();
   await updateSetting('currency_symbol', symbol.trim() || 'NPR');

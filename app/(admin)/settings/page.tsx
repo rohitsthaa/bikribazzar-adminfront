@@ -29,7 +29,6 @@ export default async function SettingsPage() {
         initialInstagram={settings.contact_instagram ?? ''}
         initialContactEmail={settings.contact_email ?? ''}
         initialLocation={settings.contact_location ?? ''}
-        initialCategories={settings.product_categories ?? ''}
         initialCurrency={settings.currency_symbol ?? 'NPR'}
         initialTagline={settings.tagline ?? ''}
         initialMetaDescription={settings.meta_description ?? ''}
