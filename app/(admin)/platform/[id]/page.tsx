@@ -13,7 +13,7 @@ import SubmitButton from '@/components/SubmitButton';
 
 export const dynamic = 'force-dynamic';
 
-interface Props { params: { id: string }; searchParams?: { error?: string; saved?: string } }
+interface Props { params: Promise<{ id: string }>; searchParams?: Promise<{ error?: string; saved?: string }> }
 type ThemeShape = { colors?: { primary?: string; accent?: string; bg?: string }; fonts?: { display?: string; body?: string } };
 
 // ── Small shared primitives ──────────────────────────────────────────────────
@@ -179,24 +179,26 @@ function ToggleField({ name, label, description, defaultChecked }: {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function StoreManagePage({ params, searchParams }: Props) {
+  const { id } = await params;
+  const sp = await searchParams;
   const me = await getAdmin();
   if (me?.role !== 'super') redirect('/dashboard');
 
   let store;
-  try { store = await getStore(params.id); } catch { notFound(); }
+  try { store = await getStore(id); } catch { notFound(); }
   if (!store) notFound();
 
   const [pay, admins, allTemplates, allPlans, invoices] = await Promise.all([
-    getStorePaymentConfig(params.id).catch(() => null),
-    getStoreAdmins(params.id).catch(() => []),
+    getStorePaymentConfig(id).catch(() => null),
+    getStoreAdmins(id).catch(() => []),
     getAllTemplates().catch(() => []),
     getAllPlans().catch(() => []),
-    getStoreInvoices(params.id).catch(() => []),
+    getStoreInvoices(id).catch(() => []),
   ]);
 
   const theme = (store.theme ?? {}) as ThemeShape;
-  const saveError = searchParams?.error ? decodeURIComponent(searchParams.error) : null;
-  const saveOk = searchParams?.saved === '1';
+  const saveError = sp?.error ? decodeURIComponent(sp.error) : null;
+  const saveOk = sp?.saved === '1';
   const platformDomain =
     process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
     process.env.PLATFORM_DOMAIN ||

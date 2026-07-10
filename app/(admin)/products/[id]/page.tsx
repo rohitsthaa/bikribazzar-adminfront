@@ -6,12 +6,13 @@ import { getAdmin, can } from '@/lib/auth';
 import { saveProduct } from '../actions';
 import InventoryPanel from './InventoryPanel';
 
-export default async function EditProductPage({ params }: { params: { id: string } }) {
+export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [product, settings, categories, logs] = await Promise.all([
-    getProduct(params.id).catch(() => { notFound(); }),
+    getProduct(id).catch(() => { notFound(); }),
     getSettings().catch(() => ({} as Record<string, string>)),
     getCategories().catch(() => []),
-    getInventoryLog(params.id).catch(() => []),
+    getInventoryLog(id).catch(() => []),
   ]);
 
   if (!product) notFound();

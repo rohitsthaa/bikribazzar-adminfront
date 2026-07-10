@@ -52,7 +52,7 @@ export async function signupAction(payload: SignupPayload): Promise<SignupResult
  * Called from the /verify-email page once the API returns a token.
  */
 export async function setAuthCookieAction(token: string): Promise<void> {
-  cookies().set(TOKEN_COOKIE, token, {
+  (await cookies()).set(TOKEN_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

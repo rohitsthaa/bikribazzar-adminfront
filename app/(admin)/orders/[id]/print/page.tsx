@@ -2,11 +2,12 @@ import { notFound } from 'next/navigation';
 import { getOrder, getProducts, getSettings } from '@/lib/api';
 import PrintButton from './PrintButton';
 
-interface Props { params: { id: string } }
+interface Props { params: Promise<{ id: string }> }
 
 export default async function PrintPackSlip({ params }: Props) {
+  const { id } = await params;
   let order;
-  try { order = await getOrder(params.id); } catch { notFound(); }
+  try { order = await getOrder(id); } catch { notFound(); }
   if (!order) notFound();
 
   const [products, settings] = await Promise.all([
@@ -24,7 +25,7 @@ export default async function PrintPackSlip({ params }: Props) {
     <>
       {/* Print trigger + back link — hidden on print */}
       <div className="p-6 flex items-center gap-4 print:hidden">
-        <a href={`/orders/${params.id}`} className="text-sm text-stone-500 hover:text-stone-900 transition-colors">
+        <a href={`/orders/${id}`} className="text-sm text-stone-500 hover:text-stone-900 transition-colors">
           ← Back to order
         </a>
         <PrintButton />

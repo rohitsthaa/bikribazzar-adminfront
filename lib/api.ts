@@ -16,7 +16,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   // or the internal token ever leaking) — see HttpContextExtensions.cs's
   // RequireInternalToken(). Read directly from the cookie rather than via
   // getAdmin(), which only returns the decoded identity, not the raw token.
-  const sessionToken = cookies().get(TOKEN_COOKIE)?.value;
+  const sessionToken = (await cookies()).get(TOKEN_COOKIE)?.value;
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     cache: 'no-store',

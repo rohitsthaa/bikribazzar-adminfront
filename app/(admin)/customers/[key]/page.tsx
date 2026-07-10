@@ -16,8 +16,8 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-stone-100 text-stone-500',
 };
 
-export default async function CustomerProfilePage({ params }: { params: { key: string } }) {
-  const key = decodeURIComponent(params.key);
+export default async function CustomerProfilePage({ params }: { params: Promise<{ key: string }> }) {
+  const key = decodeURIComponent((await params).key);
 
   let orders: Order[] = [];
   let currency = 'NPR';

@@ -1,7 +1,7 @@
 'use client';
 
-import { useTransition } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useTransition, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import type { Coupon } from '@/lib/api';
 import { addCoupon, toggleCoupon, removeCoupon } from './actions';
 import EmptyState from '@/components/EmptyState';
@@ -37,7 +37,7 @@ function isExpired(iso: string | null) {
 }
 
 export default function CouponsClient({ coupons }: Props) {
-  const [state, formAction] = useFormState(addCoupon, INITIAL);
+  const [state, formAction] = useActionState(addCoupon, INITIAL);
   const [, startTransition] = useTransition();
 
   return (

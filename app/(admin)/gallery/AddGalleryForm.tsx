@@ -1,6 +1,6 @@
 'use client';
-import { useFormState, useFormStatus } from 'react-dom';
-import { useState } from 'react';
+import { useFormStatus } from 'react-dom';
+import { useState, useActionState } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 
 function Submit() {
@@ -21,7 +21,7 @@ export default function AddGalleryForm({
 }: {
   action: (state: unknown, formData: FormData) => Promise<{ error: string } | undefined>;
 }) {
-  const [state, formAction] = useFormState(action, null);
+  const [state, formAction] = useActionState(action, null);
   const [url, setUrl] = useState('');
 
   const fieldLabel = 'block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide';

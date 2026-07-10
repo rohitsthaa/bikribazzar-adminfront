@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useState, useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import type { Testimonial } from '@/lib/api';
 import EmptyState from '@/components/EmptyState';
 
@@ -35,7 +35,7 @@ function SaveButton() {
 }
 
 function AddForm({ action }: { action: AddAction }) {
-  const [state, formAction] = useFormState(action, null);
+  const [state, formAction] = useActionState(action, null);
   return (
     <form action={formAction} className="bg-white border border-stone-200 rounded-2xl px-6 py-5 mb-8">
       <h2 className="text-sm font-semibold text-stone-700 mb-4">Add testimonial</h2>
@@ -82,7 +82,7 @@ function TestimonialRow({
 }) {
   const [editing, setEditing] = useState(false);
   const boundEdit = editAction.bind(null, testimonial.id);
-  const [state, formAction] = useFormState(boundEdit, null);
+  const [state, formAction] = useActionState(boundEdit, null);
 
   // Close edit form when save succeeds
   useEffect(() => {

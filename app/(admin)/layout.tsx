@@ -9,7 +9,7 @@ import { currentStoreId } from '@/lib/store-context';
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await getAdmin();
   if (!admin) redirect('/login');
-  const pathname = headers().get('x-pathname') ?? '';
+  const pathname = (await headers()).get('x-pathname') ?? '';
   if (pathname.endsWith('/print')) {
     return <>{children}</>;
   }

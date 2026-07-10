@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 
-interface Props { searchParams: { data?: string } }
+interface Props { searchParams: Promise<{ data?: string }> }
 
 async function verify(storeId: string, data: string) {
   try {
@@ -32,7 +32,7 @@ export default async function EsewaBillingReturnPage({ searchParams }: Props) {
   if (!admin || !can(admin.role, 'settings')) redirect('/dashboard');
 
   const storeId = await currentStoreId();
-  const data = searchParams.data;
+  const data = (await searchParams).data;
   const result = data ? await verify(storeId, data) : null;
 
   if (result?.ok && result.status === 'COMPLETE') {

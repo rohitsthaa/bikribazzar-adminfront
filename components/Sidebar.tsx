@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { usePathname } from 'next/navigation';
 import { logout } from '@/app/login/actions';
 import { BikriMark } from '@/components/BikriMark';

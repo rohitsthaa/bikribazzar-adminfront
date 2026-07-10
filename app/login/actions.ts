@@ -18,6 +18,6 @@ export async function login(_: unknown, formData: FormData) {
 }
 
 export async function logout() {
-  clearAuthCookie();
+  await clearAuthCookie();
   redirect('/login');
 }

@@ -1,6 +1,5 @@
 'use client';
-import { useFormState } from 'react-dom';
-import { useRef, useState } from 'react';
+import { useRef, useState, useActionState } from 'react';
 import type { Product } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 import SubmitButton from './SubmitButton';
@@ -168,7 +167,7 @@ function Submit({ isNew }: { isNew: boolean }) {
 }
 
 export default function ProductForm({ product, action, categories = DEFAULT_CATEGORIES, canSetPrice = true }: Props) {
-  const [state, formAction] = useFormState(action, null);
+  const [state, formAction] = useActionState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
   const [seoOpen, setSeoOpen] = useState(!!(product?.metaTitle || product?.metaDescription));

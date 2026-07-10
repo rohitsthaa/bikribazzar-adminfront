@@ -7,7 +7,7 @@ import PaymentRecorder from './PaymentRecorder';
 import AdminNotes from './AdminNotes';
 import DeliveryEditor from './DeliveryEditor';
 
-interface Props { params: { id: string } }
+interface Props { params: Promise<{ id: string }> }
 
 const PIPELINE: Array<{ value: Order['status']; label: string; color: string }> = [
   { value: 'new',       label: 'Received',  color: 'bg-blue-500'   },
@@ -51,7 +51,8 @@ const STATUS_DOT: Record<string, string> = {
 
 export async function generateMetadata({ params }: Props) {
   try {
-    const order = await getOrder(params.id);
+    const { id } = await params;
+    const order = await getOrder(id);
     return { title: `Order #${order.id} — Soul Thread Admin` };
   } catch {
     return { title: 'Order Not Found' };
@@ -59,8 +60,9 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function OrderDetailPage({ params }: Props) {
+  const { id } = await params;
   let order: Order | null = null;
-  try { order = await getOrder(params.id); } catch { notFound(); }
+  try { order = await getOrder(id); } catch { notFound(); }
   if (!order) notFound();
 
   const [products, settings] = await Promise.all([
@@ -108,7 +110,7 @@ export default async function OrderDetailPage({ params }: Props) {
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Order #{order.id}</h1>
               <a
-                href={`/orders/${params.id}/print`}
+                href={`/orders/${id}/print`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-medium transition-colors"
@@ -289,7 +291,7 @@ export default async function OrderDetailPage({ params }: Props) {
                     <p className="text-stone-400">No delivery address yet.</p>
                   )}
                   <DeliveryEditor
-                    orderId={params.id}
+                    orderId={id}
                     initialArea={order.deliveryArea ?? ''}
                     initialAddress={order.address ?? ''}
                     initialLandmark={order.landmark ?? ''}
@@ -333,7 +335,7 @@ export default async function OrderDetailPage({ params }: Props) {
             {/* Change status */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
-              <StatusUpdater orderId={params.id} currentStatus={order.status} />
+              <StatusUpdater orderId={id} currentStatus={order.status} />
             </div>
 
             {/* Payment */}
@@ -438,7 +440,7 @@ export default async function OrderDetailPage({ params }: Props) {
 
               <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-2">Record payment</p>
               <PaymentRecorder
-                orderId={params.id}
+                orderId={id}
                 totalNpr={order.totalNpr + (order.deliveryFeeNpr ?? 0)}
                 advanceNpr={order.advanceNpr}
                 paidNpr={order.paidNpr}
@@ -448,7 +450,7 @@ export default async function OrderDetailPage({ params }: Props) {
             </div>
 
             {/* Internal notes */}
-            <AdminNotes orderId={params.id} initialNotes={order.adminNotes ?? ''} />
+            <AdminNotes orderId={id} initialNotes={order.adminNotes ?? ''} />
 
             {/* Timeline */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">

@@ -51,7 +51,7 @@ export function can(
  * authenticated. Cached per-request so repeated calls don't re-hit the API.
  */
 export const getAdmin = cache(async (): Promise<AdminIdentity | null> => {
-  const store = cookies();
+  const store = await cookies();
 
   // 1) Preferred: JWT from admin_users — validated by the API.
   const token = store.get(TOKEN_COOKIE)?.value;
@@ -95,7 +95,7 @@ export async function loginWithCredentials(email: string, password: string): Pro
     if (!res.ok) return false;
     const { token } = await res.json();
     if (!token) return false;
-    cookies().set(TOKEN_COOKIE, token, {
+    (await cookies()).set(TOKEN_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -108,14 +108,15 @@ export async function loginWithCredentials(email: string, password: string): Pro
   }
 }
 
-export function clearAuthCookie() {
-  cookies().delete(TOKEN_COOKIE);
-  cookies().delete(LEGACY_COOKIE);
+export async function clearAuthCookie() {
+  const store = await cookies();
+  store.delete(TOKEN_COOKIE);
+  store.delete(LEGACY_COOKIE);
   // Also drop the store-context cookie ('st_store', see lib/store-context.ts —
   // duplicated as a literal here rather than importing STORE_COOKIE, to avoid a
   // circular import between auth.ts and store-context.ts, which imports getAdmin
   // from this file). Without this, a super-admin's selected store would survive
   // logout/login on a shared browser, which is the same class of "silently acting
   // on a store you don't realize you're in" risk as the slug-reuse fix.
-  cookies().delete('st_store');
+  store.delete('st_store');
 }

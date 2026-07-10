@@ -1,5 +1,6 @@
 'use client';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { login } from './actions';
 import { BikriMark } from '@/components/BikriMark';
 
@@ -17,7 +18,7 @@ function Submit() {
 }
 
 export default function LoginPage() {
-  const [state, action] = useFormState(login, null);
+  const [state, action] = useActionState(login, null);
 
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">

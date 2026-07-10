@@ -71,7 +71,7 @@ export async function currentStoreId(): Promise<string> {
   if (admin && admin.role !== 'super' && admin.storeId) return admin.storeId;
 
   // Super-admins (and legacy) may switch.
-  const parsed = parseStoreCookie(cookies().get(STORE_COOKIE)?.value);
+  const parsed = parseStoreCookie((await cookies()).get(STORE_COOKIE)?.value);
   if (!parsed) return DEFAULT_STORE;
   if (parsed.createdAt && !(await isStoreFingerprintValid(parsed.id, parsed.createdAt))) {
     return DEFAULT_STORE;

@@ -19,7 +19,7 @@ async function writeStoreCookie(storeId: string) {
   } catch {
     // Fall through with the bare id.
   }
-  cookies().set(STORE_COOKIE, value, {
+  (await cookies()).set(STORE_COOKIE, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

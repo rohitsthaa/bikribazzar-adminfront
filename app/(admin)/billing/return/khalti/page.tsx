@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 
-interface Props { searchParams: { pidx?: string } }
+interface Props { searchParams: Promise<{ pidx?: string }> }
 
 async function verify(storeId: string, pidx: string) {
   try {
@@ -31,7 +31,7 @@ export default async function KhaltiBillingReturnPage({ searchParams }: Props) {
   if (!admin || !can(admin.role, 'settings')) redirect('/dashboard');
 
   const storeId = await currentStoreId();
-  const pidx = searchParams.pidx;
+  const pidx = (await searchParams).pidx;
   const result = pidx ? await verify(storeId, pidx) : null;
 
   if (result?.ok && result.status === 'COMPLETE') {

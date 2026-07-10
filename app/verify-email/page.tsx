@@ -19,9 +19,9 @@ async function verifyToken(token: string): Promise<{ ok: true } | { ok: false; e
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
-  const token = searchParams.token?.trim() ?? '';
+  const token = (await searchParams).token?.trim() ?? '';
 
   if (!token) {
     return <ErrorScreen message="No verification token found. Please use the link from your email." />;
