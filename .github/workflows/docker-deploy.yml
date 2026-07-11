@@ -14,9 +14,27 @@ env:
   IMAGE_NAME: rohitsthaa/soul-thread-admin
 
 jobs:
-  # ── 1. Build Docker image and push to GHCR ──────────────────────────────────
+  # ── 1. Typecheck — fast fail before spending time on a Docker build ─────────
+  # `npm run lint` is intentionally NOT run here: `next lint` has never been
+  # configured in this project (no eslint.config.*/.eslintrc — running it drops
+  # into an interactive "how would you like to configure ESLint?" prompt, which
+  # would hang every CI run). Add it back once ESLint is actually set up.
+  test:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # ── 2. Build Docker image and push to GHCR ──────────────────────────────────
   build-push:
     name: Build & Push
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,7 +79,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── 2. SSH into VPS and redeploy ─────────────────────────────────────────────
+  # ── 3. SSH into VPS and redeploy ─────────────────────────────────────────────
   deploy:
     name: Deploy to VPS
     needs: build-push
