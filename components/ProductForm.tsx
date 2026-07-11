@@ -118,7 +118,7 @@ function VariantImageCell({ value, onChange }: { value: string; onChange: (url: 
           </svg>
         ) : value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="" className="w-full h-full object-cover" />
+          <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="" draggable={false} className="w-full h-full object-cover" />
         ) : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -285,7 +285,11 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             <div className="space-y-3">
               {galleryImages.map((url, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="flex-1">
+                  {/* min-w-0 overrides the flex item's default min-width:auto — without it, the
+                      uploaded photo's real (large) intrinsic size wins the flex sizing calculation
+                      before object-cover/aspect-ratio ever get a chance to constrain it, so the
+                      thumbnail renders at near-native size and bleeds out of the sidebar. */}
+                  <div className="flex-1 min-w-0">
                     <ImageUploader
                       value={url}
                       onChange={(newUrl) => {

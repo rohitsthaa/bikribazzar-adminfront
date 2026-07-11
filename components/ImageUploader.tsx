@@ -78,8 +78,12 @@ export default function ImageUploader({ value, onChange }: Props) {
                 preview resolves against the current API host regardless of what
                 host the URL was stored with. A raw <img src={value}> breaks when
                 the stored URL points at an old/different API host. */}
+            {/* draggable=false: browsers make <img> a native drag source by default, and an
+                accidental drag on this preview paints the OS's own drag-ghost snapshot — which
+                ignores this container's overflow-hidden/aspect-ratio/rounding entirely, so it
+                renders as a giant unclipped rectangle floating over the rest of the page. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="Product preview" className="w-full h-full object-cover" />
+            <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="Product preview" draggable={false} className="w-full h-full object-cover" />
             {/* Overlay actions */}
             <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
               <button
