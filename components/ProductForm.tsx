@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, useActionState } from 'react';
+import { useRef, useState, useActionState, type FormEvent } from 'react';
 import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
 import ImageUploader from './ImageUploader';
@@ -220,8 +220,26 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   // single native form submission on Save, regardless of which tab is active.
   const panel = (key: TabKey) => (tab === key ? '' : 'hidden');
 
+  // A required field can be hidden (display:none) on a tab other than the
+  // active one. The browser still blocks submission on it but can't focus a
+  // hidden element, so it logs "not focusable" and aborts silently — Save
+  // appears to do nothing. Jump to the invalid field's tab first so the
+  // browser's native validation bubble can actually reach it.
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const form = e.currentTarget;
+    const invalid = form.querySelector<HTMLElement>(':invalid');
+    if (!invalid) return;
+    const panelEl = invalid.closest<HTMLElement>('[data-tab]');
+    const invalidTab = panelEl?.dataset.tab as TabKey | undefined;
+    if (invalidTab && invalidTab !== tab) {
+      e.preventDefault();
+      setTab(invalidTab);
+      setTimeout(() => form.requestSubmit(), 0);
+    }
+  };
+
   return (
-    <form action={formAction} className="pb-24">
+    <form action={formAction} onSubmit={handleSubmit} className="pb-24">
       <input type="hidden" name="_isNew" value={isNew ? '1' : '0'} />
       {/* Snapshot of the images this product had before this edit — actions.ts
           diffs these against the saved values to clean up now-orphaned
@@ -324,7 +342,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
 
           <div className="space-y-4">
             {/* ── Details tab ─────────────────────────────────────────────── */}
-            <div className={panel('details')}>
+            <div data-tab="details" className={panel('details')}>
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                   <SectionHeading icon={TAB_ICONS.details} title="Basic info" />
@@ -455,7 +473,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             </div>
 
             {/* ── Pricing & stock tab ──────────────────────────────────────── */}
-            <div className={panel('pricing')}>
+            <div data-tab="pricing" className={panel('pricing')}>
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                   <SectionHeading icon={TAB_ICONS.pricing} title="Pricing" />
@@ -616,7 +634,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             </div>
 
             {/* ── Variants tab ─────────────────────────────────────────────── */}
-            <div className={panel('variants')}>
+            <div data-tab="variants" className={panel('variants')}>
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <input type="hidden" name="variants" value={variantsPayload} />
                 <div className="flex items-center justify-between mb-1">
@@ -686,7 +704,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             </div>
 
             {/* ── Settings tab ─────────────────────────────────────────────── */}
-            <div className={panel('settings')}>
+            <div data-tab="settings" className={panel('settings')}>
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                   <SectionHeading icon={TAB_ICONS.settings} title="Organize" subtitle="For your own tracking — doesn't affect the shop." />
