@@ -88,7 +88,10 @@ export default async function PrintPackSlip({ params }: Props) {
               const product = productMap.get(item.productId);
               return (
                 <tr key={i} className="border-b border-stone-100">
-                  <td className="py-3 font-medium">{product?.name ?? item.productId}</td>
+                  <td className="py-3 font-medium">
+                    {product?.name ?? item.productId}
+                    {item.variantLabel ? <span className="text-stone-400 font-normal"> · {item.variantLabel}</span> : null}
+                  </td>
                   <td className="py-3 text-center text-stone-600">{item.quantity}</td>
                   <td className="py-3 text-right text-stone-600">{currency} {item.priceNpr.toLocaleString()}</td>
                   <td className="py-3 text-right font-semibold">{currency} {(item.priceNpr * item.quantity).toLocaleString()}</td>
