@@ -4,8 +4,15 @@ import { useState, useRef, useTransition } from 'react';
 import { createStoreAction } from './actions';
 import type { TemplateMeta } from '@/lib/api';
 
+// Portfolio/Business site types (and their sole templates, folio/profile) are
+// hidden from new-store creation for now — the underlying pages, data models,
+// and admin CRUD are untouched, so this is a one-line revert, not a ripout.
+const HIDDEN_SITE_TYPES = ['portfolio', 'business'];
+
 export default function NewStoreDialog({ allTemplates }: { allTemplates: TemplateMeta[] }) {
-  const templates = [...allTemplates].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const templates = allTemplates
+    .filter((t) => !t.siteTypes?.every((st) => HIDDEN_SITE_TYPES.includes(st)))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [isPending, start] = useTransition();
@@ -114,8 +121,6 @@ export default function NewStoreDialog({ allTemplates }: { allTemplates: Templat
                 >
                   <option value="store">Store — sell products online</option>
                   <option value="blog">Blog — articles and posts</option>
-                  <option value="portfolio">Portfolio — showcase work</option>
-                  <option value="business">Business — services and profile</option>
                 </select>
               </label>
 
