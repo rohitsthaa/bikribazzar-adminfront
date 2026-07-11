@@ -1,4 +1,5 @@
 'use client';
+import { useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -45,6 +46,10 @@ const icons = {
 };
 
 export default function MarkdownEditor({ name, defaultValue, placeholder, rows = 8, className, onChange }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -74,11 +79,26 @@ export default function MarkdownEditor({ name, defaultValue, placeholder, rows =
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }
 
-  function addImage() {
+  async function handleImageFile(file: File) {
     if (!editor) return;
-    const url = window.prompt('Image URL');
-    if (!url) return;
-    editor.chain().focus().setImage({ src: url }).run();
+    setUploadError('');
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const contentType = res.headers.get('content-type') ?? '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(res.status === 413 ? 'File is too large to upload.' : `Upload failed (${res.status}). Please try again.`);
+      }
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Upload failed');
+      editor.chain().focus().setImage({ src: json.url }).run();
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   }
 
   type Tool = { icon?: React.ReactNode; label?: string; title: string; action: () => void; active?: boolean; disabled?: boolean };
@@ -107,7 +127,7 @@ export default function MarkdownEditor({ name, defaultValue, placeholder, rows =
         ],
         [
           { icon: icons.link, title: 'Link', action: setLink, active: editor.isActive('link') },
-          { icon: icons.image, title: 'Image', action: addImage },
+          { icon: icons.image, title: uploading ? 'Uploading…' : 'Image', action: () => fileInputRef.current?.click(), disabled: uploading },
         ],
       ]
     : [];
@@ -117,9 +137,9 @@ export default function MarkdownEditor({ name, defaultValue, placeholder, rows =
       <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-stone-100 bg-stone-50 flex-wrap">
         {groups.map((group, gi) => (
           <div key={gi} className="flex items-center gap-0.5 pr-1.5 mr-1.5 border-r border-stone-200 last:border-r-0 last:pr-0 last:mr-0">
-            {group.map((t) => (
+            {group.map((t, ti) => (
               <button
-                key={t.title}
+                key={ti}
                 type="button"
                 title={t.title}
                 onClick={t.action}
@@ -140,6 +160,18 @@ export default function MarkdownEditor({ name, defaultValue, placeholder, rows =
         )}
         <EditorContent editor={editor} />
       </div>
+      {uploadError && <p className="px-3 py-1.5 text-xs text-red-600 border-t border-stone-100">{uploadError}</p>}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImageFile(file);
+          e.target.value = '';
+        }}
+      />
       <input type="hidden" name={name} value={markdown} readOnly />
     </div>
   );

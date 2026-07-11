@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const TOKEN_COOKIE = 'st_admin_token'; // JWT from admin_users login
-const PUBLIC = ['/login', '/signup', '/verify-email'];
+const PUBLIC = ['/login', '/signup', '/verify-email', '/test-editor', '/api/upload'];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

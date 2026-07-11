@@ -19,6 +19,12 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   const currency = settings.currency_symbol || 'NPR';
   const canSetPrice = can((await getAdmin())?.role, 'setPrice');
+  // With variants, per-variant stock (in-stock counts, Restock/Adjust) lives
+  // inline in the Variants tab — a narrow xl:w-72 sidebar next to the form
+  // would just be a near-empty box (only the movement log left in it). So
+  // the form takes the full width and the log runs full-width underneath
+  // instead of being squeezed into a dedicated column.
+  const hasVariants = (product.variants ?? []).length > 0;
 
   return (
     <main className="p-6 md:p-8 max-w-5xl">
@@ -29,17 +35,26 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         <h1 className="text-xl font-semibold mt-2">Edit product</h1>
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-6">
-        {/* Main form */}
-        <div className="flex-1 min-w-0">
+      {hasVariants ? (
+        <div className="space-y-6">
           <ProductForm product={product} action={saveProduct} categories={categories.length > 0 ? categories : undefined} canSetPrice={canSetPrice} />
+          <div id="inventory-panel" className="scroll-mt-6">
+            <InventoryPanel product={product} logs={logs} currency={currency} />
+          </div>
         </div>
+      ) : (
+        <div className="flex flex-col xl:flex-row gap-6">
+          {/* Main form */}
+          <div className="flex-1 min-w-0">
+            <ProductForm product={product} action={saveProduct} categories={categories.length > 0 ? categories : undefined} canSetPrice={canSetPrice} />
+          </div>
 
-        {/* Inventory sidebar */}
-        <div id="inventory-panel" className="xl:w-72 shrink-0 scroll-mt-6">
-          <InventoryPanel product={product} logs={logs} currency={currency} />
+          {/* Inventory sidebar */}
+          <div id="inventory-panel" className="xl:w-72 shrink-0 scroll-mt-6">
+            <InventoryPanel product={product} logs={logs} currency={currency} />
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

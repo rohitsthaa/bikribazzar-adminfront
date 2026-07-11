@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import type { InventoryLog, Product, ProductVariant } from '@/lib/api';
-import { restockAction, adjustStockAction, restockVariantAction, adjustVariantStockAction } from '../actions';
+import type { InventoryLog, Product } from '@/lib/api';
+import { restockAction, adjustStockAction } from '../actions';
 
 const REASON_META: Record<string, { label: string; color: string }> = {
   sale:       { label: 'Sale',       color: 'text-red-600 bg-red-50' },
@@ -17,114 +17,6 @@ function fmt(dateStr: string) {
     month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
-}
-
-// ---------------------------------------------------------------------------
-// Per-variant stock control row
-// ---------------------------------------------------------------------------
-function VariantStockRow({ productId, variant }: { productId: string; variant: ProductVariant & { id: string } }) {
-  const [qty, setQty] = useState('');
-  const [note, setNote] = useState('');
-  const [batchDate, setBatchDate] = useState('');
-  const [adjDelta, setAdjDelta] = useState('');
-  const [tab, setTab] = useState<'restock' | 'adjust'>('restock');
-  const [error, setError] = useState<string | null>(null);
-  const [isPendingR, startR] = useTransition();
-  const [isPendingA, startA] = useTransition();
-
-  const stockQty = variant.stockQty;
-  const isUnlimited = stockQty === null;
-
-  function handleRestock() {
-    const q = parseInt(qty);
-    if (!q || q <= 0) { setError('Enter a valid quantity.'); return; }
-    setError(null);
-    startR(async () => {
-      const res = await restockVariantAction(productId, variant.id, q, note || undefined, batchDate || undefined);
-      if ('error' in res) { setError(res.error); return; }
-      setQty(''); setNote(''); setBatchDate('');
-      window.location.reload();
-    });
-  }
-
-  function handleAdjust() {
-    const d = parseInt(adjDelta);
-    if (isNaN(d) || d === 0) { setError('Enter a non-zero value.'); return; }
-    setError(null);
-    startA(async () => {
-      const res = await adjustVariantStockAction(productId, variant.id, d, note || undefined);
-      if ('error' in res) { setError(res.error); return; }
-      setAdjDelta(''); setNote('');
-      window.location.reload();
-    });
-  }
-
-  return (
-    <div className="rounded-xl border border-stone-100 bg-stone-50 p-3 space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-sm font-medium text-stone-900">{variant.label}</span>
-          {variant.sku && <span className="ml-2 text-xs text-stone-400 font-mono">{variant.sku}</span>}
-        </div>
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          isUnlimited ? 'bg-stone-100 text-stone-500' :
-          stockQty === 0 ? 'bg-red-50 text-red-600' :
-          'bg-green-50 text-green-700'
-        }`}>
-          {isUnlimited ? 'Unlimited' : stockQty === 0 ? 'Out of stock' : `${stockQty} in stock`}
-        </span>
-      </div>
-
-      {/* Tab toggle */}
-      <div className="flex gap-1 bg-stone-200 rounded-lg p-0.5 w-fit">
-        {(['restock', 'adjust'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all capitalize ${tab === t ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}>
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'restock' && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <input type="number" min={1} value={qty} onChange={e => setQty(e.target.value)}
-              placeholder="Qty to add"
-              className="flex-1 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-stone-400" />
-            <button onClick={handleRestock} disabled={isPendingR}
-              className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-xs font-semibold transition-colors">
-              {isPendingR ? '…' : '+ Add'}
-            </button>
-          </div>
-          <input type="date" value={batchDate} onChange={e => setBatchDate(e.target.value)}
-            className="w-full px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-stone-400" />
-          <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Batch notes (optional)"
-            className="w-full px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-stone-400" />
-        </div>
-      )}
-
-      {tab === 'adjust' && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <input type="number" value={adjDelta} onChange={e => setAdjDelta(e.target.value)}
-              placeholder="e.g. -2 or +5"
-              disabled={isUnlimited}
-              className="flex-1 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-stone-400 disabled:opacity-50" />
-            <button onClick={handleAdjust} disabled={isPendingA || isUnlimited}
-              className="px-3 py-1.5 rounded-lg bg-stone-700 hover:bg-stone-800 disabled:opacity-60 text-white text-xs font-semibold transition-colors">
-              {isPendingA ? '…' : 'Apply'}
-            </button>
-          </div>
-          <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Reason (optional)"
-            className="w-full px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-stone-400" />
-          {isUnlimited && <p className="text-xs text-amber-600">Set a stock qty in the product form first.</p>}
-        </div>
-      )}
-
-      {error && <p className="text-xs text-red-600">{error}</p>}
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -197,22 +89,13 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
         )}
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Variant stock controls                                               */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Per-variant stock (in stock counts, Restock/Adjust) now lives inline
+          in the Variants tab of the product form, next to the variant it
+          affects — see VariantStockControls in components/ProductForm.tsx. */}
       {hasVariants && (
-        <div className="space-y-3">
-          <p className="text-xs text-stone-500 font-medium uppercase tracking-wide">Variants</p>
-          {(product.variants ?? []).map((v) =>
-            v.id ? (
-              <VariantStockRow
-                key={v.id}
-                productId={product.id}
-                variant={v as ProductVariant & { id: string }}
-              />
-            ) : null
-          )}
-        </div>
+        <p className="text-xs text-stone-400">
+          Per-variant stock is managed in the <span className="font-medium text-stone-500">Variants</span> tab of the product form.
+        </p>
       )}
 
       {/* ------------------------------------------------------------------ */}

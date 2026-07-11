@@ -78,6 +78,10 @@ export type Product = {
   deliveryFeeNpr?: number | null;       // per-product delivery fee override; null = use store default, 0 = free
   tags?: string[];                      // multi-value tags for storefront filtering (separate from `tag` badge)
   status?: 'draft' | 'active' | 'archived';  // organizational label — independent of `available`
+  // What distinguishes the variants, if any — "color"/"style" means variants look
+  // different (storefront may show photo swatches from ProductVariant.image);
+  // "size" or null means no visual difference (storefront shows text pills only).
+  variantAxis?: 'size' | 'color' | 'style' | null;
   variants?: ProductVariant[];
 };
 

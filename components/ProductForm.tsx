@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
 import ImageUploader from './ImageUploader';
 import SubmitButton from './SubmitButton';
+import VariantStockControls from './VariantStockControls';
 
 type PrepaymentType = 'none' | 'percentage' | 'fixed';
 
@@ -171,6 +172,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   );
   const [advanceOpen, setAdvanceOpen] = useState(prepaymentType !== 'none');
   const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
+  const [variantAxis, setVariantAxis] = useState<string>(product?.variantAxis ?? '');
   const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
   type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string; image: string };
   const [variants, setVariants] = useState<VariantRow[]>(
@@ -188,25 +190,38 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   function updateVariant(idx: number, patch: Partial<VariantRow>) {
     setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
   }
+  const isNew = !product;
   // Serialized for the form action: empty price/stock → null (inherit / unlimited).
+  // For a variant that already exists on the server, its Stock field in this
+  // form is read-only (see the Variants tab) — stock only actually changes via
+  // Restock/Adjust, which reloads the page. So its stockQty here is re-read
+  // from `product` (the value the read-only badge shows), not from `v.stockQty`
+  // draft state, so an unrelated field edit + Save can never resubmit a stale
+  // number and clobber a restock/adjustment made elsewhere in the meantime —
+  // same reasoning as the top-level Stock qty field above.
   const variantsPayload = JSON.stringify(
     variants
       .filter((v) => v.label.trim())
-      .map((v, i) => ({
-        id: v.id,
-        label: v.label.trim(),
-        priceNpr: v.priceNpr.trim() === '' ? null : Number(v.priceNpr),
-        stockQty: v.stockQty.trim() === '' ? null : Number(v.stockQty),
-        sku: v.sku.trim() || null,
-        image: v.image.trim() || null,
-        sortOrder: i,
-      })),
+      .map((v, i) => {
+        const persisted = !isNew && v.id ? (product?.variants ?? []).find((pv) => pv.id === v.id) : undefined;
+        return {
+          id: v.id,
+          label: v.label.trim(),
+          priceNpr: v.priceNpr.trim() === '' ? null : Number(v.priceNpr),
+          stockQty: persisted ? persisted.stockQty : (v.stockQty.trim() === '' ? null : Number(v.stockQty)),
+          sku: v.sku.trim() || null,
+          image: v.image.trim() || null,
+          sortOrder: i,
+        };
+      }),
   );
-  const isNew = !product;
   // Extracted so the read-only/editable Stock qty branches below don't each
   // re-narrow `product` through the `isNew` alias — TS treats that as two
   // independent (and, in one arm, contradictory) narrowings of `product`.
   const currentStockQty = product?.stockQty;
+  // Which variant row (by id) currently has its Restock/Adjust panel open —
+  // only one at a time keeps the tab from turning back into a wall of forms.
+  const [expandedStockId, setExpandedStockId] = useState<string | null>(null);
 
   const [tab, setTab] = useState<TabKey>('details');
   const tabs: { key: TabKey; label: string; icon: string }[] = [
@@ -648,55 +663,127 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   </button>
                 </div>
 
+                {variants.length > 0 && (
+                  <div className="mb-4">
+                    <label className={fieldLabel}>What do these variants change?</label>
+                    <select
+                      name="variantAxis"
+                      value={variantAxis}
+                      onChange={(e) => setVariantAxis(e.target.value)}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                    >
+                      <option value="">Size only — no visual difference</option>
+                      <option value="color">Color / pattern — variants look different</option>
+                      <option value="style">Style / material — variants look different</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Only pick "Color" or "Style" if you upload a photo per variant below — the storefront
+                      shows those as photo swatches. Size-only variants always show as plain buttons, even if
+                      a photo is set.
+                    </p>
+                    {!variantAxis && variants.some((v) => v.image.trim()) && (
+                      <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        <span className="mt-px">⚠</span>
+                        <span>
+                          {variants.filter((v) => v.image.trim()).length} variant photo{variants.filter((v) => v.image.trim()).length === 1 ? '' : 's'} uploaded,
+                          but "What do these variants change?" is still set to "Size only" — those photos
+                          won't show on the storefront. Set it to Color or Style above if they're meant to.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {variants.length === 0 ? (
                   <div className="rounded-xl border-2 border-dashed border-gray-200 py-10 text-center">
                     <p className="text-sm text-gray-400">No variants — this product is sold as one option.</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 mt-3">
-                    <div className="hidden sm:grid grid-cols-[40px_1fr_90px_80px_90px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
-                      <span /><span>Label</span><span>Price</span><span>Stock</span><span>SKU</span><span />
+                  <div className="space-y-3 mt-3">
+                    <div className="hidden sm:grid grid-cols-[40px_1fr_150px_110px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
+                      <span /><span>Label</span><span>Price</span><span>SKU</span><span />
                     </div>
-                    {variants.map((v, idx) => (
-                      <div key={idx} className="grid grid-cols-2 sm:grid-cols-[40px_1fr_90px_80px_90px_28px] gap-2 sm:items-center p-2 rounded-lg hover:bg-stone-50 transition-colors">
-                        <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} />
-                        <input
-                          value={v.label}
-                          onChange={(e) => updateVariant(idx, { label: e.target.value })}
-                          placeholder="e.g. Red / L"
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                        />
-                        <input
-                          value={v.priceNpr}
-                          onChange={(e) => updateVariant(idx, { priceNpr: e.target.value })}
-                          placeholder="price"
-                          inputMode="numeric"
-                          disabled={!canSetPrice}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                        />
-                        <input
-                          value={v.stockQty}
-                          onChange={(e) => updateVariant(idx, { stockQty: e.target.value })}
-                          placeholder="stock"
-                          inputMode="numeric"
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                        />
-                        <input
-                          value={v.sku}
-                          onChange={(e) => updateVariant(idx, { sku: e.target.value })}
-                          placeholder="SKU"
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeVariant(idx)}
-                          title="Remove variant"
-                          className="text-gray-300 hover:text-red-500 text-lg leading-none justify-self-end sm:justify-self-auto"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                    {variants.map((v, idx) => {
+                      // Server-side record for this row, if it's been saved before —
+                      // the source of truth for stock once restocks/adjustments can
+                      // have happened to it (see stockQty comment on the Pricing tab).
+                      const persisted = !isNew && v.id ? (product?.variants ?? []).find((pv) => pv.id === v.id) : undefined;
+                      const stockQty = persisted?.stockQty ?? null;
+                      const isExpanded = expandedStockId === v.id;
+                      return (
+                        <div key={idx} className="rounded-xl border border-gray-200 hover:border-gray-300 transition-colors p-3 space-y-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-[40px_1fr_150px_110px_28px] gap-2 sm:items-center">
+                            <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} />
+                            <input
+                              value={v.label}
+                              onChange={(e) => updateVariant(idx, { label: e.target.value })}
+                              placeholder="e.g. Red / L"
+                              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                            />
+                            <input
+                              value={v.priceNpr}
+                              onChange={(e) => updateVariant(idx, { priceNpr: e.target.value })}
+                              placeholder="Optional"
+                              inputMode="numeric"
+                              disabled={!canSetPrice}
+                              title="Blank = use the product's price"
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                            />
+                            <input
+                              value={v.sku}
+                              onChange={(e) => updateVariant(idx, { sku: e.target.value })}
+                              placeholder="SKU"
+                              className="border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeVariant(idx)}
+                              title="Remove variant"
+                              className="text-gray-300 hover:text-red-500 text-lg leading-none justify-self-end sm:justify-self-auto"
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          {/* Stock: editable on create (or for a variant added this
+                              session that hasn't been saved yet), otherwise read-only
+                              with Restock/Adjust — same reasoning as the product-level
+                              Stock qty field on the Pricing tab. */}
+                          {!persisted ? (
+                            <div className="max-w-[180px]">
+                              <input
+                                value={v.stockQty}
+                                onChange={(e) => updateVariant(idx, { stockQty: e.target.value })}
+                                placeholder="Stock — unlimited"
+                                inputMode="numeric"
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                stockQty === null ? 'bg-stone-100 text-stone-500' :
+                                stockQty === 0 ? 'bg-red-50 text-red-600' :
+                                'bg-green-50 text-green-700'
+                              }`}>
+                                {stockQty === null ? 'Unlimited' : stockQty === 0 ? 'Out of stock' : `${stockQty} in stock`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedStockId(isExpanded ? null : v.id!)}
+                                className="text-xs font-medium text-[#c96a3a] hover:underline"
+                              >
+                                {isExpanded ? 'Close' : 'Manage stock'}
+                              </button>
+                            </div>
+                          )}
+
+                          {persisted && isExpanded && (
+                            <VariantStockControls productId={product!.id} variantId={v.id!} stockQty={stockQty} />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 <p className="text-xs text-gray-400 mt-3">Blank price = use the product price. Blank stock = unlimited.</p>

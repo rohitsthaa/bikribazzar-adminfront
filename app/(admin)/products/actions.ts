@@ -174,6 +174,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
     deliveryFeeNpr: parseDeliveryFeeOverride(formData.get('deliveryFeeNpr') as string, isNew),
     tags: parseTags(formData.get('tags') as string),
     status: (formData.get('status') as 'draft' | 'active' | 'archived') || 'active',
+    variantAxis: parseOptionalStringWithClearSentinel(formData.get('variantAxis') as string, isNew) as 'size' | 'color' | 'style' | null | undefined,
   };
 
   // Variants (optional). Parsed from the hidden JSON field. Staff can't set
