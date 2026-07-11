@@ -220,6 +220,7 @@ export default function Sidebar({
   storeName,
   storeUrl,
   adminEmail,
+  siteType,
 }: {
   isSuper?: boolean;
   canSettings?: boolean;
@@ -229,6 +230,9 @@ export default function Sidebar({
   storeName?: string;
   storeUrl?: string | null;
   adminEmail?: string;
+  // Store.siteType — Portfolio/Services nav items only make sense (and only
+  // show) for stores actually on that site type; every other store hides them.
+  siteType?: string;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -422,6 +426,8 @@ export default function Sidebar({
               {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
               {group.map((item) => {
                 if ((item.href === '/settings' || item.href === '/settings/team' || item.href === '/billing') && !canSettings) return null;
+                if (item.href === '/portfolio' && siteType !== 'portfolio') return null;
+                if (item.href === '/services' && siteType !== 'business') return null;
                 // Per-admin tab restriction, set when this staff account was added/edited on
                 // the Team page. Dashboard and the three settings-gated items above are never
                 // subject to it — Dashboard is always the landing page, and Settings/Team/

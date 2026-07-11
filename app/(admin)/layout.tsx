@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getAdmin, can } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
 import StoreSwitcher from '@/components/StoreSwitcher';
-import { getStores } from '@/lib/api';
+import { getStores, getStore } from '@/lib/api';
 import { currentStoreId } from '@/lib/store-context';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isSuper = admin.role === 'super';
   const stores = isSuper ? await getStores().catch(() => []) : [];
   const current = await currentStoreId();
-  const currentStore = isSuper ? stores.find((s) => s.id === current) : null;
+  // Super admins already have every store's summary from getStores() above; a
+  // regular store admin is scoped to exactly one store, so its siteType (used
+  // to decide whether Portfolio/Services show in the sidebar) needs its own fetch.
+  const currentStore = isSuper
+    ? stores.find((s) => s.id === current)
+    : current
+    ? await getStore(current).catch(() => null)
+    : null;
   const storeName = currentStore?.name ?? (isSuper ? current : undefined);
 
   // Build the public storefront URL for the "View store" link in the sidebar.
@@ -63,6 +70,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         storeName={storeName}
         storeUrl={storeUrl}
         adminEmail={admin.email}
+        siteType={currentStore?.siteType}
       />
       <div className="flex-1 min-w-0 ml-0 md:ml-64">
         {!isPlatformRoute && (
