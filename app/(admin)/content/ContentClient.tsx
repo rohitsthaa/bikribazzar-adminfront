@@ -88,6 +88,7 @@ export default function ContentClient({
             <MarkdownEditor
               name="aboutBody"
               defaultValue={aboutBody}
+              onChange={setAboutBody}
               placeholder="Tell your story — who you are, how you make things, what drives you…"
               rows={6}
             />
@@ -136,6 +137,7 @@ export default function ContentClient({
             <MarkdownEditor
               name="customBody"
               defaultValue={customBody}
+              onChange={setCustomBody}
               placeholder="Describe how customers can enquire about bespoke or custom pieces…"
               rows={5}
             />
