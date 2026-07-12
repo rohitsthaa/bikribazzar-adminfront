@@ -1,0 +1,24 @@
+{
+  "projectId": "038423b9-220e-4eca-8b7a-3116f468b65b",
+  "shape": "package",
+  "pkg": "soul-thread-admin",
+  "globalName": "SoulThreadAdmin",
+  "tsconfig": "tsconfig.json",
+  "srcDir": "components",
+  "entry": ".ds-entry.ts",
+  "cssEntry": ".ds-compiled-globals.css",
+  "buildCmd": "npx tailwindcss -i ./app/globals.css -o ./.ds-compiled-globals.css --config ./tailwind.config.ts",
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "BikriMark": "components/BikriMark.tsx",
+    "EmptyState": "components/EmptyState.tsx",
+    "ImageUploader": "components/ImageUploader.tsx",
+    "MarkdownContent": "components/MarkdownContent.tsx",
+    "MarkdownEditor": "components/MarkdownEditor.tsx",
+    "ProductForm": "components/ProductForm.tsx",
+    "Sidebar": "components/Sidebar.tsx",
+    "StoreSwitcher": "components/StoreSwitcher.tsx",
+    "SubmitButton": "components/SubmitButton.tsx",
+    "VariantStockControls": "components/VariantStockControls.tsx"
+  }
+}
