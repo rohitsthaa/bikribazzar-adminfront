@@ -1,47 +1,27 @@
 import Link from 'next/link';
 import { getFinanceSummary, getSettings, type FinanceSummary } from '@/lib/api';
 import { IncomeExpenseChart, CategoryBreakdown } from './FinanceCharts';
+import {
+  FINANCE_RANGES, parseFinanceRange, financeRangeToParams, customRangeToParams, toDateInputValue,
+} from '@/lib/date-range';
 
 export const metadata = { title: 'Finance — Soul Thread Admin' };
-
-const RANGES = [
-  { key: '7d', label: '7 days' },
-  { key: '30d', label: '30 days' },
-  { key: '12m', label: '12 months' },
-  { key: 'ytd', label: 'Year to date' },
-] as const;
-
-type RangeKey = (typeof RANGES)[number]['key'];
-
-function rangeToParams(range: RangeKey): { from: string; groupBy: 'day' | 'month' | 'year' } {
-  const now = new Date();
-  switch (range) {
-    case '7d':
-      return { from: new Date(now.getTime() - 7 * 86400000).toISOString(), groupBy: 'day' };
-    case '12m':
-      return { from: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString(), groupBy: 'month' };
-    case 'ytd':
-      return { from: new Date(now.getFullYear(), 0, 1).toISOString(), groupBy: 'month' };
-    case '30d':
-    default:
-      return { from: new Date(now.getTime() - 30 * 86400000).toISOString(), groupBy: 'day' };
-  }
-}
 
 export default async function FinancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
-  const { range: rangeParam } = await searchParams;
-  const range: RangeKey = RANGES.some((r) => r.key === rangeParam) ? (rangeParam as RangeKey) : '30d';
-  const { from, groupBy } = rangeToParams(range);
+  const { range: rangeParam, from: fromParam, to: toParam } = await searchParams;
+  const isCustom = !!fromParam;
+  const range = parseFinanceRange(rangeParam);
+  const { from, to, groupBy } = isCustom ? customRangeToParams(fromParam!, toParam) : financeRangeToParams(range);
 
   let summary: FinanceSummary | null = null;
   let currency = 'NPR';
   try {
     [summary] = await Promise.all([
-      getFinanceSummary({ from, groupBy }),
+      getFinanceSummary({ from: from.toISOString(), to: to.toISOString(), groupBy }),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
   } catch {
@@ -89,19 +69,43 @@ export default async function FinancePage({
         </Link>
       </div>
 
-      {/* Range tabs */}
-      <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 w-fit">
-        {RANGES.map((r) => (
-          <Link
-            key={r.key}
-            href={`/finance?range=${r.key}`}
+      {/* Range tabs + custom date range */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 w-fit">
+          {FINANCE_RANGES.map((r) => (
+            <Link
+              key={r.key}
+              href={`/finance?range=${r.key}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                !isCustom && range === r.key ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {r.label}
+            </Link>
+          ))}
+        </div>
+
+        <form action="/finance" method="GET" className="flex items-center gap-2">
+          <input
+            type="date" name="from" defaultValue={isCustom ? fromParam : undefined}
+            max={toDateInputValue(new Date())}
+            className="border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+          />
+          <span className="text-xs text-stone-400">to</span>
+          <input
+            type="date" name="to" defaultValue={isCustom ? toParam : undefined}
+            max={toDateInputValue(new Date())}
+            className="border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+          />
+          <button
+            type="submit"
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              range === r.key ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              isCustom ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            {r.label}
-          </Link>
-        ))}
+            Custom
+          </button>
+        </form>
       </div>
 
       {/* Stat cards */}
@@ -125,7 +129,9 @@ export default async function FinancePage({
           <div className="mb-5">
             <h2 className="font-semibold text-stone-900">Income vs expenses</h2>
             <p className="text-xs text-stone-400 mt-0.5">
-              {RANGES.find((r) => r.key === range)?.label}
+              {isCustom
+                ? `${toDateInputValue(from)} to ${toDateInputValue(to)}`
+                : FINANCE_RANGES.find((r) => r.key === range)?.label}
             </p>
           </div>
           <IncomeExpenseChart data={summary?.timeline ?? []} currency={currency} />

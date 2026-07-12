@@ -4,6 +4,7 @@ import { RevenueChart, StatusDonut, TopProductsChart } from './DashboardCharts';
 import type { RevenueDay, StatusCount, TopProduct } from './DashboardCharts';
 import { IncomeExpenseChart, CategoryBreakdown } from '../finance/FinanceCharts';
 import EmptyState from '@/components/EmptyState';
+import { FINANCE_RANGES, parseFinanceRange, financeRangeToParams } from '@/lib/date-range';
 
 export const metadata = { title: 'Dashboard — Soul Thread Admin' };
 
@@ -24,7 +25,57 @@ function arrow(curr: number, prev: number) {
   return { diff, up: diff > 0 };
 }
 
-export default async function DashboardPage() {
+function inRange(o: Order, from: Date, to?: Date) {
+  const t = new Date(o.createdAt).getTime();
+  return t >= from.getTime() && (!to || t <= to.getTime());
+}
+
+/** Buckets active orders into the Revenue chart's day/month series over [from, to] —
+ * day bars for short ranges, month bars once the window is wide enough that daily bars
+ * would be unreadable (mirrors the Finance page's own groupBy rule). */
+function buildRevenueTimeline(activeOrders: Order[], from: Date, to: Date, bucket: 'day' | 'month'): RevenueDay[] {
+  if (bucket === 'day') {
+    const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86400000));
+    return Array.from({ length: days }, (_, i) => {
+      const d = new Date(from);
+      d.setDate(d.getDate() + i);
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+      const dayOrders = activeOrders.filter((o) => inRange(o, dayStart, dayEnd));
+      return {
+        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        revenue: dayOrders.reduce((s, o) => s + o.totalNpr, 0),
+        orders: dayOrders.length,
+      };
+    });
+  }
+  const result: RevenueDay[] = [];
+  let cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+  const end = new Date(to.getFullYear(), to.getMonth(), 1);
+  while (cursor <= end) {
+    const monthStart = cursor;
+    const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59);
+    const monthOrders = activeOrders.filter((o) => inRange(o, monthStart, monthEnd));
+    result.push({
+      date: cursor.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      revenue: monthOrders.reduce((s, o) => s + o.totalNpr, 0),
+      orders: monthOrders.length,
+    });
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+  return result;
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const { range: rangeParam } = await searchParams;
+  const range = parseFinanceRange(rangeParam);
+  const { from: rangeFrom, to: rangeTo, groupBy } = financeRangeToParams(range);
+  const rangeLabel = FINANCE_RANGES.find((r) => r.key === range)?.label ?? '30 days';
+
   let orders: Order[] = [];
   let allProducts: Product[] = [];
   let currency = 'NPR';
@@ -39,7 +90,7 @@ export default async function DashboardPage() {
       getOrders().then((o) => { orders = Array.isArray(o) ? o : (o as any).items ?? []; }).catch(() => {}),
       getProducts().then((p) => { allProducts = Array.isArray(p) ? p : (p as any).items ?? []; }).catch(() => {}),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
-      getFinanceSummary({ from: new Date(Date.now() - 30 * 86400000).toISOString(), groupBy: 'day' })
+      getFinanceSummary({ from: rangeFrom.toISOString(), to: rangeTo.toISOString(), groupBy })
         .then((s) => { finance = s; }).catch(() => {}),
     ]);
   } catch { /* show zeros */ }
@@ -66,11 +117,6 @@ export default async function DashboardPage() {
   const lastMonthStart = new Date(nowKTM.getFullYear(), nowKTM.getMonth() - 1, 1);
   const lastMonthEnd   = new Date(nowKTM.getFullYear(), nowKTM.getMonth(), 0, 23, 59, 59);
 
-  const inRange = (o: Order, from: Date, to?: Date) => {
-    const t = new Date(o.createdAt).getTime();
-    return t >= from.getTime() && (!to || t <= to.getTime());
-  };
-
   const active = orders.filter(o => o.status !== 'cancelled');
   const thisMonth  = active.filter(o => inRange(o, thisMonthStart));
   const lastMonth  = active.filter(o => inRange(o, lastMonthStart, lastMonthEnd));
@@ -87,20 +133,9 @@ export default async function DashboardPage() {
   const momRevenue        = arrow(thisMonthRevenue, lastMonthRevenue);
   const momOrders         = arrow(thisMonth.length, lastMonth.length);
 
-  // ── Revenue last 30 days ─────────────────────────────────────────────────────
-  const revenueByDay: RevenueDay[] = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(nowKTM);
-    d.setDate(d.getDate() - (29 - i));
-    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const dayEnd   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
-    const dayOrders = active.filter(o => inRange(o, dayStart, dayEnd));
-    return {
-      date: label,
-      revenue: dayOrders.reduce((s, o) => s + o.totalNpr, 0),
-      orders: dayOrders.length,
-    };
-  });
+  // ── Revenue over the selected range ──────────────────────────────────────────
+  const revenueTimeline = buildRevenueTimeline(active, rangeFrom, rangeTo, groupBy);
+  const rangeRevenue = revenueTimeline.reduce((s, d) => s + d.revenue, 0);
 
   // ── Orders by status ─────────────────────────────────────────────────────────
   const statusCounts: StatusCount[] = ['new', 'confirmed', 'shipped', 'delivered', 'cancelled'].map(s => ({
@@ -190,11 +225,30 @@ export default async function DashboardPage() {
     <main className="p-6 md:p-8 max-w-7xl space-y-8">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Dashboard</h1>
-        <p className="text-sm text-stone-400 mt-0.5">
-          {new Date().toLocaleDateString('en-US', { timeZone: TZ, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900">Dashboard</h1>
+          <p className="text-sm text-stone-400 mt-0.5">
+            {new Date().toLocaleDateString('en-US', { timeZone: TZ, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
+
+        {/* Range selector — drives the Financial snapshot and Revenue chart below.
+            Everything else (this month, avg order value, collected/outstanding, top
+            products, recent orders) is intentionally period-independent. */}
+        <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 w-fit">
+          {FINANCE_RANGES.map((r) => (
+            <Link
+              key={r.key}
+              href={`/dashboard?range=${r.key}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                range === r.key ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {r.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Stat cards */}
@@ -218,7 +272,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div>
             <h2 className="font-semibold text-stone-900">Financial snapshot</h2>
-            <p className="text-xs text-stone-400 mt-0.5">Income &amp; expenses, last 30 days — full bookkeeping, not just order totals</p>
+            <p className="text-xs text-stone-400 mt-0.5">Income &amp; expenses, {rangeLabel.toLowerCase()} — full bookkeeping, not just order totals</p>
           </div>
           <Link href="/finance" className="text-xs font-medium text-[#c96a3a] hover:text-[#b85f33] transition-colors">
             View full report →
@@ -265,11 +319,11 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-semibold text-stone-900">Revenue</h2>
-              <p className="text-xs text-stone-400 mt-0.5">Last 30 days</p>
+              <p className="text-xs text-stone-400 mt-0.5">{rangeLabel}</p>
             </div>
-            <span className="text-sm font-semibold text-stone-700">{currency} {totalRevenue.toLocaleString()}</span>
+            <span className="text-sm font-semibold text-stone-700">{currency} {rangeRevenue.toLocaleString()}</span>
           </div>
-          <RevenueChart data={revenueByDay} currency={currency} />
+          <RevenueChart data={revenueTimeline} currency={currency} />
         </div>
 
         {/* Status donut — 1/3 width */}

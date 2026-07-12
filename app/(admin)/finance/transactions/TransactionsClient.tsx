@@ -38,15 +38,28 @@ export default function TransactionsClient({ entries, categories, currency }: Pr
   const [, startTransition] = useTransition();
   const [formType, setFormType] = useState<'income' | 'expense'>('expense');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterCategoryId, setFilterCategoryId] = useState<'all' | number>('all');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
   const [showCategories, setShowCategories] = useState(false);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const activeCategories = categories.filter((c) => c.active && c.type === formType);
 
   const filteredEntries = useMemo(() => {
-    if (filterType === 'all') return entries;
-    return entries.filter((e) => e.type === filterType);
-  }, [entries, filterType]);
+    return entries.filter((e) => {
+      if (filterType !== 'all' && e.type !== filterType) return false;
+      if (filterCategoryId !== 'all' && e.categoryId !== filterCategoryId) return false;
+      if (filterFrom && e.occurredAt < `${filterFrom}T00:00:00`) return false;
+      if (filterTo && e.occurredAt > `${filterTo}T23:59:59`) return false;
+      return true;
+    });
+  }, [entries, filterType, filterCategoryId, filterFrom, filterTo]);
+
+  const hasActiveFilters = filterType !== 'all' || filterCategoryId !== 'all' || !!filterFrom || !!filterTo;
+  const clearFilters = () => {
+    setFilterType('all'); setFilterCategoryId('all'); setFilterFrom(''); setFilterTo('');
+  };
 
   return (
     <div className="space-y-8">
@@ -202,19 +215,54 @@ export default function TransactionsClient({ entries, categories, currency }: Pr
         </div>
       )}
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 w-fit">
-        {(['all', 'income', 'expense'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setFilterType(t)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
-              filterType === t ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            {t}
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 w-fit">
+          {(['all', 'income', 'expense'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilterType(t)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
+                filterType === t ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={filterCategoryId}
+          onChange={(e) => setFilterCategoryId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+        >
+          <option value="all">All categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)}
+            className="border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+          />
+          <span className="text-xs text-stone-400">to</span>
+          <input
+            type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)}
+            className="border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+          />
+        </div>
+
+        {hasActiveFilters && (
+          <button onClick={clearFilters} className="text-xs text-stone-400 hover:text-stone-700 transition-colors">
+            Clear filters
           </button>
-        ))}
+        )}
+
+        <span className="text-xs text-stone-400 ml-auto">
+          {filteredEntries.length} of {entries.length} shown
+        </span>
       </div>
 
       {/* Entries table */}
