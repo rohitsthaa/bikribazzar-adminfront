@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { getOrders, getProducts, getSettings, type Order, type Product } from '@/lib/api';
+import { getOrders, getProducts, getSettings, getFinanceSummary, type Order, type Product, type FinanceSummary } from '@/lib/api';
 import { RevenueChart, StatusDonut, TopProductsChart } from './DashboardCharts';
 import type { RevenueDay, StatusCount, TopProduct } from './DashboardCharts';
+import { IncomeExpenseChart, CategoryBreakdown } from '../finance/FinanceCharts';
 import EmptyState from '@/components/EmptyState';
 
 export const metadata = { title: 'Dashboard — Soul Thread Admin' };
@@ -27,12 +28,19 @@ export default async function DashboardPage() {
   let orders: Order[] = [];
   let allProducts: Product[] = [];
   let currency = 'NPR';
+  let finance: FinanceSummary = {
+    fromDate: '', toDate: '', groupBy: 'day',
+    totalIncomeNpr: 0, totalExpenseNpr: 0, netNpr: 0,
+    byCategory: [], timeline: [],
+  };
 
   try {
     await Promise.all([
       getOrders().then((o) => { orders = Array.isArray(o) ? o : (o as any).items ?? []; }).catch(() => {}),
       getProducts().then((p) => { allProducts = Array.isArray(p) ? p : (p as any).items ?? []; }).catch(() => {}),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
+      getFinanceSummary({ from: new Date(Date.now() - 30 * 86400000).toISOString(), groupBy: 'day' })
+        .then((s) => { finance = s; }).catch(() => {}),
     ]);
   } catch { /* show zeros */ }
 
@@ -203,6 +211,50 @@ export default async function DashboardPage() {
             <p className={`text-xs ${s.subColor}`}>{s.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Financial snapshot — profit & loss, not just order revenue */}
+      <div className="bg-white rounded-2xl border border-stone-200 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <h2 className="font-semibold text-stone-900">Financial snapshot</h2>
+            <p className="text-xs text-stone-400 mt-0.5">Income &amp; expenses, last 30 days — full bookkeeping, not just order totals</p>
+          </div>
+          <Link href="/finance" className="text-xs font-medium text-[#c96a3a] hover:text-[#b85f33] transition-colors">
+            View full report →
+          </Link>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 mb-6">
+          <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+            <p className="text-xs font-medium text-emerald-700 uppercase tracking-wide">Income</p>
+            <p className="text-lg font-bold text-emerald-800 mt-1">{currency} {finance.totalIncomeNpr.toLocaleString()}</p>
+          </div>
+          <div className="rounded-xl bg-red-50 border border-red-100 p-4">
+            <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Expenses</p>
+            <p className="text-lg font-bold text-red-700 mt-1">{currency} {finance.totalExpenseNpr.toLocaleString()}</p>
+          </div>
+          <div className={`rounded-xl border p-4 ${
+            finance.netNpr >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'
+          }`}>
+            <p className={`text-xs font-medium uppercase tracking-wide ${finance.netNpr >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+              Net profit
+            </p>
+            <p className={`text-lg font-bold mt-1 ${finance.netNpr >= 0 ? 'text-blue-800' : 'text-orange-800'}`}>
+              {finance.netNpr < 0 ? '-' : ''}{currency} {Math.abs(finance.netNpr).toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <IncomeExpenseChart data={finance.timeline} currency={currency} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-stone-400 uppercase tracking-wider mb-3">Top categories</p>
+            <CategoryBreakdown data={finance.byCategory} currency={currency} />
+          </div>
+        </div>
       </div>
 
       {/* Charts row */}
