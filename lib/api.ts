@@ -867,3 +867,92 @@ export function createSelfServeInvoice(storeId: string, planId: string) {
 export function patchInvoice(id: number, data: { status: 'paid' | 'void'; note?: string }) {
   return apiFetch<SubscriptionInvoiceView>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
+
+// ---- Finance / ledger ----
+
+export type FinanceCategory = {
+  id: number;
+  name: string;
+  type: 'income' | 'expense';
+  isDefault: boolean;
+  active: boolean;
+  createdAt: string;
+};
+
+export type LedgerEntry = {
+  id: number;
+  type: 'income' | 'expense';
+  categoryId: number;
+  amountNpr: number;
+  description: string | null;
+  source: 'manual' | 'order_payment';
+  sourcePaymentId: number | null;
+  orderId: number | null;
+  occurredAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FinanceSummary = {
+  fromDate: string;
+  toDate: string;
+  groupBy: 'day' | 'month' | 'year';
+  totalIncomeNpr: number;
+  totalExpenseNpr: number;
+  netNpr: number;
+  byCategory: { categoryId: number; categoryName: string; type: 'income' | 'expense'; amountNpr: number }[];
+  timeline: { period: string; incomeNpr: number; expenseNpr: number }[];
+};
+
+export function getFinanceCategories() {
+  return apiFetch<FinanceCategory[]>('/finance/categories');
+}
+
+export function createFinanceCategory(data: { name: string; type: 'income' | 'expense' }) {
+  return apiFetch<FinanceCategory>('/finance/categories', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateFinanceCategory(id: number, data: { name?: string; active?: boolean }) {
+  return apiFetch<FinanceCategory>(`/finance/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+export function deleteFinanceCategory(id: number) {
+  return apiFetch<{ ok: boolean }>(`/finance/categories/${id}`, { method: 'DELETE' });
+}
+
+export function getLedgerEntries(filters?: {
+  type?: 'income' | 'expense'; categoryId?: number; from?: string; to?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.type) params.set('type', filters.type);
+  if (filters?.categoryId) params.set('categoryId', String(filters.categoryId));
+  if (filters?.from) params.set('from', filters.from);
+  if (filters?.to) params.set('to', filters.to);
+  const qs = params.toString();
+  return apiFetch<LedgerEntry[]>(`/finance/entries${qs ? `?${qs}` : ''}`);
+}
+
+export function createLedgerEntry(data: {
+  type: 'income' | 'expense'; categoryId: number; amountNpr: number; description?: string; occurredAt?: string;
+}) {
+  return apiFetch<LedgerEntry>('/finance/entries', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateLedgerEntry(id: number, data: {
+  type: 'income' | 'expense'; categoryId: number; amountNpr: number; description?: string; occurredAt?: string;
+}) {
+  return apiFetch<LedgerEntry>(`/finance/entries/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+export function deleteLedgerEntry(id: number) {
+  return apiFetch<{ ok: boolean }>(`/finance/entries/${id}`, { method: 'DELETE' });
+}
+
+export function getFinanceSummary(params?: { from?: string; to?: string; groupBy?: 'day' | 'month' | 'year' }) {
+  const qs = new URLSearchParams();
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  if (params?.groupBy) qs.set('groupBy', params.groupBy);
+  const query = qs.toString();
+  return apiFetch<FinanceSummary>(`/finance/summary${query ? `?${query}` : ''}`);
+}
