@@ -6,6 +6,7 @@ import StatusUpdater from './StatusUpdater';
 import PaymentRecorder from './PaymentRecorder';
 import AdminNotes from './AdminNotes';
 import DeliveryEditor from './DeliveryEditor';
+import NcmShipping from './NcmShipping';
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -337,6 +338,15 @@ export default async function OrderDetailPage({ params }: Props) {
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
               <StatusUpdater orderId={id} currentStatus={order.status} />
             </div>
+
+            {/* Courier — NCM */}
+            <NcmShipping
+              orderId={id}
+              ncmOrderId={order.ncmOrderId}
+              ncmDestinationBranch={order.ncmDestinationBranch}
+              ncmTrackingStatus={order.ncmTrackingStatus}
+              remainingNpr={order.totalNpr + (order.deliveryFeeNpr ?? 0) - order.paidNpr}
+            />
 
             {/* Payment */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">

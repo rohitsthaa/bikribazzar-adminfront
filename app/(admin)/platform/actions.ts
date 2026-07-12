@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, createInvoice, patchInvoice, type StoreDeletionImpact } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, updateStoreCourierConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, createInvoice, patchInvoice, type StoreDeletionImpact } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -99,6 +99,27 @@ export async function updatePaymentConfigAction(fd: FormData) {
 
   try {
     await updateStorePaymentConfig(id, data);
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'digest' in e) throw e;
+    const msg = e instanceof Error ? e.message : 'Save failed';
+    redirect(`/platform/${id}?error=${encodeURIComponent(msg)}`);
+  }
+  revalidatePath(`/platform/${id}`);
+  redirect(`/platform/${id}?saved=1`);
+}
+
+export async function updateCourierConfigAction(fd: FormData) {
+  await assertSuper();
+  const id = str(fd, 'id');
+  const data: Record<string, unknown> = {
+    ncmEnabled: fd.get('ncmEnabled') === 'on',
+    ncmFromBranch: str(fd, 'ncmFromBranch'),
+  };
+  const ncmToken = str(fd, 'ncmToken');
+  if (ncmToken) data.ncmToken = ncmToken;
+
+  try {
+    await updateStoreCourierConfig(id, data);
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'digest' in e) throw e;
     const msg = e instanceof Error ? e.message : 'Save failed';

@@ -262,6 +262,9 @@ export type Order = {
   statusLog: Array<{ status: string; at: string }>;
   paymentMethod?: string | null;          // null | 'esewa' — how recorded payment was taken
   payments?: Payment[];                    // all payment attempts (detail endpoint only)
+  ncmOrderId?: number | null;             // set once shipped via NCM
+  ncmDestinationBranch?: string | null;
+  ncmTrackingStatus?: string | null;       // NCM's own status string, e.g. "Sent for Pickup"
   createdAt: string;
   updatedAt: string;
 };
@@ -369,6 +372,27 @@ export function getStorePaymentConfig(id: string) {
 }
 export function updateStorePaymentConfig(id: string, data: Record<string, unknown>) {
   return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/payment-config`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export type StoreCourierConfigView = {
+  ncm: { enabled: boolean; fromBranch: string; hasToken: boolean };
+};
+export function getStoreCourierConfig(id: string) {
+  return apiFetch<StoreCourierConfigView>(`/stores/${encodeURIComponent(id)}/courier-config`);
+}
+export function updateStoreCourierConfig(id: string, data: Record<string, unknown>) {
+  return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/courier-config`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export type NcmBranch = { name: string; district: string; region: string | null; phone: string | null };
+export function getNcmBranches() {
+  return apiFetch<NcmBranch[]>('/orders/ncm/branches');
+}
+export function shipOrderViaNcm(orderId: number, data: { toBranch: string; cod: boolean; deliveryType?: string; instruction?: string; weightKg?: number }) {
+  return apiFetch<Order>(`/orders/${orderId}/ship-ncm`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function syncNcmStatus(orderId: number) {
+  return apiFetch<Order>(`/orders/${orderId}/ncm-sync`, { method: 'POST' });
 }
 
 /** How much data a store has (products/orders) — shown as a warning before deleting. Never blocks deletion. */

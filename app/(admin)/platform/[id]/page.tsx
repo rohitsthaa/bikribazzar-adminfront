@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { getStore, getStorePaymentConfig, getStoreAdmins, getAllTemplates, getAllPlans, getStoreInvoices } from '@/lib/api';
+import { getStore, getStorePaymentConfig, getStoreCourierConfig, getStoreAdmins, getAllTemplates, getAllPlans, getStoreInvoices } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
-import { updateStoreAction, updatePaymentConfigAction } from '../actions';
+import { updateStoreAction, updatePaymentConfigAction, updateCourierConfigAction } from '../actions';
 import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import TemplateThemeClient from './TemplateThemeClient';
@@ -188,8 +188,9 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
   try { store = await getStore(id); } catch { notFound(); }
   if (!store) notFound();
 
-  const [pay, admins, allTemplates, allPlans, invoices] = await Promise.all([
+  const [pay, courier, admins, allTemplates, allPlans, invoices] = await Promise.all([
     getStorePaymentConfig(id).catch(() => null),
+    getStoreCourierConfig(id).catch(() => null),
     getStoreAdmins(id).catch(() => []),
     getAllTemplates().catch(() => []),
     getAllPlans().catch(() => []),
@@ -428,6 +429,41 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
           </div>
 
           <SaveBtn label="Save payment config" />
+        </form>
+      </SectionCard>
+
+      {/* ── Section 3b: Courier (NCM) ── */}
+      <SectionCard title="Courier — NCM (Nepal Can Move)" description="Vendor token is encrypted at rest and never shown once saved.">
+        <form action={updateCourierConfigAction} className="space-y-4">
+          <input type="hidden" name="id" value={store.id} />
+          <div className="rounded-xl border border-stone-100 p-5 space-y-4">
+            <ToggleField
+              name="ncmEnabled"
+              label="NCM"
+              description="Ship orders via NCM directly from the order detail page."
+              defaultChecked={courier?.ncm.enabled}
+            />
+            <div className="grid sm:grid-cols-2 gap-4 pt-1">
+              <div>
+                <Label>Pickup branch</Label>
+                <Input name="ncmFromBranch" defaultValue={courier?.ncm.fromBranch ?? ''} placeholder="e.g. TINKUNE" />
+              </div>
+              <div>
+                <Label>
+                  Vendor token
+                  {courier?.ncm.hasToken && (
+                    <span className="ml-1.5 text-emerald-600 font-normal">· set</span>
+                  )}
+                </Label>
+                <Input
+                  name="ncmToken"
+                  type="password"
+                  placeholder={courier?.ncm.hasToken ? '•••••• (leave blank to keep current)' : 'Paste NCM API token'}
+                />
+              </div>
+            </div>
+          </div>
+          <SaveBtn label="Save courier config" />
         </form>
       </SectionCard>
 
