@@ -30,7 +30,15 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`API ${path} → ${res.status}: ${text}`);
+    console.error(`API ${path} → ${res.status}: ${text}`);
+    let message = '';
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed?.error === 'string') message = parsed.error;
+    } catch {
+      // Non-JSON error body — fall through to the generic message below.
+    }
+    throw new Error(message || `Request failed (${res.status}).`);
   }
   return res.json() as Promise<T>;
 }
