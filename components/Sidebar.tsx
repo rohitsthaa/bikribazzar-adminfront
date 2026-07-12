@@ -108,6 +108,11 @@ const Icons = {
       <polyline points="15 18 9 12 15 6"/>
     </svg>
   ),
+  ChevronDown: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  ),
   Menu: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
@@ -121,34 +126,56 @@ const Icons = {
 };
 
 // ─── Nav data ─────────────────────────────────────────────────────────────────
+// Day-to-day items stay flat; everything else groups into a collapsible
+// dropdown so the sidebar doesn't read as a wall of 19 links.
 
-const STORE_NAV_GROUPS = [
-  [
-    { href: '/dashboard',    label: 'Dashboard',    Icon: Icons.Dashboard },
-    { href: '/orders',       label: 'Orders',       Icon: Icons.Orders },
-    { href: '/enquiries',    label: 'Enquiries',    Icon: Icons.Enquiries },
-    { href: '/customers',    label: 'Customers',    Icon: Icons.Customers },
-    { href: '/delivery',     label: 'Delivery',     Icon: Icons.Delivery },
-    { href: '/coupons',      label: 'Coupons',      Icon: Icons.Coupons },
-    { href: '/finance',      label: 'Finance',      Icon: Icons.Finance },
-  ],
-  [
-    { href: '/products',     label: 'Products',     Icon: Icons.Products },
-    { href: '/categories',   label: 'Categories',   Icon: Icons.Categories },
-    { href: '/gallery',      label: 'Gallery',      Icon: Icons.Gallery },
-    { href: '/content',      label: 'Content',      Icon: Icons.Content },
-    { href: '/blog',         label: 'Blog',         Icon: Icons.Blog },
-    { href: '/portfolio',    label: 'Portfolio',    Icon: Icons.Portfolio },
-    { href: '/services',     label: 'Services',     Icon: Icons.Services },
-  ],
-  [
-    { href: '/design',         label: 'Design',       Icon: Icons.Design },
-    { href: '/testimonials',   label: 'Testimonials', Icon: Icons.Testimonials },
-    { href: '/reviews',        label: 'Reviews',      Icon: Icons.Reviews },
-    { href: '/settings/team',  label: 'Team',         Icon: Icons.Team },
-    { href: '/settings',       label: 'Settings',     Icon: Icons.Settings },
-    { href: '/billing',        label: 'Billing',      Icon: Icons.Plans },
-  ],
+const STORE_NAV_FLAT = [
+  { href: '/dashboard', label: 'Dashboard', Icon: Icons.Dashboard },
+  { href: '/orders',    label: 'Orders',    Icon: Icons.Orders },
+  { href: '/customers', label: 'Customers', Icon: Icons.Customers },
+  { href: '/finance',   label: 'Finance',   Icon: Icons.Finance },
+];
+
+const STORE_NAV_DROPDOWNS = [
+  {
+    key: 'operations', label: 'Operations', Icon: Icons.Delivery,
+    items: [
+      { href: '/enquiries', label: 'Enquiries', Icon: Icons.Enquiries },
+      { href: '/delivery',  label: 'Delivery',  Icon: Icons.Delivery },
+    ],
+  },
+  {
+    key: 'catalog', label: 'Catalog', Icon: Icons.Products,
+    items: [
+      { href: '/products',   label: 'Products',   Icon: Icons.Products },
+      { href: '/categories', label: 'Categories', Icon: Icons.Categories },
+      { href: '/gallery',    label: 'Gallery',    Icon: Icons.Gallery },
+    ],
+  },
+  {
+    key: 'content', label: 'Content', Icon: Icons.Content,
+    items: [
+      { href: '/content',   label: 'Content',   Icon: Icons.Content },
+      { href: '/blog',      label: 'Blog',      Icon: Icons.Blog },
+      { href: '/portfolio', label: 'Portfolio', Icon: Icons.Portfolio },
+      { href: '/services',  label: 'Services',  Icon: Icons.Services },
+      { href: '/design',    label: 'Design',    Icon: Icons.Design },
+    ],
+  },
+  {
+    key: 'marketing', label: 'Marketing', Icon: Icons.Coupons,
+    items: [
+      { href: '/coupons',      label: 'Coupons',      Icon: Icons.Coupons },
+      { href: '/testimonials', label: 'Testimonials', Icon: Icons.Testimonials },
+      { href: '/reviews',      label: 'Reviews',      Icon: Icons.Reviews },
+    ],
+  },
+];
+
+const STORE_NAV_BOTTOM = [
+  { href: '/settings/team', label: 'Team',     Icon: Icons.Team },
+  { href: '/settings',      label: 'Settings',  Icon: Icons.Settings },
+  { href: '/billing',       label: 'Billing',   Icon: Icons.Plans },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -173,6 +200,49 @@ function StoreNavItem({ href, label, Icon, active }: {
       </span>
       {label}
     </Link>
+  );
+}
+
+function NavGroupDropdown({ label, Icon, items, open, onToggle, isActiveHref }: {
+  label: string;
+  Icon: () => JSX.Element;
+  items: { href: string; label: string; Icon: () => JSX.Element }[];
+  open: boolean;
+  onToggle: () => void;
+  isActiveHref: (href: string) => boolean;
+}) {
+  const hasActiveChild = items.some((it) => isActiveHref(it.href));
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+          hasActiveChild ? 'text-[#c96a3a]' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
+        }`}
+      >
+        <span className="flex-shrink-0 transition-transform duration-150 group-hover:scale-110">
+          <Icon />
+        </span>
+        <span className="flex-1 text-left">{label}</span>
+        <span className={`flex-shrink-0 text-stone-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}>
+          <Icons.ChevronDown />
+        </span>
+      </button>
+      {open && (
+        <div className="mt-0.5 ml-3 pl-3 border-l border-stone-100 space-y-0.5">
+          {items.map((item) => (
+            <StoreNavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              Icon={item.Icon}
+              active={isActiveHref(item.href)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -243,11 +313,39 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const isPlatformMode = isSuper && pathname.startsWith('/platform');
 
   // Auto-close sidebar when navigating
   useEffect(() => {
     setMobileOpen(false);
+  }, [pathname]);
+
+  const isActiveHref = (href: string) =>
+    href === '/settings' ? pathname === '/settings' : pathname === href || pathname.startsWith(href + '/');
+
+  // Per-admin tab restriction / site-type gating shared by flat items, dropdown
+  // items, and the bottom-pinned items.
+  const isNavItemVisible = (href: string) => {
+    if ((href === '/settings' || href === '/settings/team' || href === '/billing') && !canSettings) return false;
+    if (href === '/portfolio' && siteType !== 'portfolio') return false;
+    if (href === '/services' && siteType !== 'business') return false;
+    if (
+      allowedTabs &&
+      href !== '/dashboard' &&
+      href !== '/settings' &&
+      href !== '/settings/team' &&
+      href !== '/billing' &&
+      !allowedTabs.includes(href.slice(1))
+    ) return false;
+    return true;
+  };
+
+  // Auto-expand whichever dropdown contains the current route.
+  useEffect(() => {
+    const activeGroup = STORE_NAV_DROPDOWNS.find((g) => g.items.some((it) => isActiveHref(it.href)));
+    if (activeGroup) setOpenGroups((prev) => ({ ...prev, [activeGroup.key]: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   // Shared slide-in transition classes
@@ -428,42 +526,48 @@ export default function Sidebar({
         <div className="mx-4 border-t border-stone-100" />
 
         <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
-          {STORE_NAV_GROUPS.map((group, gi) => (
-            <div key={gi}>
-              {gi > 0 && <div className="my-2 mx-1 border-t border-stone-100" />}
-              {group.map((item) => {
-                if ((item.href === '/settings' || item.href === '/settings/team' || item.href === '/billing') && !canSettings) return null;
-                if (item.href === '/portfolio' && siteType !== 'portfolio') return null;
-                if (item.href === '/services' && siteType !== 'business') return null;
-                // Per-admin tab restriction, set when this staff account was added/edited on
-                // the Team page. Dashboard and the three settings-gated items above are never
-                // subject to it — Dashboard is always the landing page, and Settings/Team/
-                // Billing are already hard-gated by role via canSettings just above.
-                if (
-                  allowedTabs &&
-                  item.href !== '/dashboard' &&
-                  item.href !== '/settings' &&
-                  item.href !== '/settings/team' &&
-                  item.href !== '/billing' &&
-                  !allowedTabs.includes(item.href.slice(1))
-                ) return null;
-                // For /settings, don't match /settings/team as active (it has its own nav item)
-                const active = item.href === '/settings'
-                  ? pathname === '/settings'
-                  : pathname === item.href || pathname.startsWith(item.href + '/');
-                return (
-                  <StoreNavItem
-                    key={item.href}
-                    href={item.href}
-                    label={item.label}
-                    Icon={item.Icon}
-                    active={active}
-                  />
-                );
-              })}
-            </div>
+          {STORE_NAV_FLAT.filter((item) => isNavItemVisible(item.href)).map((item) => (
+            <StoreNavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              Icon={item.Icon}
+              active={isActiveHref(item.href)}
+            />
           ))}
+
+          <div className="my-2 mx-1 border-t border-stone-100" />
+
+          {STORE_NAV_DROPDOWNS.map((group) => {
+            const visibleItems = group.items.filter((item) => isNavItemVisible(item.href));
+            if (visibleItems.length === 0) return null;
+            return (
+              <NavGroupDropdown
+                key={group.key}
+                label={group.label}
+                Icon={group.Icon}
+                items={visibleItems}
+                open={!!openGroups[group.key]}
+                onToggle={() => setOpenGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                isActiveHref={isActiveHref}
+              />
+            );
+          })}
         </nav>
+
+        <div className="mx-4 border-t border-stone-100" />
+
+        <div className="px-3 py-2 space-y-0.5">
+          {STORE_NAV_BOTTOM.filter((item) => isNavItemVisible(item.href)).map((item) => (
+            <StoreNavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              Icon={item.Icon}
+              active={isActiveHref(item.href)}
+            />
+          ))}
+        </div>
 
         <div className="mx-4 border-t border-stone-100" />
 

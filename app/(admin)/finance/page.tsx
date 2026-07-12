@@ -212,7 +212,15 @@ export default async function FinancePage({
                     </td>
                     <td className="px-4 py-3 text-stone-700">{category?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-stone-500">
-                      {e.description || (e.orderId ? `Order #${e.orderId}` : '—')}
+                      {e.description || '—'}
+                      {e.orderId && (
+                        <>
+                          {e.description && ' · '}
+                          <Link href={`/orders/${e.orderId}`} className="text-[#c96a3a] hover:underline">
+                            Order #{e.orderId}
+                          </Link>
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
