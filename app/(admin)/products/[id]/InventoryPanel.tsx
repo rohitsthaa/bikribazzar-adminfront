@@ -72,7 +72,7 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 space-y-5">
+    <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-stone-900 text-sm uppercase tracking-wide">Inventory</h2>
         {/* Product-level stock pill (hidden when variants own all stock) */}
