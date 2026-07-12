@@ -11,6 +11,7 @@ const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 interface Props { searchParams: Promise<{ data?: string }> }
 
 async function verify(storeId: string, data: string) {
+  console.log(`[billing-return-esewa] Verifying — store=${storeId} data=${data}`);
   try {
     const res = await fetch(`${API_BASE}/payments/esewa/verify`, {
       method: 'POST',
@@ -18,8 +19,11 @@ async function verify(storeId: string, data: string) {
       body: JSON.stringify({ data }),
       cache: 'no-store',
     });
-    return await res.json();
-  } catch {
+    const body = await res.json();
+    console.log(`[billing-return-esewa] Verify response — store=${storeId} status=${res.status} body=${JSON.stringify(body)}`);
+    return body;
+  } catch (err) {
+    console.error(`[billing-return-esewa] Verify request failed — store=${storeId}`, err);
     return null;
   }
 }
@@ -33,11 +37,17 @@ export default async function EsewaBillingReturnPage({ searchParams }: Props) {
 
   const storeId = await currentStoreId();
   const data = (await searchParams).data;
+
+  console.log(`[billing-return-esewa] eSewa redirected back — store=${storeId} hasData=${!!data}`);
+
   const result = data ? await verify(storeId, data) : null;
 
   if (result?.ok && result.status === 'COMPLETE') {
+    console.log(`[billing-return-esewa] Payment complete — store=${storeId}, redirecting to /billing?upgraded=1`);
     redirect('/billing?upgraded=1');
   }
+
+  console.log(`[billing-return-esewa] Not yet confirmed complete — store=${storeId}, showing "confirming" page`);
 
   return (
     <main className="max-w-md mx-auto px-4 pt-24 pb-16 text-center space-y-6">
