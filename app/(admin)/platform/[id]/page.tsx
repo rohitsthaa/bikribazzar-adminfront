@@ -349,6 +349,18 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
         <form action={updatePaymentConfigAction} className="space-y-6">
           <input type="hidden" name="id" value={store.id} />
 
+          {store.isDemo && (
+            <div className="flex items-start gap-3 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 flex-shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <p className="text-xs text-indigo-800">
+                This is a demo store — eSewa checkout always uses the public sandbox credentials
+                below regardless of the mode/keys saved here, and Khalti is unavailable entirely.
+              </p>
+            </div>
+          )}
+
           {pay?.usingDefaults && (
             <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 flex-shrink-0 mt-0.5">
@@ -436,6 +448,17 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
       <SectionCard title="Courier — NCM (Nepal Can Move)" description="Vendor token is encrypted at rest and never shown once saved.">
         <form action={updateCourierConfigAction} className="space-y-4">
           <input type="hidden" name="id" value={store.id} />
+          {store.isDemo && (
+            <div className="flex items-start gap-3 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 flex-shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <p className="text-xs text-indigo-800">
+                This is a demo store — NCM shipments always go through NCM&apos;s demo/UAT server,
+                regardless of the platform&apos;s live NCM configuration.
+              </p>
+            </div>
+          )}
           <div className="rounded-xl border border-stone-100 p-5 space-y-4">
             <ToggleField
               name="ncmEnabled"
