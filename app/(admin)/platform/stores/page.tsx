@@ -16,8 +16,12 @@ export default async function PlatformStoresPage() {
   ]);
   const stores = overview?.stores ?? [];
 
-  const active    = stores.filter((s) => s.status === 'active').length;
-  const suspended = stores.filter((s) => s.status !== 'active').length;
+  // Same "isDemo flag OR '-demo' slug" fallback as StoresClient/PlatformOverview — see those
+  // for why the flag alone can't be trusted.
+  const liveStores = stores.filter((s) => !(s.isDemo || s.id.endsWith('-demo')));
+  const demoCount  = stores.length - liveStores.length;
+  const active    = liveStores.filter((s) => s.status === 'active').length;
+  const suspended = liveStores.filter((s) => s.status !== 'active').length;
 
   const platformDomain =
     process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
@@ -34,7 +38,8 @@ export default async function PlatformStoresPage() {
           </p>
           <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Stores</h1>
           <p className="text-sm text-stone-400 mt-1">
-            {stores.length} total · {active} active{suspended ? ` · ${suspended} suspended` : ''}
+            {liveStores.length} live · {active} active{suspended ? ` · ${suspended} suspended` : ''}
+            {demoCount > 0 ? ` · ${demoCount} demo` : ''}
           </p>
         </div>
         <NewStoreDialog allTemplates={allTemplates} />

@@ -29,18 +29,22 @@ function storeInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
+// The `isDemo` flag has to be set explicitly per store (Platform → store → Config → "Demo
+// store") and defaults to false at creation, so several template-preview stores never had it
+// flipped even though their slug makes it obvious. Falling back to the "-demo" slug suffix
+// means demo detection works immediately without depending on someone having remembered to
+// flip that toggle. Shared with PlatformOverview.tsx's identical fallback.
+function isDemoStore(s: StoreSummary): boolean {
+  return s.isDemo || s.id.endsWith('-demo');
+}
+
 // ─── Store row ────────────────────────────────────────────────────────────────
 
 function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: string }) {
   const color = storeColor(s.id);
   const initials = storeInitials(s.name);
   const lastOrder = fmtDate(s.lastOrderAt);
-  // The `isDemo` flag has to be set explicitly per store (Platform → store → Config →
-  // "Demo store") and defaults to false at creation — several template-preview stores here
-  // never had it set even though their slug makes it obvious. Falling back to the "-demo"
-  // slug suffix means the badge is right immediately, without depending on someone having
-  // remembered to flip that toggle.
-  const isDemo = s.isDemo || s.id.endsWith('-demo');
+  const isDemo = isDemoStore(s);
 
   const flags: { label: string; cls: string }[] = [];
   if (s.pending > 0)       flags.push({ label: `${s.pending} pending`,      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' });
@@ -81,19 +85,12 @@ function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: stri
               {s.status}
             </span>
           )}
-          {isDemo ? (
+          {isDemo && (
             <span
               className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-500"
               title={s.isDemo ? 'Excluded from platform-wide analytics totals' : 'Detected from "-demo" slug — flip "Demo store" in Config to make this official'}
             >
               Demo
-            </span>
-          ) : (
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600"
-              title="A real merchant store — counted in platform-wide analytics totals"
-            >
-              Live
             </span>
           )}
         </div>
@@ -188,13 +185,20 @@ function EmptyState({ query }: { query: string }) {
 // ─── Main client component ────────────────────────────────────────────────────
 
 export default function StoresClient({ stores, platformDomain }: { stores: StoreSummary[]; platformDomain: string }) {
-  const [query, setQuery]   = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'suspended' | 'deleted'>('all');
+  const [query, setQuery]     = useState('');
+  const [status, setStatus]   = useState<'all' | 'active' | 'suspended' | 'deleted'>('all');
+  const [showDemo, setShowDemo] = useState(false);
+
+  const demoCount = stores.filter(isDemoStore).length;
+  // Demo template-preview stores are hidden by default — they'll never have real payment
+  // config/orders, so they'd otherwise permanently clutter this list and the status tabs
+  // below. "Show demo stores" brings them back in alongside everything else.
+  const scoped = showDemo ? stores : stores.filter((s) => !isDemoStore(s));
 
   // "All" hides deleted stores by default — they're soft-deleted precisely so
   // they don't clutter the main view; the dedicated "Deleted" tab is where you
   // go to find and restore one.
-  const filtered = stores.filter((s) => {
+  const filtered = scoped.filter((s) => {
     const q = query.toLowerCase();
     const matchesQuery = !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
     const matchesStatus =
@@ -206,10 +210,10 @@ export default function StoresClient({ stores, platformDomain }: { stores: Store
   });
 
   const counts = {
-    all:       stores.filter((s) => s.status !== 'deleted').length,
-    active:    stores.filter((s) => s.status === 'active').length,
-    suspended: stores.filter((s) => s.status !== 'active' && s.status !== 'deleted').length,
-    deleted:   stores.filter((s) => s.status === 'deleted').length,
+    all:       scoped.filter((s) => s.status !== 'deleted').length,
+    active:    scoped.filter((s) => s.status === 'active').length,
+    suspended: scoped.filter((s) => s.status !== 'active' && s.status !== 'deleted').length,
+    deleted:   scoped.filter((s) => s.status === 'deleted').length,
   };
 
   return (
@@ -253,6 +257,22 @@ export default function StoresClient({ stores, platformDomain }: { stores: Store
             </button>
           ))}
         </div>
+
+        {/* Demo visibility toggle */}
+        {demoCount > 0 && (
+          <button
+            onClick={() => setShowDemo((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-150 flex-shrink-0 ${
+              showDemo
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
+            }`}
+            title={showDemo ? 'Hide demo stores' : 'Show demo stores too'}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${showDemo ? 'bg-indigo-400' : 'bg-stone-300'}`} />
+            {showDemo ? 'Showing' : 'Show'} demo ({demoCount})
+          </button>
+        )}
       </div>
 
       {/* Store list */}
@@ -268,7 +288,8 @@ export default function StoresClient({ stores, platformDomain }: { stores: Store
 
       {filtered.length > 0 && (
         <p className="text-xs text-stone-400 text-right">
-          {filtered.length} of {stores.length} store{stores.length !== 1 ? 's' : ''}
+          {filtered.length} of {scoped.length} store{scoped.length !== 1 ? 's' : ''}
+          {!showDemo && demoCount > 0 && ` (+${demoCount} demo hidden)`}
         </p>
       )}
     </div>
