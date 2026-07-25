@@ -120,7 +120,7 @@ export default function NcmShipping({
               >
                 <option value="">Select a branch…</option>
                 {branches.map((b) => (
-                  <option key={b.name} value={b.name}>{b.name} — {b.district}</option>
+                  <option key={b.name} value={b.name}>{b.district ? `${b.name} — ${b.district}` : b.name}</option>
                 ))}
               </select>
             )}
