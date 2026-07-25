@@ -31,6 +31,7 @@ export default async function ContentPage() {
         initialCustomTitle={settings.custom_title ?? ''}
         initialCustomBody={settings.custom_body ?? ''}
         initialCustomEnabled={settings.custom_enabled !== 'false'}
+        initialBlogEnabled={settings.blog_enabled !== 'false'}
       />
     </main>
   );

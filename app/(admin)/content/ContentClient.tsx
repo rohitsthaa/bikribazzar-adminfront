@@ -60,12 +60,14 @@ interface Props {
   initialCustomTitle: string;
   initialCustomBody: string;
   initialCustomEnabled: boolean;
+  initialBlogEnabled: boolean;
 }
 
 export default function ContentClient({
   initialAboutTitle, initialAboutBody, initialAboutImage, initialAboutEnabled,
   initialGalleryEnabled,
   initialCustomTitle, initialCustomBody, initialCustomEnabled,
+  initialBlogEnabled,
 }: Props) {
   // About
   const [aboutTitle, setAboutTitle] = useState(initialAboutTitle);
@@ -89,8 +91,12 @@ export default function ContentClient({
   const [customEnabled, setCustomEnabled] = useState(initialCustomEnabled);
   const [isPendingCustomToggle, startCustomToggle] = useTransition();
 
+  // Blog
+  const [blogEnabled, setBlogEnabled] = useState(initialBlogEnabled);
+  const [isPendingBlogToggle, startBlogToggle] = useTransition();
+
   function toggle(
-    page: 'about' | 'gallery' | 'custom',
+    page: 'about' | 'gallery' | 'custom' | 'blog',
     setEnabled: (v: boolean) => void,
     startTransition: (fn: () => Promise<void> | void) => void,
     next: boolean,
@@ -228,6 +234,21 @@ export default function ContentClient({
             {customError && <span className="text-sm text-red-600">{customError}</span>}
           </div>
         </form>
+      </Section>
+
+      {/* Blog */}
+      <Section
+        title="Blog"
+        hint="Shown at /blog — posts managed in the Blog section"
+        enabled={blogEnabled}
+        onToggle={(next) => toggle('blog', setBlogEnabled, startBlogToggle, next)}
+        togglePending={isPendingBlogToggle}
+      >
+        <p className="text-sm text-stone-500">
+          Blog posts are managed in the{' '}
+          <a href="/blog" className="text-[#c96a3a] hover:underline">Blog</a>{' '}
+          section. Write and publish posts there — they appear automatically on the blog page.
+        </p>
       </Section>
     </div>
   );

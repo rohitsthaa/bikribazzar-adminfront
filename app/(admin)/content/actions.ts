@@ -36,7 +36,7 @@ export async function saveCustomContent(title: string, body: string): Promise<{ 
   return {};
 }
 
-export async function savePageVisibility(page: 'about' | 'gallery' | 'custom', enabled: boolean): Promise<{ error?: string }> {
+export async function savePageVisibility(page: 'about' | 'gallery' | 'custom' | 'blog', enabled: boolean): Promise<{ error?: string }> {
   try {
     await assertCanSettings();
     await updateSetting(`${page}_enabled`, enabled ? 'true' : 'false');
