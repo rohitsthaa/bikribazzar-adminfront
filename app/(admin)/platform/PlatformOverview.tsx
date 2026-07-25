@@ -168,14 +168,22 @@ export default function PlatformOverview({ data }: { data: Data }) {
   const { totals, stores } = data;
   const now = Date.now();
 
+  // Same "isDemo flag OR '-demo' slug" fallback as the Stores list page — the flag has to be
+  // set explicitly per store and defaults to false, so several template-preview stores here
+  // never had it flipped even though they're obviously not real merchants. Needs-attention/
+  // lifecycle/digest/revenue-share are all "what needs my actual attention as a platform
+  // operator" views, so demo stores (which will always look unfinished — no payment config,
+  // no real orders) would otherwise permanently dominate them.
+  const realStores = stores.filter(s => !(s.isDemo || s.id.endsWith('-demo')));
+
   // Lifecycle segments
-  const active  = stores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() <= DAYS(7));
-  const growing = stores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() > DAYS(7) && now - new Date(s.lastOrderAt).getTime() <= DAYS(30));
-  const dormant = stores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() > DAYS(30));
-  const never   = stores.filter(s => !s.lastOrderAt);
+  const active  = realStores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() <= DAYS(7));
+  const growing = realStores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() > DAYS(7) && now - new Date(s.lastOrderAt).getTime() <= DAYS(30));
+  const dormant = realStores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() > DAYS(30));
+  const never   = realStores.filter(s => !s.lastOrderAt);
 
   // Needs attention
-  const attentionStores = stores.filter((s) =>
+  const attentionStores = realStores.filter((s) =>
     s.status !== 'active' || s.pending > 0 || s.lowStock > 0 || !s.hasPaymentConfig
   );
 
@@ -189,7 +197,7 @@ export default function PlatformOverview({ data }: { data: Data }) {
 
   // Revenue bar (only show if there's any revenue at all)
   const totalRev = totals.revenue;
-  const topStores = [...stores]
+  const topStores = [...realStores]
     .filter(s => s.revenue > 0)
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
@@ -215,7 +223,7 @@ export default function PlatformOverview({ data }: { data: Data }) {
           {
             label: 'Orders',
             value: totals.orders,
-            detail: totals.orders > 0 ? `across ${stores.filter(s => s.orderCount > 0).length} stores` : 'none yet',
+            detail: totals.orders > 0 ? `across ${realStores.filter(s => s.orderCount > 0).length} stores` : 'none yet',
             accent: '#0891b2',
             icon: (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -237,9 +245,9 @@ export default function PlatformOverview({ data }: { data: Data }) {
           },
           {
             label: 'Pending',
-            value: stores.reduce((acc, s) => acc + s.pending, 0),
-            detail: stores.reduce((acc, s) => acc + s.pending, 0) > 0
-              ? `across ${stores.filter(s => s.pending > 0).length} stores`
+            value: realStores.reduce((acc, s) => acc + s.pending, 0),
+            detail: realStores.reduce((acc, s) => acc + s.pending, 0) > 0
+              ? `across ${realStores.filter(s => s.pending > 0).length} stores`
               : 'all clear',
             accent: '#d97706',
             icon: (
