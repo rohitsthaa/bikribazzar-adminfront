@@ -419,6 +419,43 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   />
                 </div>
 
+                <div>
+                  <label className={fieldLabel}>Category</label>
+                  {categories.length > 0 ? (
+                    <select
+                      name="categoryId"
+                      defaultValue={product?.categoryId ?? categories[0]?.id}
+                      className={`${textInput} bg-white`}
+                    >
+                      {categories.filter((c) => c.parentId === null).map((parent) => {
+                        const children = categories.filter((c) => c.parentId === parent.id);
+                        if (children.length === 0) {
+                          return <option key={parent.id} value={parent.id}>{parent.label}</option>;
+                        }
+                        return (
+                          <optgroup key={parent.id} label={parent.label}>
+                            <option value={parent.id}>{parent.label} (all)</option>
+                            {children.map((child) => (
+                              <option key={child.id} value={child.id}>{child.label}</option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <div className={`${textInput} bg-gray-50 text-gray-500 flex items-center justify-between gap-2`}>
+                      <span>No categories yet</span>
+                      <Link
+                        href="/categories"
+                        target="_blank"
+                        className="text-[#c96a3a] font-medium hover:underline whitespace-nowrap"
+                      >
+                        + Add one
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
                 <div className="h-px bg-stone-100" />
 
                 <div>
@@ -542,62 +579,23 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   <SectionHeading icon={TAB_ICONS.pricing} title="Pricing" />
 
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={fieldLabel}>Category</label>
-                        {categories.length > 0 ? (
-                          <select
-                            name="categoryId"
-                            defaultValue={product?.categoryId ?? categories[0]?.id}
-                            className={`${textInput} bg-white`}
-                          >
-                            {categories.filter((c) => c.parentId === null).map((parent) => {
-                              const children = categories.filter((c) => c.parentId === parent.id);
-                              if (children.length === 0) {
-                                return <option key={parent.id} value={parent.id}>{parent.label}</option>;
-                              }
-                              return (
-                                <optgroup key={parent.id} label={parent.label}>
-                                  <option value={parent.id}>{parent.label} (all)</option>
-                                  {children.map((child) => (
-                                    <option key={child.id} value={child.id}>{child.label}</option>
-                                  ))}
-                                </optgroup>
-                              );
-                            })}
-                          </select>
-                        ) : (
-                          <div className={`${textInput} bg-gray-50 text-gray-500 flex items-center justify-between gap-2`}>
-                            <span>No categories yet</span>
-                            <Link
-                              href="/categories"
-                              target="_blank"
-                              className="text-[#c96a3a] font-medium hover:underline whitespace-nowrap"
-                            >
-                              + Add one
-                            </Link>
-                          </div>
-                        )}
+                    <div className="max-w-[240px]">
+                      <label className={fieldLabel}>Price (NPR)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
+                        <input
+                          name="priceNpr"
+                          type="number"
+                          min={0}
+                          defaultValue={product?.priceNpr ?? 0}
+                          placeholder="0"
+                          disabled={!canSetPrice}
+                          className={`${numInput} pl-10 text-base font-semibold disabled:bg-gray-100 disabled:text-gray-400`}
+                        />
                       </div>
-
-                      <div>
-                        <label className={fieldLabel}>Price (NPR)</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
-                          <input
-                            name="priceNpr"
-                            type="number"
-                            min={0}
-                            defaultValue={product?.priceNpr ?? 0}
-                            placeholder="0"
-                            disabled={!canSetPrice}
-                            className={`${numInput} pl-10 text-base font-semibold disabled:bg-gray-100 disabled:text-gray-400`}
-                          />
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {canSetPrice ? 'Set 0 for "price on request".' : 'Managed by the store owner.'}
-                        </p>
-                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {canSetPrice ? 'Set 0 for "price on request".' : 'Managed by the store owner.'}
+                      </p>
                     </div>
 
                     <div>
