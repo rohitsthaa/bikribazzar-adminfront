@@ -375,7 +375,7 @@ export function updateStorePaymentConfig(id: string, data: Record<string, unknow
 }
 
 export type StoreCourierConfigView = {
-  ncm: { enabled: boolean; fromBranch: string; hasToken: boolean };
+  ncm: { enabled: boolean; fromBranch: string; hasToken: boolean; webhookRegistered: boolean };
 };
 export function getStoreCourierConfig(id: string) {
   return apiFetch<StoreCourierConfigView>(`/stores/${encodeURIComponent(id)}/courier-config`);

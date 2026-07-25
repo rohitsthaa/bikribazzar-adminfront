@@ -462,6 +462,16 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                 />
               </div>
             </div>
+            {courier?.ncm.enabled && (
+              <p className="text-xs text-stone-400">
+                Status updates:{' '}
+                {courier.ncm.webhookRegistered ? (
+                  <span className="text-emerald-600">webhook registered — NCM pushes status changes automatically</span>
+                ) : (
+                  <span className="text-amber-600">webhook not registered — falling back to manual &quot;Sync status&quot; on each order</span>
+                )}
+              </p>
+            )}
           </div>
           <SaveBtn label="Save courier config" />
         </form>
