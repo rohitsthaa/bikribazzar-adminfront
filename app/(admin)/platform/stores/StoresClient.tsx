@@ -35,6 +35,12 @@ function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: stri
   const color = storeColor(s.id);
   const initials = storeInitials(s.name);
   const lastOrder = fmtDate(s.lastOrderAt);
+  // The `isDemo` flag has to be set explicitly per store (Platform → store → Config →
+  // "Demo store") and defaults to false at creation — several template-preview stores here
+  // never had it set even though their slug makes it obvious. Falling back to the "-demo"
+  // slug suffix means the badge is right immediately, without depending on someone having
+  // remembered to flip that toggle.
+  const isDemo = s.isDemo || s.id.endsWith('-demo');
 
   const flags: { label: string; cls: string }[] = [];
   if (s.pending > 0)       flags.push({ label: `${s.pending} pending`,      cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' });
@@ -75,12 +81,19 @@ function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: stri
               {s.status}
             </span>
           )}
-          {s.isDemo && (
+          {isDemo ? (
             <span
               className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-500"
-              title="Excluded from platform-wide analytics totals"
+              title={s.isDemo ? 'Excluded from platform-wide analytics totals' : 'Detected from "-demo" slug — flip "Demo store" in Config to make this official'}
             >
               Demo
+            </span>
+          ) : (
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600"
+              title="A real merchant store — counted in platform-wide analytics totals"
+            >
+              Live
             </span>
           )}
         </div>
