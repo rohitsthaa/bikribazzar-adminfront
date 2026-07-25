@@ -27,6 +27,8 @@ export default function NcmShipping({
   const [charge, setCharge] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   function handleBranchChange(next: string) {
     setToBranch(next);
@@ -67,10 +69,22 @@ export default function NcmShipping({
   }
 
   function handleSync() {
-    startTransition(async () => {
-      const res = await syncNcmStatusAction(orderId);
-      if ('error' in res) setError(res.error);
-    });
+    // Deliberately its own state, not the shared `isPending` transition — that one wasn't
+    // reliably flipping back to false after this action (network tab confirmed the request
+    // itself completes fine), and there was no positive confirmation on success either, which
+    // is why it looked stuck/like nothing was happening either way.
+    setSyncing(true);
+    setError(null);
+    setSynced(false);
+    syncNcmStatusAction(orderId)
+      .then((res) => {
+        if ('error' in res) setError(res.error);
+        else {
+          setSynced(true);
+          setTimeout(() => setSynced(false), 2000);
+        }
+      })
+      .finally(() => setSyncing(false));
   }
 
   if (ncmOrderId) {
@@ -87,10 +101,10 @@ export default function NcmShipping({
         {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
         <button
           onClick={handleSync}
-          disabled={isPending}
+          disabled={syncing}
           className="mt-4 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors disabled:opacity-50"
         >
-          {isPending ? 'Syncing…' : 'Sync status'}
+          {syncing ? 'Syncing…' : synced ? 'Synced ✓' : 'Sync status'}
         </button>
       </div>
     );
