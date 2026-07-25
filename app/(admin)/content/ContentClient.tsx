@@ -25,7 +25,7 @@ function PageToggle({ enabled, onChange, disabled }: { enabled: boolean; onChang
 }
 
 function Section({
-  title, hint, children, enabled, onToggle, togglePending,
+  title, hint, children, enabled, onToggle, togglePending, toggleSaved,
 }: {
   title: string;
   hint?: string;
@@ -33,6 +33,7 @@ function Section({
   enabled: boolean;
   onToggle: (next: boolean) => void;
   togglePending?: boolean;
+  toggleSaved?: boolean;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4">
@@ -42,7 +43,9 @@ function Section({
           {hint && <p className="text-xs text-stone-400 mt-0.5">{hint}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-0.5">
-          <span className="text-xs text-stone-400">{enabled ? 'Visible' : 'Hidden'}</span>
+          <span className="text-xs w-14 text-right text-stone-400">
+            {togglePending ? 'Saving…' : toggleSaved ? <span className="text-emerald-600">Saved ✓</span> : (enabled ? 'Visible' : 'Hidden')}
+          </span>
           <PageToggle enabled={enabled} onChange={onToggle} disabled={togglePending} />
         </div>
       </div>
@@ -77,10 +80,12 @@ export default function ContentClient({
   const [isPendingAbout, startAbout] = useTransition();
   const [aboutEnabled, setAboutEnabled] = useState(initialAboutEnabled);
   const [isPendingAboutToggle, startAboutToggle] = useTransition();
+  const [aboutToggleSaved, setAboutToggleSaved] = useState(false);
 
   // Gallery
   const [galleryEnabled, setGalleryEnabled] = useState(initialGalleryEnabled);
   const [isPendingGalleryToggle, startGalleryToggle] = useTransition();
+  const [galleryToggleSaved, setGalleryToggleSaved] = useState(false);
 
   // Custom
   const [customTitle, setCustomTitle] = useState(initialCustomTitle);
@@ -90,21 +95,27 @@ export default function ContentClient({
   const [isPendingCustom, startCustom] = useTransition();
   const [customEnabled, setCustomEnabled] = useState(initialCustomEnabled);
   const [isPendingCustomToggle, startCustomToggle] = useTransition();
+  const [customToggleSaved, setCustomToggleSaved] = useState(false);
 
   // Blog
   const [blogEnabled, setBlogEnabled] = useState(initialBlogEnabled);
   const [isPendingBlogToggle, startBlogToggle] = useTransition();
+  const [blogToggleSaved, setBlogToggleSaved] = useState(false);
 
   function toggle(
     page: 'about' | 'gallery' | 'custom' | 'blog',
     setEnabled: (v: boolean) => void,
     startTransition: (fn: () => Promise<void> | void) => void,
+    setSaved: (v: boolean) => void,
     next: boolean,
   ) {
     setEnabled(next); // optimistic
+    setSaved(false);
     startTransition(async () => {
       const res = await savePageVisibility(page, next);
-      if (res.error) setEnabled(!next); // revert on failure
+      if (res.error) { setEnabled(!next); return; } // revert on failure
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
     });
   }
 
@@ -139,8 +150,9 @@ export default function ContentClient({
         title="About page"
         hint="Shown at /about on your storefront"
         enabled={aboutEnabled}
-        onToggle={(next) => toggle('about', setAboutEnabled, startAboutToggle, next)}
+        onToggle={(next) => toggle('about', setAboutEnabled, startAboutToggle, setAboutToggleSaved, next)}
         togglePending={isPendingAboutToggle}
+        toggleSaved={aboutToggleSaved}
       >
         <form onSubmit={handleAbout} className="space-y-4">
           <div>
@@ -185,8 +197,9 @@ export default function ContentClient({
         title="Gallery page"
         hint="Shown at /gallery — images managed in the Gallery section"
         enabled={galleryEnabled}
-        onToggle={(next) => toggle('gallery', setGalleryEnabled, startGalleryToggle, next)}
+        onToggle={(next) => toggle('gallery', setGalleryEnabled, startGalleryToggle, setGalleryToggleSaved, next)}
         togglePending={isPendingGalleryToggle}
+        toggleSaved={galleryToggleSaved}
       >
         <p className="text-sm text-stone-500">
           Gallery images are managed in the{' '}
@@ -200,8 +213,9 @@ export default function ContentClient({
         title="Custom orders page"
         hint="Shown at /custom — for bespoke enquiries"
         enabled={customEnabled}
-        onToggle={(next) => toggle('custom', setCustomEnabled, startCustomToggle, next)}
+        onToggle={(next) => toggle('custom', setCustomEnabled, startCustomToggle, setCustomToggleSaved, next)}
         togglePending={isPendingCustomToggle}
+        toggleSaved={customToggleSaved}
       >
         <form onSubmit={handleCustom} className="space-y-4">
           <div>
@@ -241,8 +255,9 @@ export default function ContentClient({
         title="Blog"
         hint="Shown at /blog — posts managed in the Blog section"
         enabled={blogEnabled}
-        onToggle={(next) => toggle('blog', setBlogEnabled, startBlogToggle, next)}
+        onToggle={(next) => toggle('blog', setBlogEnabled, startBlogToggle, setBlogToggleSaved, next)}
         togglePending={isPendingBlogToggle}
+        toggleSaved={blogToggleSaved}
       >
         <p className="text-sm text-stone-500">
           Blog posts are managed in the{' '}
