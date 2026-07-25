@@ -35,3 +35,14 @@ export async function saveCustomContent(title: string, body: string): Promise<{ 
   }
   return {};
 }
+
+export async function savePageVisibility(page: 'about' | 'gallery' | 'custom', enabled: boolean): Promise<{ error?: string }> {
+  try {
+    await assertCanSettings();
+    await updateSetting(`${page}_enabled`, enabled ? 'true' : 'false');
+    revalidatePath('/content');
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to save.' };
+  }
+  return {};
+}
