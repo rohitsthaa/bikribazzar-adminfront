@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes, updateOrderDelivery, getNcmBranches, shipOrderViaNcm, syncNcmStatus } from '@/lib/api';
+import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes, updateOrderDelivery, getNcmBranches, getNcmShippingRate, shipOrderViaNcm, syncNcmStatus } from '@/lib/api';
 import type { Order, CreateAdminOrderPayload } from '@/lib/api';
 
 export async function updateStatusAction(orderId: string, status: Order['status'], deliveryFeeNpr?: number) {
@@ -62,6 +62,17 @@ export async function getNcmBranchesAction(): Promise<{ ok: true; branches: Awai
     return { ok: true, branches };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not load NCM branches' };
+  }
+}
+
+export async function getNcmShippingRateAction(
+  toBranch: string, deliveryType?: string
+): Promise<{ ok: true; charge: number } | { error: string }> {
+  try {
+    const { charge } = await getNcmShippingRate(toBranch, deliveryType);
+    return { ok: true, charge };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not fetch delivery charge' };
   }
 }
 

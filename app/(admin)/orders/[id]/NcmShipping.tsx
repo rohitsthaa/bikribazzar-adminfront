@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { getNcmBranchesAction, shipViaNcmAction, syncNcmStatusAction } from '../actions';
+import { getNcmBranchesAction, getNcmShippingRateAction, shipViaNcmAction, syncNcmStatusAction } from '../actions';
 import type { NcmBranch } from '@/lib/api';
 
 export default function NcmShipping({
@@ -24,6 +24,25 @@ export default function NcmShipping({
   const [cod, setCod] = useState(remainingNpr > 0);
   const [instruction, setInstruction] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [charge, setCharge] = useState<number | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
+
+  function handleBranchChange(next: string) {
+    setToBranch(next);
+    setCharge(null);
+    setRateError(null);
+    if (!next) return;
+    setRateLoading(true);
+    // Fire-and-forget, deliberately outside the shared isPending transition — this is an
+    // advisory preview (NCM's own quoted delivery charge for this branch/type), not something
+    // the ship action depends on, so it shouldn't disable Confirm while it loads.
+    getNcmShippingRateAction(next).then((res) => {
+      setRateLoading(false);
+      if ('error' in res) setRateError(res.error);
+      else setCharge(res.charge);
+    });
+  }
 
   function openForm() {
     setOpen(true);
@@ -96,7 +115,7 @@ export default function NcmShipping({
             ) : (
               <select
                 value={toBranch}
-                onChange={(e) => setToBranch(e.target.value)}
+                onChange={(e) => handleBranchChange(e.target.value)}
                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
               >
                 <option value="">Select a branch…</option>
@@ -104,6 +123,17 @@ export default function NcmShipping({
                   <option key={b.name} value={b.name}>{b.name} — {b.district}</option>
                 ))}
               </select>
+            )}
+            {toBranch && (
+              <p className="text-xs mt-1.5">
+                {rateLoading ? (
+                  <span className="text-stone-400">Fetching delivery charge…</span>
+                ) : rateError ? (
+                  <span className="text-red-600">{rateError}</span>
+                ) : charge !== null ? (
+                  <span className="text-stone-500">Delivery fee (NCM): <span className="font-medium text-stone-800">NPR {charge.toLocaleString()}</span></span>
+                ) : null}
+              </p>
             )}
           </div>
           <label className="flex items-center gap-2 text-sm text-stone-600">

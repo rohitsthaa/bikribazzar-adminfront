@@ -388,6 +388,10 @@ export type NcmBranch = { name: string; district: string; region: string | null;
 export function getNcmBranches() {
   return apiFetch<NcmBranch[]>('/orders/ncm/branches');
 }
+export function getNcmShippingRate(toBranch: string, deliveryType?: string) {
+  const params = new URLSearchParams({ toBranch, ...(deliveryType ? { deliveryType } : {}) });
+  return apiFetch<{ charge: number }>(`/orders/ncm/shipping-rate?${params.toString()}`);
+}
 export function shipOrderViaNcm(orderId: number, data: { toBranch: string; cod: boolean; deliveryType?: string; instruction?: string; weightKg?: number }) {
   return apiFetch<Order>(`/orders/${orderId}/ship-ncm`, { method: 'POST', body: JSON.stringify(data) });
 }
