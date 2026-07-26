@@ -4,6 +4,12 @@ import { useState, useTransition } from 'react';
 import { getNcmBranchesAction, getNcmShippingRateAction, shipViaNcmAction, syncNcmStatusAction } from '../actions';
 import type { NcmBranch } from '@/lib/api';
 
+// Matches NcmService.ResolveBaseUrl's own default on the API side — every store currently
+// resolves to NCM's demo/UAT host (NCM_BASE_URL is unset everywhere so far). If a real store
+// ever gets pointed at NCM's production host via that env var, this link would need the actual
+// per-store base URL threaded down from the server instead of this hardcoded default.
+const NCM_PORTAL_BASE_URL = 'https://demo.nepalcanmove.com';
+
 export default function NcmShipping({
   orderId,
   ncmOrderId,
@@ -92,7 +98,17 @@ export default function NcmShipping({
       <div className="bg-white rounded-2xl border border-stone-200 p-5">
         <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Courier — NCM</h2>
         <div className="space-y-2 text-sm">
-          <p className="text-stone-500">NCM order <span className="font-medium text-stone-900">#{ncmOrderId}</span></p>
+          <p className="text-stone-500">
+            NCM order{' '}
+            <a
+              href={`${NCM_PORTAL_BASE_URL}/accounts/vendor/order/${ncmOrderId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#c96a3a] hover:underline"
+            >
+              #{ncmOrderId} ↗
+            </a>
+          </p>
           {ncmDestinationBranch && <p className="text-stone-500">To: <span className="text-stone-900">{ncmDestinationBranch}</span></p>}
           <p className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-purple-200">
             {ncmTrackingStatus ?? 'Pending'}
