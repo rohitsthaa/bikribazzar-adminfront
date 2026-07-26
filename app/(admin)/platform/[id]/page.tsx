@@ -454,8 +454,11 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <p className="text-xs text-indigo-800">
-                This is a demo store — NCM shipments always go through NCM&apos;s demo/UAT server,
-                regardless of the platform&apos;s live NCM configuration.
+                This is a demo store — NCM shipments go through NCM&apos;s demo/UAT server by
+                default, regardless of the platform&apos;s live NCM configuration. The
+                &quot;Use real NCM host&quot; toggle below overrides that for testing — it does
+                nothing on its own unless <code className="font-mono">NCM_BASE_URL</code> is also
+                set to the real host in this environment.
               </p>
             </div>
           )}
@@ -466,6 +469,14 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               description="Ship orders via NCM directly from the order detail page."
               defaultChecked={courier?.ncm.enabled}
             />
+            {store.isDemo && (
+              <ToggleField
+                name="ncmForceRealHost"
+                label="Use real NCM host (testing only)"
+                description="Bypasses the demo-host safety override for this store. Doesn't affect eSewa/Khalti, which stay sandboxed/blocked regardless."
+                defaultChecked={courier?.ncm.forceRealHost}
+              />
+            )}
             <div className="grid sm:grid-cols-2 gap-4 pt-1">
               <div>
                 <Label>Pickup branch</Label>

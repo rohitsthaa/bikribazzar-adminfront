@@ -114,6 +114,7 @@ export async function updateCourierConfigAction(fd: FormData) {
   const data: Record<string, unknown> = {
     ncmEnabled: fd.get('ncmEnabled') === 'on',
     ncmFromBranch: str(fd, 'ncmFromBranch'),
+    ncmForceRealHost: fd.get('ncmForceRealHost') === 'on',
   };
   const ncmToken = str(fd, 'ncmToken');
   if (ncmToken) data.ncmToken = ncmToken;
