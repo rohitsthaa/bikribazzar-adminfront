@@ -4,9 +4,11 @@ import CourierClient from './CourierClient';
 export const metadata = { title: 'Courier — Soul Thread Admin' };
 
 export default async function CourierPage() {
+  let branchesError: string | null = null;
+  let pricingError: string | null = null;
   const [branches, pricing] = await Promise.all([
-    getNcmBranches().catch(() => null),
-    getNcmPricingList().catch(() => null),
+    getNcmBranches().catch((e) => { branchesError = e instanceof Error ? e.message : 'Could not load branches'; return null; }),
+    getNcmPricingList().catch((e) => { pricingError = e instanceof Error ? e.message : 'Could not load price list'; return null; }),
   ]);
 
   return (
@@ -23,7 +25,7 @@ export default async function CourierPage() {
         </div>
       </div>
 
-      <CourierClient branches={branches} pricing={pricing} />
+      <CourierClient branches={branches} branchesError={branchesError} pricing={pricing} pricingError={pricingError} />
     </main>
   );
 }

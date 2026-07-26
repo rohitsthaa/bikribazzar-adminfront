@@ -15,7 +15,7 @@ function ErrorNote({ message }: { message: string }) {
   );
 }
 
-function BranchesTab({ branches }: { branches: NcmBranch[] | null }) {
+function BranchesTab({ branches, error }: { branches: NcmBranch[] | null; error: string | null }) {
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -30,7 +30,7 @@ function BranchesTab({ branches }: { branches: NcmBranch[] | null }) {
   }, [branches, query]);
 
   if (!branches) {
-    return <ErrorNote message="Could not load NCM's branch list — this is a public endpoint, so a failure here likely means NCM's server is unreachable, not a config issue." />;
+    return <ErrorNote message={error || "Could not load NCM's branch list."} />;
   }
 
   return (
@@ -73,7 +73,7 @@ function BranchesTab({ branches }: { branches: NcmBranch[] | null }) {
   );
 }
 
-function PriceListTab({ pricing }: { pricing: { fromBranch: string; rates: NcmPricingRate[] } | null }) {
+function PriceListTab({ pricing, error }: { pricing: { fromBranch: string; rates: NcmPricingRate[] } | null; error: string | null }) {
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -84,9 +84,7 @@ function PriceListTab({ pricing }: { pricing: { fromBranch: string; rates: NcmPr
   }, [pricing, query]);
 
   if (!pricing) {
-    return (
-      <ErrorNote message='NCM is not configured for this store (or the vendor token is invalid) — set it up in Platform → Config → Courier before a price list can be fetched. Unlike the branch directory, this endpoint requires a valid vendor token.' />
-    );
+    return <ErrorNote message={error || 'Could not load the NCM price list.'} />;
   }
 
   return (
@@ -134,10 +132,12 @@ function PriceListTab({ pricing }: { pricing: { fromBranch: string; rates: NcmPr
 }
 
 export default function CourierClient({
-  branches, pricing,
+  branches, branchesError, pricing, pricingError,
 }: {
   branches: NcmBranch[] | null;
+  branchesError: string | null;
   pricing: { fromBranch: string; rates: NcmPricingRate[] } | null;
+  pricingError: string | null;
 }) {
   const [tab, setTab] = useState<'branches' | 'pricing'>('branches');
 
@@ -160,7 +160,9 @@ export default function CourierClient({
         ))}
       </div>
 
-      {tab === 'branches' ? <BranchesTab branches={branches} /> : <PriceListTab pricing={pricing} />}
+      {tab === 'branches'
+        ? <BranchesTab branches={branches} error={branchesError} />
+        : <PriceListTab pricing={pricing} error={pricingError} />}
     </div>
   );
 }
