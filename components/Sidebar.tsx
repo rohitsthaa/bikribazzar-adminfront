@@ -142,6 +142,7 @@ const STORE_NAV_DROPDOWNS = [
     items: [
       { href: '/enquiries', label: 'Enquiries', Icon: Icons.Enquiries },
       { href: '/delivery',  label: 'Delivery',  Icon: Icons.Delivery },
+      { href: '/courier',   label: 'Courier',   Icon: Icons.Orders },
     ],
   },
   {

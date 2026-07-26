@@ -384,13 +384,17 @@ export function updateStoreCourierConfig(id: string, data: Record<string, unknow
   return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/courier-config`, { method: 'PUT', body: JSON.stringify(data) });
 }
 
-export type NcmBranch = { name: string; district: string; region: string | null; phone: string | null };
+export type NcmBranch = { pk: number; name: string; district: string | null; province: string | null; phone: string | null };
 export function getNcmBranches() {
   return apiFetch<NcmBranch[]>('/orders/ncm/branches');
 }
 export function getNcmShippingRate(toBranch: string, deliveryType?: string) {
   const params = new URLSearchParams({ toBranch, ...(deliveryType ? { deliveryType } : {}) });
   return apiFetch<{ charge: number }>(`/orders/ncm/shipping-rate?${params.toString()}`);
+}
+export type NcmPricingRate = { toBranch: string; doorCharge: number; branchCharge: number };
+export function getNcmPricingList() {
+  return apiFetch<{ fromBranch: string; rates: NcmPricingRate[] }>('/orders/ncm/pricing-list');
 }
 export function shipOrderViaNcm(orderId: number, data: { toBranch: string; cod: boolean; deliveryType?: string; instruction?: string; weightKg?: number }) {
   return apiFetch<Order>(`/orders/${orderId}/ship-ncm`, { method: 'POST', body: JSON.stringify(data) });

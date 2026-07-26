@@ -150,21 +150,28 @@ export default function NcmShipping({
               >
                 <option value="">Select a branch…</option>
                 {branches.map((b) => (
-                  <option key={b.name} value={b.name}>{b.district ? `${b.name} — ${b.district}` : b.name}</option>
+                  <option key={b.pk} value={b.name}>
+                    {[b.name, [b.district, b.province].filter(Boolean).join(', ')].filter(Boolean).join(' — ')}
+                  </option>
                 ))}
               </select>
             )}
-            {toBranch && (
-              <p className="text-xs mt-1.5">
-                {rateLoading ? (
-                  <span className="text-stone-400">Fetching delivery charge…</span>
-                ) : rateError ? (
-                  <span className="text-red-600">{rateError}</span>
-                ) : charge !== null ? (
-                  <span className="text-stone-500">Delivery fee (NCM): <span className="font-medium text-stone-800">NPR {charge.toLocaleString()}</span></span>
-                ) : null}
-              </p>
-            )}
+            {toBranch && (() => {
+              const selected = branches?.find((b) => b.name === toBranch);
+              const location = selected ? [selected.district, selected.province].filter(Boolean).join(', ') : '';
+              return (
+                <p className="text-xs mt-1.5 space-y-0.5">
+                  {location && <span className="block text-stone-400">{location}</span>}
+                  {rateLoading ? (
+                    <span className="block text-stone-400">Fetching delivery charge…</span>
+                  ) : rateError ? (
+                    <span className="block text-red-600">{rateError}</span>
+                  ) : charge !== null ? (
+                    <span className="block text-stone-500">Delivery fee (NCM): <span className="font-medium text-stone-800">NPR {charge.toLocaleString()}</span></span>
+                  ) : null}
+                </p>
+              );
+            })()}
           </div>
           <label className="flex items-center gap-2 text-sm text-stone-600">
             <input type="checkbox" checked={cod} onChange={(e) => setCod(e.target.checked)} />
