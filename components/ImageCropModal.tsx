@@ -18,11 +18,18 @@ type Props = {
   // cross-origin URL or the canvas export below will be tainted and throw.
   imageSrc: string;
   templateId?: string;
+  // 'product' (primary/gallery images): previews show the shop-grid card
+  // and the product page, since that's everywhere those images appear.
+  // 'variant': variant photos never show on the card — on the storefront
+  // they render as a round color/style swatch (components/ProductActions.tsx,
+  // 44px circle) and, once selected, swap into the same 4:5 product-page
+  // photo. So the first preview becomes a circular swatch instead.
+  mode?: 'product' | 'variant';
   onCancel: () => void;
   onSave: (blob: Blob) => void;
 };
 
-export default function ImageCropModal({ imageSrc, templateId, onCancel, onSave }: Props) {
+export default function ImageCropModal({ imageSrc, templateId, mode = 'product', onCancel, onSave }: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [areaPixels, setAreaPixels] = useState<CropPixels | null>(null);
@@ -112,7 +119,11 @@ export default function ImageCropModal({ imageSrc, templateId, onCancel, onSave 
           <div>
             <p className="text-xs font-medium text-stone-500 mb-2">How this will look on your storefront</p>
             <div className="flex gap-4">
-              <PreviewBox label="Shop grid card" aspect={cardAspect} url={previewUrl} />
+              {mode === 'variant' ? (
+                <PreviewBox label="Color/style swatch" aspect="1/1" shape="circle" boxClassName="max-w-[88px]" url={previewUrl} />
+              ) : (
+                <PreviewBox label="Shop grid card" aspect={cardAspect} url={previewUrl} />
+              )}
               <PreviewBox label="Product page" aspect={DETAIL_ASPECT} url={previewUrl} />
             </div>
           </div>
@@ -138,16 +149,25 @@ export default function ImageCropModal({ imageSrc, templateId, onCancel, onSave 
   );
 }
 
-function PreviewBox({ label, aspect, url }: { label: string; aspect: string; url: string }) {
+function PreviewBox({ label, aspect, url, shape = 'rect', boxClassName }: {
+  label: string;
+  aspect: string;
+  url: string;
+  shape?: 'rect' | 'circle';
+  boxClassName?: string;
+}) {
   return (
-    <div className="flex-1">
-      <div className="w-full rounded-lg border border-stone-200 bg-stone-100 overflow-hidden" style={{ aspectRatio: aspect }}>
+    <div className={boxClassName ? '' : 'flex-1'}>
+      <div
+        className={`border border-stone-200 bg-stone-100 overflow-hidden ${shape === 'circle' ? 'rounded-full' : 'rounded-lg'} ${boxClassName ?? 'w-full'}`}
+        style={{ aspectRatio: aspect }}
+      >
         {url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt="" className="w-full h-full object-cover" />
         )}
       </div>
-      <p className="text-xs text-stone-400 mt-1 text-center">{label} · {aspect}</p>
+      <p className="text-xs text-stone-400 mt-1 text-center">{label}{shape === 'rect' && ` · ${aspect}`}</p>
     </div>
   );
 }

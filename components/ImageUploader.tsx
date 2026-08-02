@@ -107,14 +107,18 @@ export default function ImageUploader({ value, onChange, enableCrop = false, tem
   }
 
   return (
-    // Capped at max-w-sm: the 16:9 drop zone below scales with this wrapper's
+    // Capped at max-w-sm: the drop zone below scales with this wrapper's
     // width, and this component gets reused in both narrow sidebars (product
     // image rail) and full-width form cards (Gallery's "Add Image", Settings).
-    // Without a cap, the same box that's a sensible ~140px tall in a 260px
-    // sidebar stretches to 600px+ tall in a 1000px-wide card — a huge empty
-    // rectangle for what's meant to be a compact upload control.
+    // Without a cap, the same box that's a sensible height in a 260px sidebar
+    // stretches huge in a 1000px-wide card — an oversized empty rectangle for
+    // what's meant to be a compact upload control.
     <div className="space-y-3 max-w-sm">
-      {/* Drop zone / preview */}
+      {/* Drop zone / preview — 4:5 for product images (enableCrop) so this
+          preview matches how it actually shows on the storefront (the product
+          page is 4:5 + object-cover on every template) instead of a generic
+          16:9 box that doesn't reflect the real crop at all. Other uploaders
+          (blog, portfolio, logo/QR etc.) keep the original 16:9 box. */}
       <div
         onClick={() => !value && inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -127,7 +131,7 @@ export default function ImageUploader({ value, onChange, enableCrop = false, tem
             ? 'border-stone-400 bg-stone-50 cursor-copy'
             : 'border-dashed border-gray-300 bg-gray-50 hover:border-stone-400 hover:bg-stone-50 cursor-pointer'
         }`}
-        style={{ aspectRatio: '16/9' }}
+        style={{ aspectRatio: enableCrop ? '4/5' : '16/9' }}
       >
         {value ? (
           <>

@@ -96,7 +96,11 @@ function SectionHeading({ icon, title, subtitle }: { icon: string; title: string
 // Compact 40×40 thumbnail uploader for a single variant row — e.g. a photo of
 // that color. Full-size ImageUploader (with its drop zone + URL field) is too
 // tall to fit inline in the variant table, so this reuses the same /api/upload
-// endpoint with a much smaller control.
+// endpoint with a much smaller control. Rendered as a circle (rounded-full),
+// matching the actual round color/style swatch this becomes on the storefront
+// (components/ProductActions.tsx, 44px circle) — a square admin thumbnail for
+// a circular storefront swatch would misrepresent framing the same way the
+// crop tool was built to prevent for the primary image.
 function VariantImageCell({ value, onChange, templateId }: { value: string; onChange: (url: string) => void; templateId?: string }) {
   const [uploading, setUploading] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -131,7 +135,7 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
         type="button"
         onClick={() => inputRef.current?.click()}
         title={value ? 'Replace variant photo' : 'Add variant photo'}
-        className="w-10 h-10 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-[#c96a3a]/50 transition-colors"
+        className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-[#c96a3a]/50 transition-colors"
       >
         {uploading ? (
           <svg className="w-4 h-4 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
@@ -172,6 +176,7 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
         <ImageCropModal
           imageSrc={cropSrc}
           templateId={templateId}
+          mode="variant"
           onCancel={closeCrop}
           onSave={handleCropSave}
         />
