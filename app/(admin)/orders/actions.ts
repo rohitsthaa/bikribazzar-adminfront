@@ -37,8 +37,11 @@ export async function saveAdminNotesAction(
 export async function saveDeliveryAction(
   orderId: string,
   data: {
-    deliveryArea: string;
-    address: string;
+    // Optional so callers that only want to set the fee (e.g. the Payment card's NCM
+    // branch lookup) can send just `{ deliveryFee }` without touching address fields —
+    // the API only overwrites a field when it's actually present in the request body.
+    deliveryArea?: string;
+    address?: string;
     landmark?: string;
     province?: string;
     district?: string;

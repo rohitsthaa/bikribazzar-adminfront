@@ -6,6 +6,7 @@ import StatusUpdater from './StatusUpdater';
 import PaymentRecorder from './PaymentRecorder';
 import AdminNotes from './AdminNotes';
 import DeliveryEditor from './DeliveryEditor';
+import DeliveryFeeResolver from './DeliveryFeeResolver';
 import NcmShipping from './NcmShipping';
 
 interface Props { params: Promise<{ id: string }> }
@@ -394,6 +395,12 @@ export default async function OrderDetailPage({ params }: Props) {
                         <span>Free</span>
                       </div>
                     )}
+                    <DeliveryFeeResolver
+                      orderId={id}
+                      currentDeliveryFee={order.deliveryFee}
+                      deliveryFeePending={order.deliveryFeePending}
+                      currency={currency}
+                    />
                     {order.advanceNpr > 0 && (
                       <div className="flex justify-between">
                         <span className="text-stone-500">Advance expected</span>
