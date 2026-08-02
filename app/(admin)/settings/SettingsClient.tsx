@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
-import { saveAboutImage, savePaymentQr, saveBankDetails, saveContactInfo, saveCurrency, saveBranding, saveDeliveryFees } from './actions';
+import { saveAboutImage, savePaymentQr, saveContactInfo, saveCurrency, saveBranding, saveDeliveryFees } from './actions';
 
 function SettingCard({
   title,
@@ -76,9 +76,7 @@ function Field({ label, value, onChange, placeholder, mono, hint }: {
 export default function SettingsClient({
   initialAboutImage,
   initialPaymentQr,
-  initialBankName,
-  initialAccountName,
-  initialAccountNo,
+  initialBankTransferEnabled,
   initialPhone,
   initialInstagram,
   initialContactEmail,
@@ -94,9 +92,7 @@ export default function SettingsClient({
 }: {
   initialAboutImage: string;
   initialPaymentQr: string;
-  initialBankName: string;
-  initialAccountName: string;
-  initialAccountNo: string;
+  initialBankTransferEnabled: boolean;
   initialPhone: string;
   initialInstagram: string;
   initialContactEmail: string;
@@ -115,17 +111,11 @@ export default function SettingsClient({
   const [aboutSaved, setAboutSaved] = useState(false);
   const [aboutPending, startAboutTransition] = useTransition();
 
-  // Payment QR
+  // Payment QR + the bank-transfer checkout toggle it controls
   const [paymentQr, setPaymentQr] = useState(initialPaymentQr);
+  const [bankTransferEnabled, setBankTransferEnabled] = useState(initialBankTransferEnabled);
   const [qrSaved, setQrSaved] = useState(false);
   const [qrPending, startQrTransition] = useTransition();
-
-  // Bank details
-  const [bankName, setBankName] = useState(initialBankName);
-  const [accountName, setAccountName] = useState(initialAccountName);
-  const [accountNo, setAccountNo] = useState(initialAccountNo);
-  const [bankSaved, setBankSaved] = useState(false);
-  const [bankPending, startBankTransition] = useTransition();
 
   // Contact info — no Soul-Thread placeholders; each store sets its own.
   const [phone, setPhone] = useState(initialPhone);
@@ -190,17 +180,9 @@ export default function SettingsClient({
 
   function handleQrSave() {
     startQrTransition(async () => {
-      await savePaymentQr(paymentQr);
+      await savePaymentQr(paymentQr, bankTransferEnabled);
       setQrSaved(true);
       setTimeout(() => setQrSaved(false), 2000);
-    });
-  }
-
-  function handleBankSave() {
-    startBankTransition(async () => {
-      await saveBankDetails(bankName, accountName, accountNo);
-      setBankSaved(true);
-      setTimeout(() => setBankSaved(false), 2000);
     });
   }
 
@@ -360,43 +342,35 @@ export default function SettingsClient({
         <ImageUploader value={aboutImage} onChange={setAboutImage} />
       </SettingCard>
 
-      {/* Bank details */}
-      <SettingCard
-        title="Bank details"
-        description="Shown on the order confirmation page alongside the payment QR code."
-        onSave={handleBankSave}
-        isPending={bankPending}
-        saved={bankSaved}
-      >
-        <Field
-          label="Bank name"
-          value={bankName}
-          onChange={setBankName}
-          placeholder="e.g. NIMB (Nepal Investment Mega Bank)"
-        />
-        <Field
-          label="Account holder name"
-          value={accountName}
-          onChange={setAccountName}
-          placeholder="e.g. Ram Bahadur Shrestha"
-        />
-        <Field
-          label="Account number"
-          value={accountNo}
-          onChange={setAccountNo}
-          placeholder="e.g. 03805030270878"
-          mono
-        />
-      </SettingCard>
-
-      {/* Payment QR */}
+      {/* Payment QR / bank transfer toggle */}
       <SettingCard
         title="Payment QR code"
-        description="Scan-to-pay QR shown on the order confirmation page for the 10% advance."
+        description="Scan-to-pay QR shown on the order confirmation page. Enable below to also offer &ldquo;Bank transfer&rdquo; as a payment option at checkout."
         onSave={handleQrSave}
         isPending={qrPending}
         saved={qrSaved}
       >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Enable bank transfer</p>
+            <p className="text-xs text-gray-400 mt-0.5">Shows &ldquo;Bank transfer&rdquo; as a payment method at checkout.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={bankTransferEnabled}
+            onClick={() => setBankTransferEnabled((v) => !v)}
+            className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/40 ${
+              bankTransferEnabled ? 'bg-stone-800' : 'bg-stone-200'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                bankTransferEnabled ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
         <ImageUploader value={paymentQr} onChange={setPaymentQr} />
         {paymentQr && (
           <div className="mt-3 flex justify-center">

@@ -16,18 +16,13 @@ export async function saveAboutImage(url: string) {
   revalidatePath('/settings');
 }
 
-export async function savePaymentQr(url: string) {
-  await assertCanSettings();
-  await updateSetting('payment_qr', url);
-  revalidatePath('/settings');
-}
-
-export async function saveBankDetails(bankName: string, accountName: string, accountNo: string) {
+// bankTransferEnabled gates whether "Bank transfer" shows as a checkout payment
+// method on the storefront (CheckoutForm.tsx) — see that file's `availableMethods` filter.
+export async function savePaymentQr(url: string, bankTransferEnabled: boolean) {
   await assertCanSettings();
   await Promise.all([
-    updateSetting('payment_bank_name', bankName),
-    updateSetting('payment_account_name', accountName),
-    updateSetting('payment_account_no', accountNo),
+    updateSetting('payment_qr', url),
+    updateSetting('payment_bank_transfer_enabled', bankTransferEnabled ? 'true' : 'false'),
   ]);
   revalidatePath('/settings');
 }
