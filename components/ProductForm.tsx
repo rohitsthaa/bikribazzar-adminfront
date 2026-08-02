@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
 import { slugify } from '@/lib/slug';
 import ImageUploader from './ImageUploader';
+import ImageCropModal from './ImageCropModal';
 import SubmitButton from './SubmitButton';
 import VariantStockControls from './VariantStockControls';
 
@@ -19,6 +20,10 @@ type Props = {
   // visible alongside every tab instead of a separate sidebar (non-variant
   // products) or buried in one specific tab (variant products).
   inventoryPanel?: ReactNode;
+  // Active store template — threaded down to every image uploader (primary,
+  // gallery, variant photos) so the crop tool's "how this will look on your
+  // storefront" preview uses this store's real card aspect ratio.
+  templateId?: string;
 };
 
 // Shared class for numeric inputs — hides the native up/down spinner so a
@@ -92,11 +97,12 @@ function SectionHeading({ icon, title, subtitle }: { icon: string; title: string
 // that color. Full-size ImageUploader (with its drop zone + URL field) is too
 // tall to fit inline in the variant table, so this reuses the same /api/upload
 // endpoint with a much smaller control.
-function VariantImageCell({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function VariantImageCell({ value, onChange, templateId }: { value: string; onChange: (url: string) => void; templateId?: string }) {
   const [uploading, setUploading] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFile(file: File) {
+  async function uploadFile(file: File) {
     setUploading(true);
     try {
       const fd = new FormData();
@@ -107,6 +113,16 @@ function VariantImageCell({ value, onChange }: { value: string; onChange: (url: 
     } finally {
       setUploading(false);
     }
+  }
+
+  function closeCrop() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
+
+  function handleCropSave(blob: Blob) {
+    closeCrop();
+    uploadFile(new File([blob], 'variant.jpg', { type: 'image/jpeg' }));
   }
 
   return (
@@ -148,10 +164,18 @@ function VariantImageCell({ value, onChange }: { value: string; onChange: (url: 
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) handleFile(file);
+          if (file) setCropSrc(URL.createObjectURL(file));
           e.target.value = '';
         }}
       />
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          templateId={templateId}
+          onCancel={closeCrop}
+          onSave={handleCropSave}
+        />
+      )}
     </div>
   );
 }
@@ -165,7 +189,7 @@ function Submit({ isNew }: { isNew: boolean }) {
   );
 }
 
-export default function ProductForm({ product, action, categories = [], canSetPrice = true, inventoryPanel }: Props) {
+export default function ProductForm({ product, action, categories = [], canSetPrice = true, inventoryPanel, templateId }: Props) {
   const [state, formAction] = useActionState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
@@ -324,7 +348,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
           <div className="bg-white rounded-xl border border-stone-200 p-[18px]">
             <h2 className="text-[14.5px] font-semibold text-stone-900">Primary image</h2>
             <p className="text-xs text-stone-400 mt-0.5 mb-3.5">Shown on product cards, emails, and SEO.</p>
-            <ImageUploader value={image} onChange={setImage} />
+            <ImageUploader value={image} onChange={setImage} enableCrop templateId={templateId} />
             <input type="hidden" name="image" value={image} />
           </div>
 
@@ -495,6 +519,8 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               next[i] = newUrl;
                               setGalleryImages(next);
                             }}
+                            enableCrop
+                            templateId={templateId}
                           />
                         </div>
                         <button
@@ -780,7 +806,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                       return (
                         <div key={idx} className="rounded-xl border border-gray-200 hover:border-gray-300 transition-colors p-3 space-y-3">
                           <div className="grid grid-cols-2 sm:grid-cols-[40px_1fr_150px_110px_28px] gap-2 sm:items-center">
-                            <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} />
+                            <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} templateId={templateId} />
                             <input
                               value={v.label}
                               onChange={(e) => updateVariant(idx, { label: e.target.value })}

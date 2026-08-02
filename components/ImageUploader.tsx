@@ -1,18 +1,34 @@
 'use client';
 import { useRef, useState } from 'react';
+import ImageCropModal from './ImageCropModal';
 
 type Props = {
   value: string;
   onChange: (url: string) => void;
+  // This component is shared far beyond product photos (blog banners,
+  // portfolio/service images, gallery, the Settings logo/QR uploads) — those
+  // don't want a forced 4:5 product crop. Opt in explicitly for product
+  // images (see ProductForm.tsx); everyone else keeps the old plain-upload
+  // behavior unchanged.
+  enableCrop?: boolean;
+  // Active store template — passed through to the crop modal so its "how
+  // this will look on your storefront" previews use the real card aspect
+  // ratio for this store, not a generic guess. Only relevant when enableCrop.
+  templateId?: string;
 };
 
-export default function ImageUploader({ value, onChange }: Props) {
+export default function ImageUploader({ value, onChange, enableCrop = false, templateId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
+  // Object/blob URL currently open in the crop modal, and the pending
+  // filename to give the cropped result once saved — null means the modal is
+  // closed. Cleared (and revoked) on both save and cancel.
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState('image.jpg');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFile(file: File) {
+  async function uploadFile(file: File) {
     setError('');
     setUploading(true);
     try {
@@ -42,11 +58,52 @@ export default function ImageUploader({ value, onChange }: Props) {
     }
   }
 
+  // A freshly picked/dropped file opens the crop modal first (when enabled) —
+  // nothing is uploaded until the merchant confirms a crop. This is also
+  // where the original blank/mismatched-crop confusion gets addressed: they
+  // see exactly what the shop grid and product page will show before it's
+  // saved anywhere. When crop isn't enabled for this uploader, behave exactly
+  // as before — straight to upload.
+  function startCrop(file: File) {
+    if (!enableCrop) { uploadFile(file); return; }
+    setError('');
+    setCropFileName(file.name || 'image.jpg');
+    setCropSrc(URL.createObjectURL(file));
+  }
+
+  // Re-crop an image that's already uploaded — fetched through the same
+  // same-origin /api/image proxy the preview below uses, so the canvas export
+  // in ImageCropModal never gets cross-origin-tainted.
+  async function startRecrop() {
+    if (!value || !enableCrop) return;
+    setError('');
+    try {
+      const res = await fetch(`/api/image?src=${encodeURIComponent(value)}`);
+      if (!res.ok) throw new Error('Could not load this image to crop');
+      const blob = await res.blob();
+      setCropFileName(value.split('/').pop() || 'image.jpg');
+      setCropSrc(URL.createObjectURL(blob));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not load this image to crop');
+    }
+  }
+
+  function closeCrop() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
+
+  function handleCropSave(blob: Blob) {
+    const name = cropFileName.replace(/\.[^.]+$/, '') + '.jpg';
+    closeCrop();
+    uploadFile(new File([blob], name, { type: 'image/jpeg' }));
+  }
+
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) handleFile(file);
+    if (file && file.type.startsWith('image/')) startCrop(file);
   }
 
   return (
@@ -86,6 +143,15 @@ export default function ImageUploader({ value, onChange }: Props) {
             <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="Product preview" draggable={false} className="w-full h-full object-cover" />
             {/* Overlay actions */}
             <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              {enableCrop && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); startRecrop(); }}
+                  className="px-3 py-2 bg-white text-gray-800 text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Crop
+                </button>
+              )}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
@@ -168,12 +234,21 @@ export default function ImageUploader({ value, onChange }: Props) {
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) handleFile(file);
+          if (file) startCrop(file);
           e.target.value = '';
         }}
       />
 
       {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          templateId={templateId}
+          onCancel={closeCrop}
+          onSave={handleCropSave}
+        />
+      )}
     </div>
   );
 }
