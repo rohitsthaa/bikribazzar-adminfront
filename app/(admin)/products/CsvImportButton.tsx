@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { importProductsCsv, type CsvRow, type ImportResult } from './actions';
+import { slugify } from '@/lib/slug';
 
 // ── CSV template ──────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ function rowsToCsvRows(headers: string[], rows: string[][]): { valid: CsvRow[]; 
     const lineNum = i + 2;
     const name = col(row, 'name');
     const priceRaw = col(row, 'pricenpr');
-    const idRaw = col(row, 'id') || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const idRaw = col(row, 'id') || slugify(name);
 
     if (!name) { errors.push(`Row ${lineNum}: missing name`); return; }
     if (!priceRaw || isNaN(Number(priceRaw))) { errors.push(`Row ${lineNum}: invalid priceNpr "${priceRaw}"`); return; }

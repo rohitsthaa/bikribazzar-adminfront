@@ -2,6 +2,7 @@
 import { useRef, useState, useActionState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
+import { slugify } from '@/lib/slug';
 import ImageUploader from './ImageUploader';
 import SubmitButton from './SubmitButton';
 import VariantStockControls from './VariantStockControls';
@@ -196,6 +197,15 @@ export default function ProductForm({ product, action, categories = [], canSetPr
     setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
   }
   const isNew = !product;
+  // Auto-fill the ID (URL slug) field from the Name field as the merchant types,
+  // so most people never have to think about "the slug" at all. A plain ref
+  // (not state) for both the input and the "has the user typed into ID
+  // themselves" flag — this keeps Name/ID uncontrolled like every other field
+  // on this form, and avoids re-rendering the whole form on every keystroke.
+  // Once the merchant edits the ID field directly, stop overwriting it — they
+  // want a custom slug and further Name edits shouldn't clobber that choice.
+  const idInputRef = useRef<HTMLInputElement>(null);
+  const idTouchedRef = useRef(false);
   // Serialized for the form action: empty price/stock → null (inherit / unlimited).
   // For a variant that already exists on the server, its Stock field in this
   // form is read-only (see the Variants tab) — stock only actually changes via
@@ -375,14 +385,18 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   <div>
                     <label className={fieldLabel}>ID (URL slug) <span className="text-red-400">*</span></label>
                     <input
+                      ref={idInputRef}
                       name="id"
                       defaultValue={product?.id}
                       required
                       readOnly={!isNew}
+                      pattern={isNew ? '[a-z0-9]+(-[a-z0-9]+)*' : undefined}
+                      title={isNew ? 'Lowercase letters, numbers, and hyphens only' : undefined}
+                      onChange={isNew ? () => { idTouchedRef.current = true; } : undefined}
                       placeholder="e.g. product-name"
                       className={`${textInput} read-only:bg-gray-50 read-only:text-gray-400 font-mono`}
                     />
-                    {isNew && <p className="text-xs text-gray-400 mt-1">Lowercase, hyphens only. Can&apos;t change later.</p>}
+                    {isNew && <p className="text-xs text-gray-400 mt-1">Auto-filled from the name below — edit here only if you want a different URL. Can&apos;t change later.</p>}
                   </div>
                   <div>
                     <label className={fieldLabel}>SKU</label>
@@ -403,6 +417,10 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                     defaultValue={product?.name}
                     required
                     placeholder="Product name"
+                    onChange={isNew ? (e) => {
+                      if (idTouchedRef.current || !idInputRef.current) return;
+                      idInputRef.current.value = slugify(e.target.value);
+                    } : undefined}
                     className={`${textInput} text-base py-2.5 font-semibold`}
                   />
                 </div>
