@@ -31,7 +31,7 @@ export default function CreateOrderForm({ products, currency }: Props) {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   // Only distinction the backend's delivery-fee calc actually needs (see
-  // PricingService.ComputeDeliveryFeeNpr / OrderEndpoints.BuildAndSaveManualOrderAsync) —
+  // PricingService.ComputeDeliveryFee / OrderEndpoints.BuildAndSaveManualOrderAsync) —
   // "Outside Valley" is the exact sentinel it checks for nationwide pricing; anything
   // else is treated as in-valley. Previously this form had no way to indicate this at
   // all, so admin-created orders always defaulted to a 0 delivery fee that had to be

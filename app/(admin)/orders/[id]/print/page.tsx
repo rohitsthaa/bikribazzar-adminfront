@@ -108,16 +108,16 @@ export default async function PrintPackSlip({ params }: Props) {
                 <td className="pt-4 text-right text-stone-500">− {currency} {(order.discountNpr ?? 0).toLocaleString()}</td>
               </tr>
             )}
-            {(order.deliveryFeeNpr ?? 0) > 0 && (
+            {(order.deliveryFee ?? 0) > 0 && (
               <tr>
                 <td colSpan={3} className="pt-2 text-right text-stone-500">Delivery fee</td>
-                <td className="pt-2 text-right text-stone-600">{currency} {(order.deliveryFeeNpr ?? 0).toLocaleString()}</td>
+                <td className="pt-2 text-right text-stone-600">{currency} {(order.deliveryFee ?? 0).toLocaleString()}</td>
               </tr>
             )}
             <tr>
               <td colSpan={3} className="pt-4 text-right font-semibold text-stone-700">Order total</td>
               <td className="pt-4 text-right font-bold text-stone-900 text-base">
-                {currency} {(order.totalNpr + (order.deliveryFeeNpr ?? 0)).toLocaleString()}
+                {currency} {(order.totalNpr + (order.deliveryFee ?? 0)).toLocaleString()}
               </td>
             </tr>
             {order.advanceNpr > 0 && (
@@ -126,11 +126,11 @@ export default async function PrintPackSlip({ params }: Props) {
                 <td className="pt-1 text-right text-stone-500 text-xs">{currency} {order.paidNpr.toLocaleString()}</td>
               </tr>
             )}
-            {order.paidNpr < (order.totalNpr + (order.deliveryFeeNpr ?? 0)) && (
+            {order.paidNpr < (order.totalNpr + (order.deliveryFee ?? 0)) && (
               <tr>
                 <td colSpan={3} className="pt-1 text-right font-semibold text-stone-700">Remaining (COD)</td>
                 <td className="pt-1 text-right font-bold text-stone-900">
-                  {currency} {(order.totalNpr + (order.deliveryFeeNpr ?? 0) - order.paidNpr).toLocaleString()}
+                  {currency} {(order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr).toLocaleString()}
                 </td>
               </tr>
             )}

@@ -300,6 +300,9 @@ export default async function OrderDetailPage({ params }: Props) {
                     initialDistrict={order.district ?? ''}
                     initialRecipientName={order.recipientName ?? ''}
                     initialRecipientPhone={order.recipientPhone ?? ''}
+                    initialDeliveryFee={order.deliveryFee}
+                    deliveryFeePending={order.deliveryFeePending}
+                    currency={currency}
                   />
                 </div>
                 {order.notes && (
@@ -345,7 +348,7 @@ export default async function OrderDetailPage({ params }: Props) {
               ncmOrderId={order.ncmOrderId}
               ncmDestinationBranch={order.ncmDestinationBranch}
               ncmTrackingStatus={order.ncmTrackingStatus}
-              remainingNpr={order.totalNpr + (order.deliveryFeeNpr ?? 0) - order.paidNpr}
+              remainingNpr={order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr}
             />
 
             {/* Payment */}
@@ -354,7 +357,7 @@ export default async function OrderDetailPage({ params }: Props) {
 
               {/* Summary rows */}
               {(() => {
-                const grandTotal = order.totalNpr + (order.deliveryFeeNpr ?? 0);
+                const grandTotal = order.totalNpr + (order.deliveryFee ?? 0);
                 const remaining = grandTotal - order.paidNpr;
                 const fullyPaid = order.paidNpr >= grandTotal;
                 return (
@@ -369,21 +372,26 @@ export default async function OrderDetailPage({ params }: Props) {
                         <span>− {currency} {(order.discountNpr ?? 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {(order.deliveryFeeNpr ?? 0) > 0 ? (
+                    {(order.deliveryFee ?? 0) > 0 ? (
                       <>
                         <div className="flex justify-between">
                           <span className="text-stone-500">Delivery fee</span>
-                          <span className="font-medium text-stone-800">{currency} {(order.deliveryFeeNpr ?? 0).toLocaleString()}</span>
+                          <span className="font-medium text-stone-800">{currency} {(order.deliveryFee ?? 0).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between pt-1.5 border-t border-stone-100">
                           <span className="font-medium text-stone-700">Order total</span>
                           <span className="font-bold text-stone-900">{currency} {grandTotal.toLocaleString()}</span>
                         </div>
                       </>
+                    ) : order.deliveryFeePending ? (
+                      <div className="flex justify-between text-amber-700 text-xs">
+                        <span>Delivery fee</span>
+                        <span>Pending — confirm with customer, then set it below</span>
+                      </div>
                     ) : (
                       <div className="flex justify-between text-stone-400 text-xs italic">
                         <span>Delivery fee</span>
-                        <span>Set on confirm</span>
+                        <span>Free</span>
                       </div>
                     )}
                     {order.advanceNpr > 0 && (
@@ -451,7 +459,7 @@ export default async function OrderDetailPage({ params }: Props) {
               <p className="text-xs text-stone-400 uppercase tracking-wide font-medium mb-2">Record payment</p>
               <PaymentRecorder
                 orderId={id}
-                totalNpr={order.totalNpr + (order.deliveryFeeNpr ?? 0)}
+                totalNpr={order.totalNpr + (order.deliveryFee ?? 0)}
                 advanceNpr={order.advanceNpr}
                 paidNpr={order.paidNpr}
                 onlinePaidNpr={onlinePaidNpr}

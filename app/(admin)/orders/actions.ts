@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { updateOrderStatus, recordPayment, createAdminOrder, updateOrderNotes, updateOrderDelivery, getNcmBranches, getNcmShippingRate, shipOrderViaNcm, syncNcmStatus } from '@/lib/api';
 import type { Order, CreateAdminOrderPayload } from '@/lib/api';
 
-export async function updateStatusAction(orderId: string, status: Order['status'], deliveryFeeNpr?: number) {
-  await updateOrderStatus(orderId, status, deliveryFeeNpr);
+export async function updateStatusAction(orderId: string, status: Order['status'], deliveryFee?: number) {
+  await updateOrderStatus(orderId, status, deliveryFee);
   revalidatePath(`/orders/${orderId}`);
   revalidatePath('/orders');
 }
@@ -44,6 +44,7 @@ export async function saveDeliveryAction(
     district?: string;
     recipientName?: string;
     recipientPhone?: string;
+    deliveryFee?: number;
   }
 ): Promise<{ ok: true } | { error: string }> {
   try {

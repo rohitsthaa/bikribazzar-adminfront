@@ -171,7 +171,7 @@ export async function saveProduct(_: unknown, formData: FormData) {
     leadTimeDays: parseOptionalNumberWithClearSentinel(formData.get('leadTimeDays') as string, isNew),
     sku: parseOptionalStringWithClearSentinel(formData.get('sku') as string, isNew),
     compareAtPriceNpr: parseCompareAtPrice(formData.get('compareAtPriceNpr') as string, isNew),
-    deliveryFeeNpr: parseDeliveryFeeOverride(formData.get('deliveryFeeNpr') as string, isNew),
+    deliveryFee: parseDeliveryFeeOverride(formData.get('deliveryFee') as string, isNew),
     tags: parseTags(formData.get('tags') as string),
     status: (formData.get('status') as 'draft' | 'active' | 'archived') || 'active',
     variantAxis: parseOptionalStringWithClearSentinel(formData.get('variantAxis') as string, isNew) as 'size' | 'color' | 'style' | null | undefined,

@@ -49,7 +49,7 @@ function ConfirmDialog({
   isPending,
 }: {
   status: Order['status'];
-  onConfirm: (deliveryFeeNpr?: number) => void;
+  onConfirm: (deliveryFee?: number) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
@@ -158,11 +158,11 @@ export default function StatusUpdater({
     setPendingStatus(newStatus);
   }
 
-  function handleConfirm(deliveryFeeNpr?: number) {
+  function handleConfirm(deliveryFee?: number) {
     if (!pendingStatus) return;
     const toSet = pendingStatus;
     setPendingStatus(null);
-    startTransition(() => updateStatusAction(orderId, toSet, deliveryFeeNpr));
+    startTransition(() => updateStatusAction(orderId, toSet, deliveryFee));
   }
 
   return (

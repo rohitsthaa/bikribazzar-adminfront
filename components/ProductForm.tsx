@@ -681,10 +681,10 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
                       <input
-                        name="deliveryFeeNpr"
+                        name="deliveryFee"
                         type="number"
                         min={0}
-                        defaultValue={product?.deliveryFeeNpr ?? ''}
+                        defaultValue={product?.deliveryFee ?? ''}
                         placeholder="Store default"
                         className={`${numInput} pl-10`}
                       />

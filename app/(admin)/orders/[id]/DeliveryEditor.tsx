@@ -20,6 +20,9 @@ export default function DeliveryEditor({
   initialDistrict,
   initialRecipientName,
   initialRecipientPhone,
+  initialDeliveryFee,
+  deliveryFeePending,
+  currency = 'NPR',
 }: {
   orderId: string;
   initialArea?: string;
@@ -29,6 +32,12 @@ export default function DeliveryEditor({
   initialDistrict?: string;
   initialRecipientName?: string;
   initialRecipientPhone?: string;
+  // Delivery fee lives here too now, not just in the confirm-status dialog — staff can
+  // set or correct it any time, independent of a status change (e.g. before confirming,
+  // or fixing a number entered wrong earlier).
+  initialDeliveryFee?: number;
+  deliveryFeePending?: boolean;
+  currency?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [area, setArea] = useState(initialArea ?? '');
@@ -38,6 +47,9 @@ export default function DeliveryEditor({
   const [district, setDistrict] = useState(initialDistrict ?? '');
   const [recipientName, setRecipientName] = useState(initialRecipientName ?? '');
   const [recipientPhone, setRecipientPhone] = useState(initialRecipientPhone ?? '');
+  const [deliveryFee, setDeliveryFee] = useState(
+    initialDeliveryFee && initialDeliveryFee > 0 ? String(initialDeliveryFee) : ''
+  );
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -47,6 +59,11 @@ export default function DeliveryEditor({
 
   function handleSave() {
     setError('');
+    const feeValue = deliveryFee.trim();
+    if (feeValue && (!/^\d+$/.test(feeValue))) {
+      setError('Delivery fee must be a whole number.');
+      return;
+    }
     startTransition(async () => {
       const result = await saveDeliveryAction(orderId, {
         deliveryArea: area.trim(),
@@ -56,6 +73,7 @@ export default function DeliveryEditor({
         district: district.trim(),
         recipientName: recipientName.trim(),
         recipientPhone: recipientPhone.trim(),
+        ...(feeValue ? { deliveryFee: Number(feeValue) } : {}),
       });
       if (result && 'error' in result) {
         setError(result.error);
@@ -71,7 +89,7 @@ export default function DeliveryEditor({
 
   if (!editing) {
     return (
-      <div className="mt-2">
+      <div className="mt-2 flex items-center gap-2 flex-wrap">
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -79,6 +97,17 @@ export default function DeliveryEditor({
         >
           {hasDelivery ? 'Edit delivery' : '+ Add delivery address'}
         </button>
+        {initialDeliveryFee ? (
+          <span className="text-xs text-stone-500">· Delivery fee {currency} {initialDeliveryFee.toLocaleString()}</span>
+        ) : deliveryFeePending ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-xs text-amber-700 hover:text-amber-900 underline underline-offset-2"
+          >
+            · Set delivery fee
+          </button>
+        ) : null}
         {saved && <span className="ml-2 text-xs text-green-600">✓ Saved</span>}
       </div>
     );
@@ -177,6 +206,20 @@ export default function DeliveryEditor({
         </label>
       </div>
 
+      <label className="block text-xs">
+        <span className="text-stone-500 uppercase tracking-wide font-medium">
+          Delivery fee ({currency}){deliveryFeePending && !deliveryFee && <span className="ml-1 text-amber-600 normal-case font-normal">— not yet confirmed with customer</span>}
+        </span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={deliveryFee}
+          onChange={(e) => setDeliveryFee(e.target.value)}
+          placeholder="e.g. 150"
+          className="mt-1 w-full text-sm border border-stone-200 rounded-lg px-2.5 py-2 bg-white text-stone-800"
+        />
+      </label>
+
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="flex items-center gap-2">
@@ -199,6 +242,7 @@ export default function DeliveryEditor({
             setDistrict(initialDistrict ?? '');
             setRecipientName(initialRecipientName ?? '');
             setRecipientPhone(initialRecipientPhone ?? '');
+            setDeliveryFee(initialDeliveryFee && initialDeliveryFee > 0 ? String(initialDeliveryFee) : '');
             setError('');
           }}
           className="px-3 py-1.5 text-stone-500 hover:text-stone-800 text-xs"

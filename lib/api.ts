@@ -83,7 +83,7 @@ export type Product = {
   leadTimeDays?: number | null;  // days before a made-to-order item ships; null = not applicable
   sku?: string | null;                  // product-level SKU; blank when variants carry their own
   compareAtPriceNpr?: number | null;    // "original" price shown struck through when set
-  deliveryFeeNpr?: number | null;       // per-product delivery fee override; null = use store default, 0 = free
+  deliveryFee?: number | null;       // per-product delivery fee override; null = use store default, 0 = free
   tags?: string[];                      // multi-value tags for storefront filtering (separate from `tag` badge)
   status?: 'draft' | 'active' | 'archived';  // organizational label — independent of `available`
   // What distinguishes the variants, if any — "color"/"style" means variants look
@@ -256,7 +256,7 @@ export type Order = {
   paidNpr: number;
   discountCode?: string;
   discountNpr: number;
-  deliveryFeeNpr: number;
+  deliveryFee: number;
   isNationwide: boolean;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
@@ -265,6 +265,10 @@ export type Order = {
   ncmOrderId?: number | null;             // set once shipped via NCM
   ncmDestinationBranch?: string | null;
   ncmTrackingStatus?: string | null;       // NCM's own status string, e.g. "Sent for Pickup"
+  deliveryFeePending?: boolean;            // true = delivery fee not yet confirmed with the
+                                            // customer (default for every new order now that
+                                            // checkout no longer computes/charges it up front);
+                                            // cleared once staff sets a real deliveryFee
   createdAt: string;
   updatedAt: string;
 };
@@ -518,10 +522,10 @@ export function deleteAdminUser(id: number) {
 
 export function getOrders() { return apiFetch<Order[]>('/orders'); }
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }
-export function updateOrderStatus(id: string, status: Order['status'], deliveryFeeNpr?: number) {
+export function updateOrderStatus(id: string, status: Order['status'], deliveryFee?: number) {
   return apiFetch<Order>(`/orders/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(deliveryFeeNpr !== undefined ? { status, deliveryFeeNpr } : { status }),
+    body: JSON.stringify(deliveryFee !== undefined ? { status, deliveryFee } : { status }),
   });
 }
 export function recordPayment(id: string, paidNpr: number) {
@@ -546,6 +550,7 @@ export function updateOrderDelivery(id: string, data: {
   district?: string;
   recipientName?: string;
   recipientPhone?: string;
+  deliveryFee?: number;
 }) {
   return apiFetch<Order>(`/orders/${id}/delivery`, {
     method: 'PATCH',
