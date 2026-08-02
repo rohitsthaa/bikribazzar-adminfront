@@ -674,7 +674,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   <SectionHeading
                     icon="M3 3h18v18H3zM3 9h18M9 21V9"
                     title="Delivery fee override"
-                    subtitle="Leave blank to use the store's default delivery fee (set in Settings)."
+                    subtitle="Only used for phone/manual orders (Orders → New). Customer checkout doesn't charge delivery at all — that's confirmed with the customer and set on the order afterward."
                   />
                   <div className="max-w-[200px]">
                     <label className={fieldLabel}>Fee for this product (NPR)</label>
@@ -685,12 +685,12 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                         type="number"
                         min={0}
                         defaultValue={product?.deliveryFee ?? ''}
-                        placeholder="Store default"
+                        placeholder="0"
                         className={`${numInput} pl-10`}
                       />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      Enter 0 for free delivery on this product, or a flat amount for bulkier pieces that cost more to ship.
+                      Leave blank for no auto-filled fee (0). Enter a flat amount for bulkier pieces that cost more to ship.
                     </p>
                   </div>
                 </div>

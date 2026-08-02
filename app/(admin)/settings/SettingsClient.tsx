@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
-import { saveAboutImage, savePaymentQr, saveContactInfo, saveCurrency, saveBranding, saveDeliveryFees } from './actions';
+import { saveAboutImage, savePaymentQr, saveContactInfo, saveCurrency, saveBranding } from './actions';
 
 function SettingCard({
   title,
@@ -87,8 +87,6 @@ export default function SettingsClient({
   initialFontFamily,
   initialLogoUrl,
   initialOgImage,
-  initialValleyFee,
-  initialNationwideFee,
 }: {
   initialAboutImage: string;
   initialPaymentQr: string;
@@ -103,8 +101,6 @@ export default function SettingsClient({
   initialFontFamily: string;
   initialLogoUrl: string;
   initialOgImage: string;
-  initialValleyFee: string;
-  initialNationwideFee: string;
 }) {
   // About image
   const [aboutImage, setAboutImage] = useState(initialAboutImage);
@@ -152,21 +148,6 @@ export default function SettingsClient({
       await saveCurrency(currency);
       setCurrencySaved(true);
       setTimeout(() => setCurrencySaved(false), 2000);
-    });
-  }
-
-  // Delivery fees — defaults used at checkout when a product has no fee
-  // override of its own (see the Pricing tab of the product edit form).
-  const [valleyFee, setValleyFee] = useState(initialValleyFee || '0');
-  const [nationwideFee, setNationwideFee] = useState(initialNationwideFee || '0');
-  const [deliverySaved, setDeliverySaved] = useState(false);
-  const [deliveryPending, startDeliveryTransition] = useTransition();
-
-  function handleDeliverySave() {
-    startDeliveryTransition(async () => {
-      await saveDeliveryFees(valleyFee, nationwideFee);
-      setDeliverySaved(true);
-      setTimeout(() => setDeliverySaved(false), 2000);
     });
   }
 
@@ -287,34 +268,6 @@ export default function SettingsClient({
           mono
           hint='e.g. NPR, $, €, £, ₹. Just the symbol — it appears before the amount.'
         />
-      </SettingCard>
-
-      {/* Delivery fees */}
-      <SettingCard
-        title="Delivery fees"
-        description="Shown to customers at checkout. Used whenever a product doesn't have its own delivery fee override."
-        onSave={handleDeliverySave}
-        isPending={deliveryPending}
-        saved={deliverySaved}
-      >
-        <div className="grid grid-cols-2 gap-4">
-          <Field
-            label="Kathmandu Valley (NPR)"
-            value={valleyFee}
-            onChange={setValleyFee}
-            placeholder="0"
-            mono
-            hint="Flat fee for in-valley delivery areas. 0 = free delivery."
-          />
-          <Field
-            label="Outside Valley (NPR)"
-            value={nationwideFee}
-            onChange={setNationwideFee}
-            placeholder="0"
-            mono
-            hint="Flat fee for nationwide/outside-valley orders."
-          />
-        </div>
       </SettingCard>
 
       {/* Categories */}
