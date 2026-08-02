@@ -93,17 +93,20 @@ function SectionHeading({ icon, title, subtitle }: { icon: string; title: string
   );
 }
 
-// Compact 40×40 thumbnail uploader for a single variant row — e.g. a photo of
-// that color. Full-size ImageUploader (with its drop zone + URL field) is too
-// tall to fit inline in the variant table, so this reuses the same /api/upload
+// 56×56 thumbnail uploader for a single variant row — e.g. a photo of that
+// color. Full-size ImageUploader (with its drop zone + URL field) is too tall
+// to fit inline in the variant table, so this reuses the same /api/upload
 // endpoint with a much smaller control. Rendered as a circle (rounded-full),
 // matching the actual round color/style swatch this becomes on the storefront
 // (components/ProductActions.tsx, 44px circle) — a square admin thumbnail for
 // a circular storefront swatch would misrepresent framing the same way the
-// crop tool was built to prevent for the primary image.
+// crop tool was built to prevent for the primary image. Still small at this
+// size, though, so a filled thumbnail opens a larger preview on click rather
+// than jumping straight to the file picker — Replace/Crop/Remove live there.
 function VariantImageCell({ value, onChange, templateId }: { value: string; onChange: (url: string) => void; templateId?: string }) {
   const [uploading, setUploading] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function uploadFile(file: File) {
@@ -129,16 +132,27 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
     uploadFile(new File([blob], 'variant.jpg', { type: 'image/jpeg' }));
   }
 
+  // Re-crop the existing photo (from the preview popover) — fetched through
+  // the same same-origin /api/image proxy the thumbnail uses, so the canvas
+  // export in ImageCropModal never gets cross-origin-tainted.
+  async function startRecrop() {
+    if (!value) return;
+    const res = await fetch(`/api/image?src=${encodeURIComponent(value)}`);
+    if (!res.ok) return;
+    const blob = await res.blob();
+    setCropSrc(URL.createObjectURL(blob));
+  }
+
   return (
-    <div className="relative w-10 h-10 shrink-0">
+    <div className="relative w-14 h-14 shrink-0">
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
-        title={value ? 'Replace variant photo' : 'Add variant photo'}
-        className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-[#c96a3a]/50 transition-colors"
+        onClick={() => (value ? setPreviewOpen(true) : inputRef.current?.click())}
+        title={value ? 'View variant photo' : 'Add variant photo'}
+        className="w-14 h-14 rounded-full border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-[#c96a3a]/50 transition-colors"
       >
         {uploading ? (
-          <svg className="w-4 h-4 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
@@ -146,7 +160,7 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="" draggable={false} className="w-full h-full object-cover" />
         ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
         )}
@@ -156,7 +170,7 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
           type="button"
           onClick={() => onChange('')}
           title="Remove photo"
-          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white border border-gray-300 text-gray-400 hover:text-red-500 flex items-center justify-center text-[10px] leading-none"
+          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white border border-gray-300 text-gray-400 hover:text-red-500 flex items-center justify-center text-xs leading-none"
         >
           ×
         </button>
@@ -172,6 +186,46 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
           e.target.value = '';
         }}
       />
+      {previewOpen && value && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPreviewOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-5 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+            <div className="w-56 h-56 rounded-full overflow-hidden border border-stone-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/api/image?src=${encodeURIComponent(value)}`} alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setPreviewOpen(false); startRecrop(); }}
+                className="px-3 py-2 border border-stone-200 hover:border-stone-400 text-xs font-medium text-stone-700 rounded-lg transition-colors"
+              >
+                Crop
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPreviewOpen(false); inputRef.current?.click(); }}
+                className="px-3 py-2 border border-stone-200 hover:border-stone-400 text-xs font-medium text-stone-700 rounded-lg transition-colors"
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPreviewOpen(false); onChange(''); }}
+                className="px-3 py-2 border border-stone-200 hover:border-red-300 text-xs font-medium text-red-500 rounded-lg transition-colors"
+              >
+                Remove
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(false)}
+                className="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-white text-xs font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {cropSrc && (
         <ImageCropModal
           imageSrc={cropSrc}
@@ -798,7 +852,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   </div>
                 ) : (
                   <div className="space-y-3 mt-3">
-                    <div className="hidden sm:grid grid-cols-[40px_1fr_150px_110px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
+                    <div className="hidden sm:grid grid-cols-[56px_1fr_150px_110px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
                       <span /><span>Label</span><span>Price</span><span>SKU</span><span />
                     </div>
                     {variants.map((v, idx) => {
@@ -810,7 +864,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                       const isExpanded = expandedStockId === v.id;
                       return (
                         <div key={idx} className="rounded-xl border border-gray-200 hover:border-gray-300 transition-colors p-3 space-y-3">
-                          <div className="grid grid-cols-2 sm:grid-cols-[40px_1fr_150px_110px_28px] gap-2 sm:items-center">
+                          <div className="grid grid-cols-2 sm:grid-cols-[56px_1fr_150px_110px_28px] gap-2 sm:items-center">
                             <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} templateId={templateId} />
                             <input
                               value={v.label}
