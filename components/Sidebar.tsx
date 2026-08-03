@@ -150,16 +150,21 @@ const STORE_NAV_DROPDOWNS = [
     items: [
       { href: '/products',   label: 'Products',   Icon: Icons.Products },
       { href: '/categories', label: 'Categories', Icon: Icons.Categories },
-      { href: '/gallery',    label: 'Gallery',    Icon: Icons.Gallery },
     ],
   },
   {
+    // /gallery is the site's general photo showcase (its own nav page notes
+    // images are "shown on the site's gallery page") — not tied to any
+    // product, so it belongs with the other general site-content pages
+    // (Blog/Portfolio/Services/Design) rather than under Catalog, which is
+    // specifically inventory (Products/Categories).
     key: 'content', label: 'Content', Icon: Icons.Content,
     items: [
       { href: '/content',   label: 'Content',   Icon: Icons.Content },
       { href: '/blog',      label: 'Blog',      Icon: Icons.Blog },
       { href: '/portfolio', label: 'Portfolio', Icon: Icons.Portfolio },
       { href: '/services',  label: 'Services',  Icon: Icons.Services },
+      { href: '/gallery',   label: 'Gallery',   Icon: Icons.Gallery },
       { href: '/design',    label: 'Design',    Icon: Icons.Design },
     ],
   },
