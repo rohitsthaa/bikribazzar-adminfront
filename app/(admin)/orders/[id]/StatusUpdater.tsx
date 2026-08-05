@@ -57,11 +57,21 @@ function ConfirmDialog({
   const meta = STATUS_META[status];
   const [feeInput, setFeeInput] = useState('');
 
+  // Blank means "free" (the UI copy says so explicitly) — that's 0, not
+  // undefined. undefined must be reserved for statuses that don't collect a
+  // fee at all (meta?.showDeliveryFee is false), where updateStatusAction
+  // should leave the order's existing delivery fee untouched. Previously a
+  // blank input here also produced undefined, which updateStatusAction/the
+  // API treated as "don't touch the fee" instead of "the fee is 0" — so
+  // confirming with an intentionally-blank ("free") delivery fee silently
+  // kept whatever fee (or lack of one) the order already had.
   const handleConfirm = () => {
-    const fee = meta?.showDeliveryFee && feeInput.trim() !== ''
-      ? parseInt(feeInput, 10)
-      : undefined;
-    onConfirm(isNaN(fee as number) ? undefined : fee);
+    if (!meta?.showDeliveryFee) {
+      onConfirm(undefined);
+      return;
+    }
+    const fee = feeInput.trim() === '' ? 0 : parseInt(feeInput, 10);
+    onConfirm(Number.isNaN(fee) ? 0 : fee);
   };
 
   return (

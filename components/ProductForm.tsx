@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, useActionState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, useActionState, type MouseEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
 import { slugify } from '@/lib/slug';
@@ -239,10 +239,11 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
   );
 }
 
-function Submit({ isNew }: { isNew: boolean }) {
+function Submit({ isNew, onClick }: { isNew: boolean; onClick?: (e: MouseEvent<HTMLButtonElement>) => void }) {
   return (
     <SubmitButton
       label={isNew ? 'Create product' : 'Save changes'}
+      onClick={onClick}
       className="relative overflow-hidden px-5 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 disabled:cursor-not-allowed text-white text-[13.5px] rounded-lg transition-colors font-semibold"
     />
   );
@@ -340,25 +341,32 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   const panel = (key: TabKey) => (tab === key ? '' : 'hidden');
 
   // A required field can be hidden (display:none) on a tab other than the
-  // active one. The browser still blocks submission on it but can't focus a
-  // hidden element, so it logs "not focusable" and aborts silently — Save
-  // appears to do nothing. Jump to the invalid field's tab first so the
-  // browser's native validation bubble can actually reach it.
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    const form = e.currentTarget;
+  // active one. This used to be handled in the form's onSubmit — but the
+  // browser runs its own constraint validation *before* the 'submit' event
+  // is ever dispatched, and when it fails there (silently, because the
+  // invalid control isn't focusable) it aborts before onSubmit fires at
+  // all. So onSubmit could never actually see this case — Save just
+  // appeared to do nothing, logging "An invalid form control with
+  // name='...' is not focusable" to the console instead of showing any
+  // visible error. Intercepting the Save button's click instead works: we
+  // check validity ourselves first (checkValidity() is safe on hidden
+  // fields, unlike the browser's own submit-time check), jump to the
+  // invalid field's tab so it becomes focusable, then ask the browser to
+  // show its validation UI for real.
+  const handleSaveClick = (e: MouseEvent<HTMLButtonElement>) => {
+    const form = e.currentTarget.form;
+    if (!form || form.checkValidity()) return; // valid — let the native submit proceed
+    e.preventDefault();
     const invalid = form.querySelector<HTMLElement>(':invalid');
-    if (!invalid) return;
-    const panelEl = invalid.closest<HTMLElement>('[data-tab]');
-    const invalidTab = panelEl?.dataset.tab as TabKey | undefined;
-    if (invalidTab && invalidTab !== tab) {
-      e.preventDefault();
-      setTab(invalidTab);
-      setTimeout(() => form.requestSubmit(), 0);
-    }
+    const invalidTab = invalid?.closest<HTMLElement>('[data-tab]')?.dataset.tab as TabKey | undefined;
+    if (invalidTab && invalidTab !== tab) setTab(invalidTab);
+    // Give React a tick to re-render the now-visible panel before asking
+    // for validation UI again — this time the field is focusable.
+    setTimeout(() => form.reportValidity(), 0);
   };
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} onChange={() => setIsDirty(true)}>
+    <form action={formAction} onChange={() => setIsDirty(true)}>
       <input type="hidden" name="_isNew" value={isNew ? '1' : '0'} />
       {/* Snapshot of the images this product had before this edit — actions.ts
           diffs these against the saved values to clean up now-orphaned
@@ -388,7 +396,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
           <Link href="/products" className="border border-stone-200 text-stone-600 text-[13.5px] px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors">
             Cancel
           </Link>
-          <Submit isNew={isNew} />
+          <Submit isNew={isNew} onClick={handleSaveClick} />
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories } from '@/lib/api';
+import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
 
   const { created, updated } = await bulkImportProducts(payload);
   revalidatePath('/products');
+  await revalidateStorefront();
   return { created, updated, errors: [] };
 }
 
@@ -215,12 +216,16 @@ export async function saveProduct(_: unknown, formData: FormData) {
   }
 
   revalidatePath('/products');
+  // Must run before redirect() — code after redirect() never executes (it
+  // throws a Next.js control-flow signal).
+  await revalidateStorefront();
   redirect('/products');
 }
 
 export async function toggleAvailability(id: string, available: boolean) {
   await updateProduct(id, { available });
   revalidatePath('/products');
+  await revalidateStorefront();
 }
 
 export async function deleteProduct(id: string): Promise<{ error: string } | { ok: true }> {
@@ -233,6 +238,7 @@ export async function deleteProduct(id: string): Promise<{ error: string } | { o
     return { error: err instanceof Error ? err.message : 'Failed to delete product.' };
   }
   revalidatePath('/products');
+  await revalidateStorefront();
   return { ok: true };
 }
 
@@ -246,6 +252,7 @@ export async function restockAction(
   }
   revalidatePath(`/products/${productId}`);
   revalidatePath('/products');
+  await revalidateStorefront();
   return { ok: true };
 }
 
@@ -259,6 +266,7 @@ export async function adjustStockAction(
   }
   revalidatePath(`/products/${productId}`);
   revalidatePath('/products');
+  await revalidateStorefront();
   return { ok: true };
 }
 
@@ -271,6 +279,7 @@ export async function restockVariantAction(
     return { error: err instanceof Error ? err.message : 'Failed to restock variant.' };
   }
   revalidatePath(`/products/${productId}`);
+  await revalidateStorefront();
   return { ok: true };
 }
 
@@ -283,5 +292,6 @@ export async function adjustVariantStockAction(
     return { error: err instanceof Error ? err.message : 'Failed to adjust variant stock.' };
   }
   revalidatePath(`/products/${productId}`);
+  await revalidateStorefront();
   return { ok: true };
 }

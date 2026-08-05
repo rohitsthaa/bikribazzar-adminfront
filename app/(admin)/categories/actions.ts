@@ -1,6 +1,6 @@
 'use server';
 import { createCategory, updateCategory, deleteCategory } from '@/lib/api';
-import { getAdmin } from '@/lib/auth';
+import { can, getAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import type { Category, CategoryWrite } from '@/lib/api';
 import { friendlyApiError } from '@/lib/errors';
@@ -8,6 +8,7 @@ import { friendlyApiError } from '@/lib/errors';
 async function assertCanEdit() {
   const me = await getAdmin();
   if (!me) throw new Error('Not authenticated');
+  if (!can(me.role, 'settings')) throw new Error('Forbidden');
 }
 
 export async function createCategoryAction(data: CategoryWrite): Promise<{ category?: Category; error?: string }> {

@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { createTestimonial, updateTestimonial, deleteTestimonial } from '@/lib/api';
+import { createTestimonial, updateTestimonial, deleteTestimonial, revalidateStorefront } from '@/lib/api';
 import { friendlyApiError } from '@/lib/errors';
 
 export async function addTestimonial(_: unknown, formData: FormData) {
@@ -14,6 +14,7 @@ export async function addTestimonial(_: unknown, formData: FormData) {
     return { error: friendlyApiError(err, 'Failed to add testimonial.') };
   }
   revalidatePath('/testimonials');
+  await revalidateStorefront();
 }
 
 export async function editTestimonial(id: number, _: unknown, formData: FormData) {
@@ -27,10 +28,12 @@ export async function editTestimonial(id: number, _: unknown, formData: FormData
     return { error: friendlyApiError(err, 'Failed to update testimonial.') };
   }
   revalidatePath('/testimonials');
+  await revalidateStorefront();
   return { ok: true };
 }
 
 export async function removeTestimonial(id: number) {
   await deleteTestimonial(id);
   revalidatePath('/testimonials');
+  await revalidateStorefront();
 }

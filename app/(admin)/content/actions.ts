@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { updateSetting } from '@/lib/api';
+import { updateSetting, revalidateStorefront } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 
 async function assertCanSettings() {
@@ -16,6 +16,7 @@ export async function saveAboutContent(title: string, body: string): Promise<{ e
       updateSetting('about_body', body.trim()),
     ]);
     revalidatePath('/content');
+    await revalidateStorefront();
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Failed to save.' };
   }
@@ -30,6 +31,7 @@ export async function saveCustomContent(title: string, body: string): Promise<{ 
       updateSetting('custom_body', body.trim()),
     ]);
     revalidatePath('/content');
+    await revalidateStorefront();
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Failed to save.' };
   }
@@ -41,6 +43,7 @@ export async function savePageVisibility(page: 'about' | 'gallery' | 'custom' | 
     await assertCanSettings();
     await updateSetting(`${page}_enabled`, enabled ? 'true' : 'false');
     revalidatePath('/content');
+    await revalidateStorefront();
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Failed to save.' };
   }

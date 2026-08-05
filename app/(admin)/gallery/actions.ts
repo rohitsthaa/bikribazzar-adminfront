@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { createGalleryImage, deleteGalleryImage } from '@/lib/api';
+import { createGalleryImage, deleteGalleryImage, revalidateStorefront } from '@/lib/api';
 
 export async function addGalleryImage(_: unknown, formData: FormData) {
   const url = (formData.get('url') as string).trim();
@@ -13,9 +13,11 @@ export async function addGalleryImage(_: unknown, formData: FormData) {
     return { error: err instanceof Error ? err.message : 'Failed to add image.' };
   }
   revalidatePath('/gallery');
+  await revalidateStorefront();
 }
 
 export async function removeGalleryImage(id: number) {
   await deleteGalleryImage(id);
   revalidatePath('/gallery');
+  await revalidateStorefront();
 }
