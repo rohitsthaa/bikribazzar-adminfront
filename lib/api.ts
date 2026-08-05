@@ -9,6 +9,30 @@ import { TOKEN_COOKIE } from './auth';
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
+const STOREFRONT_URL = process.env.STOREFRONT_URL ?? '';
+const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? '';
+
+// Bridges to the (separately deployed) storefront's POST /api/revalidate.
+// The storefront caches reads like GET /settings for up to TTL_SLOW (5 min —
+// see its lib/api.ts) with no automatic invalidation, so without this call a
+// setting saved here (e.g. "Enable bank transfer") only shows up on the live
+// site once that cache naturally expires. Call this after any save that
+// changes storefront-visible data. Best-effort: STOREFRONT_URL/REVALIDATE_SECRET
+// may not be configured in every environment, and a flush failure must never
+// block (or roll back) the save that triggered it.
+export async function revalidateStorefront(): Promise<void> {
+  if (!STOREFRONT_URL || !REVALIDATE_SECRET) return;
+  try {
+    const res = await fetch(`${STOREFRONT_URL}/api/revalidate`, {
+      method: 'POST',
+      headers: { 'x-revalidate-secret': REVALIDATE_SECRET },
+      cache: 'no-store',
+    });
+    if (!res.ok) console.error(`revalidateStorefront → ${res.status}`);
+  } catch (err) {
+    console.error('revalidateStorefront failed', err);
+  }
+}
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   // Forwarding the admin's own session JWT lets the API cross-check it against
