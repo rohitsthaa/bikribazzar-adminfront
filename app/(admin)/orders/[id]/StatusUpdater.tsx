@@ -70,8 +70,13 @@ function ConfirmDialog({
       onConfirm(undefined);
       return;
     }
-    const fee = feeInput.trim() === '' ? 0 : parseInt(feeInput, 10);
-    onConfirm(Number.isNaN(fee) ? 0 : fee);
+    const parsed = feeInput.trim() === '' ? 0 : parseInt(feeInput, 10);
+    // This dialog isn't inside a <form> (plain onClick buttons), so the input's
+    // `min={0}` is cosmetic only — the browser never runs constraint validation
+    // against it here. Clamp explicitly so a typed "-50" can't understate the
+    // order's outstanding balance; the API-side PATCH handlers now floor this
+    // too, but there's no reason to send a negative number in the first place.
+    onConfirm(Math.max(0, Number.isNaN(parsed) ? 0 : parsed));
   };
 
   return (

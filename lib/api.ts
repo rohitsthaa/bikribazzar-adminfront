@@ -23,12 +23,19 @@ const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? '';
 export async function revalidateStorefront(): Promise<void> {
   if (!STOREFRONT_URL || !REVALIDATE_SECRET) return;
   try {
+    // A hung storefront (up but not responding — stalled TLS/DNS/backed-up
+    // server) previously had no timeout, so this await could block
+    // indefinitely. Every caller awaits this inline, so an admin save would
+    // then hang until the platform's own request timeout killed it —
+    // defeating the "must never block a legitimate save" goal. AbortSignal.timeout
+    // rejects into the catch below like any other fetch failure.
     const res = await fetch(`${STOREFRONT_URL}/api/revalidate`, {
       method: 'POST',
       headers: { 'x-revalidate-secret': REVALIDATE_SECRET },
       cache: 'no-store',
+      signal: AbortSignal.timeout(3000),
     });
-    if (!res.ok) console.error(`revalidateStorefront → ${res.status}`);
+    if (!res.ok) console.error(`revalidateStorefront → ${res.status}: ${await res.text().catch(() => '')}`);
   } catch (err) {
     console.error('revalidateStorefront failed', err);
   }
