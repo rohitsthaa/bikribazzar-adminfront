@@ -431,6 +431,23 @@ export function updatePaymentGatewayConfig(data: {
   return apiFetch<{ ok: boolean }>('/settings/payments/config', { method: 'PUT', body: JSON.stringify(data) });
 }
 
+export type FonepayTestResult = {
+  ok: boolean;
+  steps: { name: 'key' | 'login' | 'qr'; ok: boolean; detail: string }[];
+};
+
+// Proves a Fonepay credential set against the real gateway without placing an order. Any field
+// left out falls back to what's already saved for the store, so the owner can test a key they
+// have pasted but not yet saved. Persists nothing.
+export function testFonepayConnection(data: {
+  terminalId?: string | null; username?: string | null;
+  password?: string | null; privateKey?: string | null;
+}) {
+  return apiFetch<FonepayTestResult>('/settings/payments/fonepay/test', {
+    method: 'POST', body: JSON.stringify(data),
+  });
+}
+
 export type StoreCourierConfigView = {
   ncm: { enabled: boolean; fromBranch: string; hasToken: boolean; webhookRegistered: boolean; forceRealHost: boolean };
 };
