@@ -311,6 +311,41 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                   defaultChecked={store.isDemo}
                 />
               </div>
+              <div className="sm:col-span-2 rounded-lg border border-stone-200 p-3">
+                <p className="text-xs font-medium text-stone-700">Payment gateways</p>
+                <p className="mt-0.5 text-[11px] text-stone-500">
+                  Overrides this store&apos;s plan. Leave on <em>Plan default</em> unless you&apos;re
+                  deliberately comping a gateway to this store or pulling one from it. The store
+                  owner still has to switch it on and save working credentials in their own
+                  settings — this only controls whether they may.
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {([
+                    ['esewaOverride', 'eSewa', store.esewaOverride],
+                    ['khaltiOverride', 'Khalti', store.khaltiOverride],
+                    ['fonepayOverride', 'Fonepay', store.fonepayOverride],
+                  ] as const).map(([name, label, current]) => (
+                    <label key={name} className="text-[11px] text-stone-500">
+                      {label}
+                      <select
+                        name={name}
+                        defaultValue={current === null ? 'inherit' : current ? 'on' : 'off'}
+                        className="mt-1 w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs text-stone-800"
+                      >
+                        <option value="inherit">Plan default</option>
+                        <option value="on">Always on</option>
+                        <option value="off">Always off</option>
+                      </select>
+                    </label>
+                  ))}
+                </div>
+                {store.isDemo && (
+                  <p className="mt-2 text-[11px] text-amber-700">
+                    This is a demo store, so Khalti and Fonepay stay off whatever is chosen here —
+                    neither has a sandbox merchant to fall back on.
+                  </p>
+                )}
+              </div>
               <div className="sm:col-span-2">
                 <ToggleField
                   name="customerAuthEnabled"
