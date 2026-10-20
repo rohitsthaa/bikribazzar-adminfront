@@ -1,7 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig } from '@/lib/api';
+import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection } from '@/lib/api';
+import type { FonepayTestResult } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 
 /** Settings are owner-only (super + store-admin); staff are blocked. */
@@ -70,6 +71,23 @@ export async function saveBranding(data: {
 // production builds the same way it redacts a render error, so a thrown Error here would
 // reach the client as generic "Server Components render" text with no way to recover the
 // real message. Returning data instead sidesteps that redaction entirely.
+// Same "return, don't throw" rule as savePaymentGateways below — a thrown message would be
+// redacted by Next.js in production and the owner would lose the actual reason.
+export async function testFonepay(data: {
+  terminalId: string; username: string; password: string; privateKey: string;
+}): Promise<FonepayTestResult | { ok: false; steps: { name: 'key'; ok: false; detail: string }[] }> {
+  await assertCanSettings();
+  try {
+    return await testFonepayConnection({
+      terminalId: data.terminalId || null, username: data.username || null,
+      password: data.password || null, privateKey: data.privateKey || null,
+    });
+  } catch (err) {
+    return { ok: false, steps: [{ name: 'key', ok: false,
+      detail: err instanceof Error ? err.message : 'Could not reach the server to run the test.' }] };
+  }
+}
+
 export async function savePaymentGateways(data: {
   esewaEnabled: boolean; esewaMode: string; esewaProductCode: string; esewaSecret: string;
   khaltiEnabled: boolean; khaltiMode: string; khaltiSecret: string;

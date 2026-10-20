@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
-import { saveAboutImage, savePaymentQr, saveContactInfo, saveCurrency, saveBranding, savePaymentGateways } from './actions';
+import { saveAboutImage, savePaymentQr, saveContactInfo, saveCurrency, saveBranding, savePaymentGateways, testFonepay } from './actions';
 import type { PaymentGatewayConfigView } from '@/lib/api';
 
 function SettingCard({
@@ -73,6 +73,13 @@ function Field({ label, value, onChange, placeholder, mono, hint }: {
     </div>
   );
 }
+
+// Maps the API's step ids onto something a store owner can act on.
+const LABELS: Record<string, string> = {
+  key: 'Private key',
+  login: 'Sign in',
+  qr: 'QR generation',
+};
 
 export default function SettingsClient({
   initialAboutImage,
@@ -192,6 +199,23 @@ export default function SettingsClient({
   const [fonepayUsername, setFonepayUsername] = useState('');
   const [fonepayPassword, setFonepayPassword] = useState('');
   const [fonepayPrivateKey, setFonepayPrivateKey] = useState('');
+  // Connection test: runs against the live gateway without saving, so a bad key is caught here
+  // rather than by a customer at checkout. Fields left blank fall back to what's already saved.
+  const [fpTesting, setFpTesting] = useState(false);
+  const [fpResult, setFpResult] = useState<{ ok: boolean; steps: { name: string; ok: boolean; detail: string }[] } | null>(null);
+
+  async function handleFonepayTest() {
+    setFpTesting(true);
+    setFpResult(null);
+    try {
+      setFpResult(await testFonepay({
+        terminalId: fonepayTerminalId, username: fonepayUsername,
+        password: fonepayPassword, privateKey: fonepayPrivateKey,
+      }));
+    } finally {
+      setFpTesting(false);
+    }
+  }
   const [gatewaysSaved, setGatewaysSaved] = useState(false);
   const [gatewaysError, setGatewaysError] = useState('');
   const [gatewaysPending, startGatewaysTransition] = useTransition();
@@ -530,8 +554,45 @@ export default function SettingsClient({
                 onChange={setFonepayPrivateKey}
                 placeholder={initialPaymentGateways.fonepay.hasPrivateKey ? 'Already saved — enter to replace' : 'Enter your Fonepay PKCS8 private key'}
                 mono
-                hint="Base64 or hex, no PEM headers — matches the key format Fonepay provides in the merchant portal."
+                hint="Paste the key from Fonepay's merchant portal. A whole .pem file is fine — the BEGIN/END lines are stripped for you."
               />
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={handleFonepayTest}
+                  disabled={fpTesting}
+                  className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                >
+                  {fpTesting ? 'Testing…' : 'Test connection'}
+                </button>
+                <span className="ml-2 text-xs text-stone-400">
+                  Checks these credentials against Fonepay. Nothing is saved or charged.
+                </span>
+              </div>
+
+              {fpResult && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-xs space-y-1 ${
+                    fpResult.ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                  }`}
+                >
+                  {fpResult.steps.map((st) => (
+                    <div key={st.name} className="flex gap-2">
+                      <span className={st.ok ? 'text-green-600' : 'text-red-600'}>{st.ok ? '✓' : '✗'}</span>
+                      <span className="text-stone-700">
+                        <span className="font-medium capitalize">{LABELS[st.name] ?? st.name}</span>
+                        {' — '}{st.detail}
+                      </span>
+                    </div>
+                  ))}
+                  {fpResult.ok && (
+                    <p className="text-green-700 font-medium pt-0.5">
+                      Fonepay is working. Customers can pay with it at checkout.
+                    </p>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
