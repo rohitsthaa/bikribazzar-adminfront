@@ -25,6 +25,15 @@ export async function createStoreAction(fd: FormData) {
   redirect(`/platform/${id}`);
 }
 
+// 'on' | 'off' | 'inherit' from the platform store form's gateway selects. Anything else
+// (a missing field) also yields null, which the API reads as "clear back to plan default" —
+// safe here because this form always submits all three selects.
+function gatewayOverride(value: FormDataEntryValue | null): boolean | null {
+  if (value === 'on') return true;
+  if (value === 'off') return false;
+  return null;
+}
+
 export async function updateStoreAction(fd: FormData) {
   await assertSuper();
   const id = str(fd, 'id');
@@ -44,6 +53,12 @@ export async function updateStoreAction(fd: FormData) {
       customDomain: str(fd, 'customDomain') || null,
       isDemo: fd.get('isDemo') === 'on',
       customerAuthEnabled: fd.get('customerAuthEnabled') === 'on',
+      // Three-state, so it can't ride the `=== 'on'` checkbox idiom above: "inherit" has to
+      // reach the API as an explicit null to clear any previous override, not be omitted —
+      // omitting a field means "leave it alone" there.
+      esewaOverride: gatewayOverride(fd.get('esewaOverride')),
+      khaltiOverride: gatewayOverride(fd.get('khaltiOverride')),
+      fonepayOverride: gatewayOverride(fd.get('fonepayOverride')),
     });
   } catch (e: unknown) {
     // Re-throw Next.js internal errors (redirect / notFound)

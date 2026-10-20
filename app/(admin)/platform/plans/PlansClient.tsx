@@ -26,6 +26,12 @@ function PlanCard({
   const [allowPremiumTemplates, setAllowPremiumTemplates] = useState(plan.allowPremiumTemplates);
   const [allowCustomDomain, setAllowCustomDomain] = useState(plan.allowCustomDomain);
   const [allowOnlinePayments, setAllowOnlinePayments] = useState(plan.allowOnlinePayments);
+  // Per-gateway allowances. Each is ANDed with the master switch above, so they're only
+  // meaningful while it's on — the UI disables them when it isn't, rather than letting a super
+  // admin tick boxes that silently do nothing.
+  const [allowEsewa, setAllowEsewa] = useState(plan.allowEsewa);
+  const [allowKhalti, setAllowKhalti] = useState(plan.allowKhalti);
+  const [allowFonepay, setAllowFonepay] = useState(plan.allowFonepay);
   const [showBadge, setShowBadge] = useState(plan.showBadge);
   const [sortOrder, setSortOrder] = useState(plan.sortOrder);
   const [saving, setSaving] = useState(false);
@@ -42,7 +48,7 @@ function PlanCard({
       priceNpr,
       allowPremiumTemplates,
       allowCustomDomain,
-      allowOnlinePayments,
+      allowOnlinePayments, allowEsewa, allowKhalti, allowFonepay,
       showBadge,
       sortOrder,
     };
@@ -60,7 +66,8 @@ function PlanCard({
       } else {
         onSaved(plan.id, {
           name, priceNpr, maxProducts: unlimited ? null : maxProducts,
-          allowPremiumTemplates, allowCustomDomain, allowOnlinePayments, showBadge, sortOrder,
+          allowPremiumTemplates, allowCustomDomain, allowOnlinePayments,
+          allowEsewa, allowKhalti, allowFonepay, showBadge, sortOrder,
         });
         setEditing(false);
       }
@@ -94,7 +101,9 @@ function PlanCard({
           <div className="flex flex-wrap gap-1.5 mt-2">
             {plan.allowPremiumTemplates && <Badge>Premium templates</Badge>}
             {plan.allowCustomDomain && <Badge>Custom domain</Badge>}
-            {plan.allowOnlinePayments && <Badge>Online payments</Badge>}
+            {plan.allowOnlinePayments && (
+              [['eSewa', plan.allowEsewa], ['Khalti', plan.allowKhalti], ['Fonepay', plan.allowFonepay]] as const
+            ).filter(([, on]) => on).map(([label]) => <Badge key={label}>{label}</Badge>)}
             {plan.showBadge && <Badge>Shows "Powered by" badge</Badge>}
           </div>
         </div>
@@ -164,6 +173,27 @@ function PlanCard({
               <input type="checkbox" checked={allowOnlinePayments} onChange={(e) => setAllowOnlinePayments(e.target.checked)} />
               Online payments
             </label>
+            <div className="flex items-center gap-3 pl-5">
+              {([
+                ['eSewa', allowEsewa, setAllowEsewa],
+                ['Khalti', allowKhalti, setAllowKhalti],
+                ['Fonepay', allowFonepay, setAllowFonepay],
+              ] as const).map(([label, value, set]) => (
+                <label
+                  key={label}
+                  className={`text-[11px] flex items-center gap-1.5 ${allowOnlinePayments ? 'text-stone-500' : 'text-stone-300'}`}
+                  title={allowOnlinePayments ? undefined : 'Turn on Online payments first'}
+                >
+                  <input
+                    type="checkbox"
+                    checked={value}
+                    disabled={!allowOnlinePayments}
+                    onChange={(e) => set(e.target.checked)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
             <label className="text-[11px] text-stone-500 flex items-center gap-1.5">
               <input type="checkbox" checked={showBadge} onChange={(e) => setShowBadge(e.target.checked)} />
               Show "Powered by" badge
