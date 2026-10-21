@@ -452,6 +452,19 @@ export function testFonepayConnection(data: {
   });
 }
 
+/** Platform-wide feature switches, keyed by admin route slug. Absent key = enabled. */
+export type PlatformFeatures = Record<string, boolean>;
+
+/** Open endpoint — the sidebar needs it on every page load to decide what to render. */
+export function getPlatformFeatures() {
+  return apiFetch<PlatformFeatures>('/platform/features');
+}
+
+/** Super admin only. Partial map: only the keys sent are written. */
+export function updatePlatformFeatures(data: PlatformFeatures) {
+  return apiFetch<PlatformFeatures>('/platform/features', { method: 'PUT', body: JSON.stringify(data) });
+}
+
 export type StoreCourierConfigView = {
   ncm: { enabled: boolean; fromBranch: string; hasToken: boolean; webhookRegistered: boolean; forceRealHost: boolean };
 };
