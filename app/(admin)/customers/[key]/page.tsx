@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getOrders, getSettings, type Order } from '@/lib/api';
+import { getAllOrders, getSettings, type Order } from '@/lib/api';
 
 export const metadata = { title: 'Customer — Soul Thread Admin' };
 
@@ -23,7 +23,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   let currency = 'NPR';
   try {
     await Promise.all([
-      getOrders().then((o) => { orders = o; }),
+      getAllOrders().then((o) => { orders = o.items; }),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
   } catch {}

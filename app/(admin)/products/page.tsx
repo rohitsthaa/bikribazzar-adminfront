@@ -1,15 +1,29 @@
 import Link from 'next/link';
 import { getProducts, getSettings } from '@/lib/api';
+import Pager from '@/components/Pager';
 import { getAdmin, can } from '@/lib/auth';
 import ProductsClient from './ProductsClient';
 import CsvImportButton from './CsvImportButton';
 
-export default async function ProductsPage() {
-  const [products, settings, admin] = await Promise.all([
-    getProducts(),
+const PAGE_SIZE = 50;
+
+// Bucket and page live in the URL, so the filter runs in SQL and the counts on the tabs
+// describe the whole catalogue rather than whatever happens to be on screen.
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bucket?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
+  const bucket = sp.bucket ?? 'all';
+  const page = Math.max(1, Number(sp.page ?? '1') || 1);
+
+  const [res, settings, admin] = await Promise.all([
+    getProducts({ bucket, page, limit: PAGE_SIZE }),
     getSettings().catch(() => ({} as Record<string, string>)),
     getAdmin(),
   ]);
+  const products = res.items;
   const currency = settings.currency_symbol || 'NPR';
   const canDelete = can(admin?.role, 'deleteProduct');
 
@@ -18,7 +32,7 @@ export default async function ProductsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{products.length} item{products.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-400 mt-0.5">{res.counts.all.toLocaleString()} item{res.counts.all !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex items-center gap-2">
           <CsvImportButton />
@@ -31,7 +45,8 @@ export default async function ProductsPage() {
         </div>
       </div>
 
-      <ProductsClient products={products} currency={currency} canDelete={canDelete} />
+      <ProductsClient products={products} currency={currency} canDelete={canDelete} counts={res.counts} bucket={bucket} />
+      <Pager page={page} limit={PAGE_SIZE} total={res.total} basePath="/products" params={{ bucket: bucket === 'all' ? undefined : bucket }} />
     </main>
   );
 }

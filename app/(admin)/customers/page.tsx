@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getOrders, getSettings, type Order } from '@/lib/api';
+import { getAllOrders, getSettings, type Order } from '@/lib/api';
 import EmptyState from '@/components/EmptyState';
 
 export const metadata = { title: 'Customers — Soul Thread Admin' };
@@ -65,7 +65,7 @@ export default async function CustomersPage() {
 
   try {
     await Promise.all([
-      getOrders().then((o) => { orders = o; }),
+      getAllOrders().then((o) => { orders = o.items; }),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
   } catch {}

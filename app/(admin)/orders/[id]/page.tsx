@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getOrder, getProducts, getSettings } from '@/lib/api';
+import { getOrder, getAllProducts, getSettings } from '@/lib/api';
 import type { Order } from '@/lib/api';
 import StatusUpdater from './StatusUpdater';
 import PaymentRecorder from './PaymentRecorder';
@@ -68,7 +68,7 @@ export default async function OrderDetailPage({ params }: Props) {
   if (!order) notFound();
 
   const [products, settings] = await Promise.all([
-    getProducts(),
+    getAllProducts(),
     getSettings().catch(() => ({} as Record<string, string>)),
   ]);
   const currency = settings.currency_symbol || 'NPR';

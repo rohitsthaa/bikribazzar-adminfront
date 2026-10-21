@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getOrders, getSettings, type Order } from '@/lib/api';
+import { getAllOrders, getSettings, type Order } from '@/lib/api';
 
 export const metadata = { title: 'Delivery Schedule — Soul Thread Admin' };
 
@@ -14,7 +14,7 @@ export default async function DeliveryPage() {
 
   try {
     await Promise.all([
-      getOrders().then((o) => { orders = o; }),
+      getAllOrders().then((o) => { orders = o.items; }),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
   } catch {}
