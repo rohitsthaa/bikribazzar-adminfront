@@ -300,6 +300,7 @@ export default function Sidebar({
   isSuper = false,
   canSettings = true,
   allowedTabs = null,
+  features,
   storeName,
   storeUrl,
   adminEmail,
@@ -310,6 +311,10 @@ export default function Sidebar({
   // Per-admin tab restriction (see lib/tabs.ts) set by a store/super admin when adding a
   // staff member. null = unrestricted (every tab canSettings/role already permits).
   allowedTabs?: string[] | null;
+  // Platform-wide feature switches (GET /platform/features), keyed by route slug. A key that
+  // is present and false hides that area for EVERY store. Undefined/absent = enabled, so a
+  // failed fetch leaves the nav intact rather than blanking half of it.
+  features?: Record<string, boolean>;
   storeName?: string;
   storeUrl?: string | null;
   adminEmail?: string;
@@ -333,6 +338,9 @@ export default function Sidebar({
   // Per-admin tab restriction / site-type gating shared by flat items, dropdown
   // items, and the bottom-pinned items.
   const isNavItemVisible = (href: string) => {
+    // Platform-wide kill switch first: an area turned off by a super admin is hidden for
+    // everyone, whatever this store's site type or this admin's tab permissions say.
+    if (features?.[href.slice(1)] === false) return false;
     if ((href === '/settings' || href === '/settings/team' || href === '/billing') && !canSettings) return false;
     if (href === '/portfolio' && siteType !== 'portfolio') return false;
     if (href === '/services' && siteType !== 'business') return false;

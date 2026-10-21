@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getAdmin, can } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
 import StoreSwitcher from '@/components/StoreSwitcher';
-import { getStores, getStore } from '@/lib/api';
+import { getStores, getStore, getPlatformFeatures } from '@/lib/api';
 import { currentStoreId } from '@/lib/store-context';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +26,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ? await getStore(current).catch(() => null)
     : null;
   const storeName = currentStore?.name ?? (isSuper ? current : undefined);
+
+  // Platform-wide feature switches decide which Content-area nav entries render at all.
+  // Falls back to {} on failure, which the sidebar reads as "everything enabled" — a flaky
+  // request should never blank half someone's navigation.
+  const features = await getPlatformFeatures().catch(() => ({}));
 
   // Build the public storefront URL for the "View store" link in the sidebar.
   // Check both NEXT_PUBLIC_ (for client exposure) and plain PLATFORM_DOMAIN (API config).
@@ -67,6 +72,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         isSuper={isSuper}
         canSettings={can(admin.role, 'settings')}
         allowedTabs={admin.allowedTabs}
+        features={features}
         storeName={storeName}
         storeUrl={storeUrl}
         adminEmail={admin.email}

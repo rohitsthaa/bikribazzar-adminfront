@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, updateStoreCourierConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, createInvoice, patchInvoice, type StoreDeletionImpact } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, updateStoreCourierConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, createInvoice, patchInvoice, updatePlatformFeatures, type StoreDeletionImpact } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -12,6 +12,24 @@ function str(fd: FormData, key: string): string {
 async function assertSuper() {
   const me = await getAdmin();
   if (me?.role !== 'super') throw new Error('Forbidden');
+}
+
+// Returns rather than throws, same reason as the payment-gateway save: Next.js redacts a
+// thrown Server Action message in production, and the caller flips its optimistic state back
+// on failure, which needs the reason.
+export async function setPlatformFeaturesAction(
+  patch: Record<string, boolean>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = await getAdmin();
+  if (admin?.role !== 'super') return { ok: false, error: 'Only a super admin can change this.' };
+  try {
+    await updatePlatformFeatures(patch);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Could not save.' };
+  }
+  // Every store's sidebar reads this, so the whole admin tree is stale now.
+  revalidatePath('/', 'layout');
+  return { ok: true };
 }
 
 export async function createStoreAction(fd: FormData) {
