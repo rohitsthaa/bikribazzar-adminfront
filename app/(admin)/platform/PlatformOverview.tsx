@@ -103,13 +103,48 @@ function LifecycleCard({
         <p className="text-xs text-stone-300 px-1 py-2">None right now</p>
       ) : (
         <div className="space-y-0.5">
-          {storeList.map((s) => (
+          {storeList.slice(0, MAX_ROWS).map((s) => (
             <StoreChip key={s.id} s={s} sub={sub(s)} />
           ))}
+          {/* The badge above already carries the real count, so this only has to account for
+              the names that aren't shown. */}
+          {storeList.length > MAX_ROWS && (
+            <Link
+              href="/platform/stores"
+              className="block px-3 pt-1.5 text-xs font-medium text-stone-400 hover:text-indigo-600 transition-colors"
+            >
+              +{storeList.length - MAX_ROWS} more →
+            </Link>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+// How many stores any one list on this page will show before linking out.
+//
+// Both lists used to render every store they matched. The four lifecycle cards partition all
+// real stores between them, and "needs attention" matches most of those again — so a platform
+// with seventeen stores drew about thirty store rows on a page meant to be a summary, growing
+// linearly with every store signed up.
+const MAX_ROWS = 5;
+
+/**
+ * Severity order for "needs attention", so the five rows that survive the cap are the five
+ * worth looking at.
+ *
+ * Pending orders outrank everything: a customer is waiting and the money is unsettled. Low
+ * stock is next, because it stops future sales rather than blocking a current one. A store
+ * that is not active is a platform-side problem rather than a trading one. Missing payment
+ * config comes last — it matches nearly every store that has not set a gateway up yet, which
+ * is normal for a new signup and would otherwise crowd out everything urgent.
+ */
+function attentionRank(s: Data['stores'][number]): number {
+  if (s.pending > 0) return 0;
+  if (s.lowStock > 0) return 1;
+  if (s.status !== 'active') return 2;
+  return 3;
 }
 
 // ─── Attention row ────────────────────────────────────────────────────────────
@@ -183,9 +218,10 @@ export default function PlatformOverview({ data }: { data: Data }) {
   const never   = realStores.filter(s => !s.lastOrderAt);
 
   // Needs attention
-  const attentionStores = realStores.filter((s) =>
-    s.status !== 'active' || s.pending > 0 || s.lowStock > 0 || !s.hasPaymentConfig
-  );
+  const attentionStores = realStores
+    .filter((s) => s.status !== 'active' || s.pending > 0 || s.lowStock > 0 || !s.hasPaymentConfig)
+    // Most urgent first, then most pending orders, so the capped list is the useful end of it.
+    .sort((a, b) => attentionRank(a) - attentionRank(b) || b.pending - a.pending);
 
   // Platform digest sentence
   const digestParts: string[] = [];
@@ -285,6 +321,32 @@ export default function PlatformOverview({ data }: { data: Data }) {
         </div>
       )}
 
+      {/* ── Needs attention ────────────────────────────────────────────────── */}
+      {attentionStores.length > 0 && (
+        <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+            <div>
+              <h2 className="text-sm font-semibold text-stone-900">Needs attention</h2>
+              <p className="text-xs text-stone-400 mt-0.5">Pending orders, low stock, or missing config.</p>
+            </div>
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+              {attentionStores.length} store{attentionStores.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="divide-y divide-stone-100">
+            {attentionStores.slice(0, MAX_ROWS).map((s) => <AttentionRow key={s.id} s={s} />)}
+          </div>
+          {attentionStores.length > MAX_ROWS && (
+            <Link
+              href="/platform/stores"
+              className="block px-5 py-3 text-xs font-medium text-indigo-500 hover:text-indigo-700 hover:bg-stone-50 transition-colors border-t border-stone-100"
+            >
+              {attentionStores.length - MAX_ROWS} more need attention →
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* ── Revenue bar (only if meaningful) ───────────────────────────────── */}
       {totalRev > 0 && topStores.length > 0 && (
         <div className="bg-white rounded-2xl border border-stone-200 px-5 py-4">
@@ -308,24 +370,6 @@ export default function PlatformOverview({ data }: { data: Data }) {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Needs attention ────────────────────────────────────────────────── */}
-      {attentionStores.length > 0 && (
-        <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
-            <div>
-              <h2 className="text-sm font-semibold text-stone-900">Needs attention</h2>
-              <p className="text-xs text-stone-400 mt-0.5">Pending orders, low stock, or missing config.</p>
-            </div>
-            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100">
-              {attentionStores.length} store{attentionStores.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <div className="divide-y divide-stone-100">
-            {attentionStores.map((s) => <AttentionRow key={s.id} s={s} />)}
           </div>
         </div>
       )}
