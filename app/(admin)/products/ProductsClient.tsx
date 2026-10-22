@@ -297,6 +297,7 @@ function Toolbar({ categories, q, category, sort, view }: {
       </div>
       <select aria-label="Category" value={category} onChange={(e) => router.replace(href({ category: e.target.value || null }), { scroll: false })} className={select}>
         <option value="">All categories</option>
+        <option value="none">Uncategorized</option>
         {categories.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
       </select>
       <select aria-label="Sort" value={sort} onChange={(e) => router.replace(href({ sort: e.target.value || null }), { scroll: false })} className={select}>
