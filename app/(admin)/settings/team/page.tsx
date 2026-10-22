@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import SettingsNav from '@/components/SettingsNav';
 import { getStoreAdmins } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
@@ -21,6 +22,7 @@ export default async function TeamPage() {
           Manage who can access this store&apos;s admin panel.
         </p>
       </div>
+      <SettingsNav />
       <TeamClient members={members} meId={admin?.id ?? null} />
     </main>
   );

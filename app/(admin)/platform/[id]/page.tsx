@@ -2,18 +2,19 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getStore, getStorePaymentConfig, getStoreCourierConfig, getStoreAdmins, getAllTemplates, getAllPlans, getStoreInvoices } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
-import { updateStoreAction, updatePaymentConfigAction, updateCourierConfigAction } from '../actions';
+import { updateStoreAction, updateStoreGatewayOverridesAction, updatePaymentConfigAction, updateCourierConfigAction } from '../actions';
 import { enterStore } from '../../store-actions';
 import StoreAdmins from './StoreAdmins';
 import TemplateThemeClient from './TemplateThemeClient';
 import TemplateAccessClient from './TemplateAccessClient';
 import BillingClient from './BillingClient';
 import DeleteStoreSection from './DeleteStoreSection';
+import StoreTabs, { resolveTab } from './StoreTabs';
 import SubmitButton from '@/components/SubmitButton';
 
 export const dynamic = 'force-dynamic';
 
-interface Props { params: Promise<{ id: string }>; searchParams?: Promise<{ error?: string; saved?: string }> }
+interface Props { params: Promise<{ id: string }>; searchParams?: Promise<{ error?: string; saved?: string; tab?: string }> }
 type ThemeShape = { colors?: { primary?: string; accent?: string; bg?: string }; fonts?: { display?: string; body?: string } };
 
 // ── Small shared primitives ──────────────────────────────────────────────────
@@ -181,6 +182,7 @@ function ToggleField({ name, label, description, defaultChecked }: {
 export default async function StoreManagePage({ params, searchParams }: Props) {
   const { id } = await params;
   const sp = await searchParams;
+  const tab = resolveTab(sp?.tab);
   const me = await getAdmin();
   if (me?.role !== 'super') redirect('/dashboard');
 
@@ -255,6 +257,10 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
         </div>
       </div>
 
+      <StoreTabs storeId={store.id} active={tab} />
+
+{tab === 'general' && (
+        <>
       {/* ── Section 1: General ── */}
       <SectionCard title="General" description="Core store identity and availability.">
         {store.status === 'deleted' && (
@@ -311,42 +317,7 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                   defaultChecked={store.isDemo}
                 />
               </div>
-              <div className="sm:col-span-2 rounded-lg border border-stone-200 p-3">
-                <p className="text-xs font-medium text-stone-700">Payment gateways</p>
-                <p className="mt-0.5 text-[11px] text-stone-500">
-                  Overrides this store&apos;s plan. Leave on <em>Plan default</em> unless you&apos;re
-                  deliberately comping a gateway to this store or pulling one from it. The store
-                  owner still has to switch it on and save working credentials in their own
-                  settings — this only controls whether they may.
-                </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                  {([
-                    ['esewaOverride', 'eSewa', store.esewaOverride],
-                    ['khaltiOverride', 'Khalti', store.khaltiOverride],
-                    ['fonepayOverride', 'Fonepay', store.fonepayOverride],
-                  ] as const).map(([name, label, current]) => (
-                    <label key={name} className="text-[11px] text-stone-500">
-                      {label}
-                      <select
-                        name={name}
-                        defaultValue={current === null ? 'inherit' : current ? 'on' : 'off'}
-                        className="mt-1 w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs text-stone-800"
-                      >
-                        <option value="inherit">Plan default</option>
-                        <option value="on">Always on</option>
-                        <option value="off">Always off</option>
-                      </select>
-                    </label>
-                  ))}
-                </div>
-                {store.isDemo && (
-                  <p className="mt-2 text-[11px] text-amber-700">
-                    This is a demo store, so Khalti and Fonepay stay off whatever is chosen here —
-                    neither has a sandbox merchant to fall back on.
-                  </p>
-                )}
-              </div>
-              <div className="sm:col-span-2">
+                      <div className="sm:col-span-2">
                 <ToggleField
                   name="customerAuthEnabled"
                   label="Customer accounts"
@@ -365,6 +336,19 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
         </form>
       </SectionCard>
 
+      {/* ── Section 7: Delete / restore ── */}
+      <DeleteStoreSection
+        storeId={store.id}
+        storeName={store.name}
+        isDeleted={store.status === 'deleted' || !!store.deletedAt}
+        deletedAt={store.deletedAt}
+        previousId={store.previousId}
+      />
+        </>
+      )}
+
+{tab === 'design' && (
+        <>
       {/* ── Section 2: Template & Theme ── */}
       <SectionCard title="Template & Theme" description="Visual design applied to this store's storefront.">
         <TemplateThemeClient
@@ -379,6 +363,22 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
         />
       </SectionCard>
 
+      {/* ── Section 4: Template Access ── */}
+      <SectionCard
+        title="Template access"
+        description="Control which storefront themes this store can use. Grant exclusive/private templates here."
+      >
+        <TemplateAccessClient
+          storeId={store.id}
+          allTemplates={allTemplates}
+          initialAllowed={store.allowedTemplates ?? null}
+        />
+      </SectionCard>
+        </>
+      )}
+
+{tab === 'payments' && (
+        <>
       {/* ── Section 3: Payment credentials ── */}
       <SectionCard title="Payment credentials" description="Secrets are encrypted at rest and never shown once saved.">
         <form action={updatePaymentConfigAction} className="space-y-6">
@@ -479,6 +479,54 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
         </form>
       </SectionCard>
 
+      {/* Moved here from General, where it sat beside the demo-store flag. Separate form and
+          action from the credentials above: these are store policy, those are merchant secrets. */}
+      <SectionCard title="Gateway availability" description="Overrides this store's plan. The owner still has to switch a gateway on and save working credentials themselves.">
+        <form action={updateStoreGatewayOverridesAction} className="space-y-4">
+          <input type="hidden" name="id" value={store.id} />
+          <div className="sm:col-span-2 rounded-lg border border-stone-200 p-3">
+                    <p className="text-xs font-medium text-stone-700">Payment gateways</p>
+                    <p className="mt-0.5 text-[11px] text-stone-500">
+                      Overrides this store&apos;s plan. Leave on <em>Plan default</em> unless you&apos;re
+                      deliberately comping a gateway to this store or pulling one from it. The store
+                      owner still has to switch it on and save working credentials in their own
+                      settings — this only controls whether they may.
+                    </p>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                      {([
+                        ['esewaOverride', 'eSewa', store.esewaOverride],
+                        ['khaltiOverride', 'Khalti', store.khaltiOverride],
+                        ['fonepayOverride', 'Fonepay', store.fonepayOverride],
+                      ] as const).map(([name, label, current]) => (
+                        <label key={name} className="text-[11px] text-stone-500">
+                          {label}
+                          <select
+                            name={name}
+                            defaultValue={current === null ? 'inherit' : current ? 'on' : 'off'}
+                            className="mt-1 w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs text-stone-800"
+                          >
+                            <option value="inherit">Plan default</option>
+                            <option value="on">Always on</option>
+                            <option value="off">Always off</option>
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                    {store.isDemo && (
+                      <p className="mt-2 text-[11px] text-amber-700">
+                        This is a demo store, so Khalti and Fonepay stay off whatever is chosen here —
+                        neither has a sandbox merchant to fall back on.
+                      </p>
+                    )}
+                  </div>
+          <SaveBtn />
+        </form>
+      </SectionCard>
+        </>
+      )}
+
+{tab === 'courier' && (
+        <>
       {/* ── Section 3b: Courier (NCM) ── */}
       <SectionCard title="Courier — NCM (Nepal Can Move)" description="Vendor token is encrypted at rest and never shown once saved.">
         <form action={updateCourierConfigAction} className="space-y-4">
@@ -545,19 +593,11 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
           <SaveBtn label="Save courier config" />
         </form>
       </SectionCard>
+        </>
+      )}
 
-      {/* ── Section 4: Template Access ── */}
-      <SectionCard
-        title="Template access"
-        description="Control which storefront themes this store can use. Grant exclusive/private templates here."
-      >
-        <TemplateAccessClient
-          storeId={store.id}
-          allTemplates={allTemplates}
-          initialAllowed={store.allowedTemplates ?? null}
-        />
-      </SectionCard>
-
+{tab === 'billing' && (
+        <>
       {/* ── Section 5: Billing ── */}
       <SectionCard
         title="Billing"
@@ -573,18 +613,16 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
           invoices={invoices}
         />
       </SectionCard>
+        </>
+      )}
 
+{tab === 'team' && (
+        <>
       {/* ── Section 6: Team ── */}
       <StoreAdmins storeId={store.id} storeName={store.name} admins={admins} />
+        </>
+      )}
 
-      {/* ── Section 7: Delete / restore ── */}
-      <DeleteStoreSection
-        storeId={store.id}
-        storeName={store.name}
-        isDeleted={store.status === 'deleted' || !!store.deletedAt}
-        deletedAt={store.deletedAt}
-        previousId={store.previousId}
-      />
 
     </main>
   );
