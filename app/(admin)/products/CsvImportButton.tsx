@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useTransition } from 'react';
-import { importProductsCsv, type ImportResult } from './actions';
+import { getExistingProductIds, importProductsCsv, type ImportResult } from './actions';
 import ImportGrid from './ImportGrid';
 import {
-  COLUMNS, MAX_ROWS, buildDraftRows, hasError, templateCsv, toImportRow, validateRows,
-  type DraftRow, type ImportField,
+  COLUMNS, MAX_ROWS, buildDraftRows, effectiveId, hasError, templateCsv, toImportRow,
+  validateRows, type DraftRow, type ImportField,
 } from '@/lib/product-import';
 
 type Category = { key: string; label: string };
@@ -40,6 +40,9 @@ export default function CsvImportButton({
   const [rows, setRows] = useState<DraftRow[]>([]);
   const [fileError, setFileError] = useState('');
   const [touched, setTouched] = useState(false);
+  // null until the lookup returns, so the grid shows "—" rather than claiming every row
+  // is new while it waits.
+  const [existingIds, setExistingIds] = useState<Set<string> | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importing, startImport] = useTransition();
 
@@ -55,6 +58,13 @@ export default function CsvImportButton({
   const included = rows.filter((r) => r.include);
   const brokenIncluded = included.filter((r) => hasError(issues.get(r.key)));
   const canImport = included.length > 0 && brokenIncluded.length === 0;
+
+  // Counted over the rows that will actually be sent, and recounted as ids are edited —
+  // renaming an id in the grid flips a row between New and Update.
+  const updating = existingIds === null
+    ? 0
+    : included.filter((r) => existingIds.has(effectiveId(r))).length;
+  const adding = included.length - updating;
 
   // Keyed functional update: untouched rows keep their object identity, so the memoised
   // row component genuinely skips them.
@@ -104,6 +114,14 @@ export default function CsvImportButton({
       setRows(parsed);
       setTouched(false);
       setStep('review');
+
+      // Which rows overwrite something is the most useful thing to know before importing,
+      // now that a re-import updates in place. Fetched here rather than on every Products
+      // page load, since the page is paginated and only holds 50 products anyway.
+      setExistingIds(null);
+      getExistingProductIds()
+        .then((ids) => setExistingIds(new Set(ids)))
+        .catch(() => setExistingIds(new Set()));
     };
     reader.readAsText(file);
   }
@@ -131,6 +149,7 @@ export default function CsvImportButton({
     setFileName('');
     setFileError('');
     setTouched(false);
+    setExistingIds(null);
     if (fileRef.current) fileRef.current.value = '';
   }
 
@@ -210,6 +229,11 @@ export default function CsvImportButton({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <p className="text-stone-600">
                     <span className="font-semibold text-stone-900">{included.length}</span> of {rows.length} rows will import
+                    {existingIds !== null && included.length > 0 && (
+                      <span className="text-stone-500">
+                        {' '}· {adding} new · {updating} {updating === 1 ? 'update' : 'updates'}
+                      </span>
+                    )}
                     {brokenIncluded.length > 0 && (
                       <span className="text-red-600"> · {brokenIncluded.length} need fixing</span>
                     )}
@@ -226,6 +250,7 @@ export default function CsvImportButton({
                   issues={issues}
                   categories={categories}
                   currency={currency}
+                  existingIds={existingIds}
                   onCell={onCell}
                   onInclude={onInclude}
                 />
