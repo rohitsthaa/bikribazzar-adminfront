@@ -310,6 +310,64 @@ export function validateRows(rows: DraftRow[], categoryKeys: Set<string>): Map<s
   return out;
 }
 
+// ── Diffing against what's already there ──────────────────────────────────────
+
+/** The importable fields of a product that already exists, for comparison. */
+export type ExistingProduct = {
+  id: string;
+  name: string;
+  description: string;
+  priceNpr: number;
+  category: string | null;
+  details: string | null;
+  tag: string | null;
+  available: boolean;
+  stockQty: number | null;
+  reorderPoint: number;
+};
+
+export type FieldChange = { field: ImportField; label: string; from: string; to: string };
+
+const UNLIMITED = 'unlimited';
+
+function showStock(v: number | null): string {
+  return v === null ? UNLIMITED : String(v);
+}
+
+/**
+ * What an Update row would actually change.
+ *
+ * Compares COERCED values, not raw text — otherwise "Rs 2,400" against a stored 2400 reads
+ * as a change when it is the same number differently typed, and every row in a
+ * freshly-exported sheet would look modified.
+ *
+ * Only the columns the sheet carries are compared, matching what the API is told to write
+ * via suppliedFields. Fields the spreadsheet has no column for are not touched and so are
+ * not listed.
+ */
+export function diffRow(row: DraftRow, existing: ExistingProduct): FieldChange[] {
+  const out: FieldChange[] = [];
+  const add = (field: ImportField, from: string, to: string) => {
+    if (from === to) return;
+    const label = COLUMNS.find((c) => c.key === field)?.label ?? field;
+    out.push({ field, label, from, to });
+  };
+
+  const next = toImportRow(row);
+
+  add('name', existing.name, next.name);
+  add('priceNpr', String(existing.priceNpr), String(next.priceNpr));
+  add('stockQty', showStock(existing.stockQty), showStock(next.stockQty));
+  add('reorderPoint', String(existing.reorderPoint), String(next.reorderPoint));
+  add('available', existing.available ? 'Visible' : 'Hidden', next.available ? 'Visible' : 'Hidden');
+  add('category', (existing.category ?? '').toLowerCase(), next.category.toLowerCase());
+  add('tag', existing.tag ?? '', next.tag ?? '');
+  add('description', existing.description, next.description);
+  add('details', existing.details ?? '', next.details ?? '');
+
+  return out;
+}
+
 // ── Submission ────────────────────────────────────────────────────────────────
 
 export type ImportRow = {
