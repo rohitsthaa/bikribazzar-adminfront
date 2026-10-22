@@ -52,6 +52,33 @@ function gatewayOverride(value: FormDataEntryValue | null): boolean | null {
   return null;
 }
 
+/**
+ * Per-gateway platform overrides, saved on their own.
+ *
+ * These moved to the Payments tab, next to the credentials they govern, and away from General
+ * where they sat beside the demo-store flag. They need their own action because the API PATCH
+ * only touches fields present in the request: posting them through updateStoreAction from a
+ * form that no longer carries name/status/customDomain would send those as empty strings and
+ * wipe them.
+ */
+export async function updateStoreGatewayOverridesAction(fd: FormData) {
+  await assertSuper();
+  const id = str(fd, 'id');
+  try {
+    await updateStore(id, {
+      esewaOverride: gatewayOverride(fd.get('esewaOverride')),
+      khaltiOverride: gatewayOverride(fd.get('khaltiOverride')),
+      fonepayOverride: gatewayOverride(fd.get('fonepayOverride')),
+    });
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'digest' in e) throw e;
+    const msg = e instanceof Error ? e.message : 'Save failed';
+    redirect(`/platform/${id}?tab=payments&error=${encodeURIComponent(msg)}`);
+  }
+  revalidatePath(`/platform/${id}`);
+  redirect(`/platform/${id}?tab=payments&saved=1`);
+}
+
 export async function updateStoreAction(fd: FormData) {
   await assertSuper();
   const id = str(fd, 'id');
@@ -71,12 +98,6 @@ export async function updateStoreAction(fd: FormData) {
       customDomain: str(fd, 'customDomain') || null,
       isDemo: fd.get('isDemo') === 'on',
       customerAuthEnabled: fd.get('customerAuthEnabled') === 'on',
-      // Three-state, so it can't ride the `=== 'on'` checkbox idiom above: "inherit" has to
-      // reach the API as an explicit null to clear any previous override, not be omitted —
-      // omitting a field means "leave it alone" there.
-      esewaOverride: gatewayOverride(fd.get('esewaOverride')),
-      khaltiOverride: gatewayOverride(fd.get('khaltiOverride')),
-      fonepayOverride: gatewayOverride(fd.get('fonepayOverride')),
     });
   } catch (e: unknown) {
     // Re-throw Next.js internal errors (redirect / notFound)
