@@ -533,9 +533,15 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   {categories.length > 0 ? (
                     <select
                       name="categoryId"
-                      defaultValue={product?.categoryId ?? categories[0]?.id}
+                      // Falling back to categories[0] meant an uncategorised product DISPLAYED
+                      // as being in the store's first category, and saving the form — even to
+                      // fix a typo in the name — silently filed it there. With no empty option
+                      // a category also could not be removed once set. saveProduct already
+                      // maps "" to null, so the empty option below is all that was missing.
+                      defaultValue={product?.categoryId ?? ''}
                       className={`${textInput} bg-white`}
                     >
+                      <option value="">— Uncategorised —</option>
                       {categories.filter((c) => c.parentId === null).map((parent) => {
                         const children = categories.filter((c) => c.parentId === parent.id);
                         if (children.length === 0) {
