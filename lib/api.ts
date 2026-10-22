@@ -1025,11 +1025,20 @@ export type Category = {
   label: string;
   parentId: number | null;   // null = top-level; set = subcategory (max 2 levels deep)
   sortOrder: number;
+  hidden?: boolean;          // kept out of the shop menu/filters; products stay under "All"
+  description?: string | null;
+  image?: string | null;
+  liveProductCount?: number; // products the shop actually shows in it (API ≥ 2026-10-22)
+  productCount?: number | null; // all products in it, any state (admin reads only)
   createdAt: string;
   updatedAt: string;
 };
 
-export type CategoryWrite = { key: string; label: string; sortOrder: number; parentId: number | null };
+// hidden/description/image: omit to leave unchanged on update; "" clears a text field.
+export type CategoryWrite = {
+  key: string; label: string; sortOrder: number; parentId: number | null;
+  hidden?: boolean; description?: string; image?: string;
+};
 
 export function getCategories() { return apiFetch<Category[]>('/categories'); }
 export function createCategory(data: CategoryWrite) {
@@ -1038,8 +1047,11 @@ export function createCategory(data: CategoryWrite) {
 export function updateCategory(id: number, data: CategoryWrite) {
   return apiFetch<Category>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
+export function sortCategories(items: Array<{ id: number; sortOrder: number }>) {
+  return apiFetch<{ ok: boolean }>('/categories/sort', { method: 'PATCH', body: JSON.stringify(items) });
+}
 export function deleteCategory(id: number) {
-  return apiFetch<{ ok: boolean }>(`/categories/${id}`, { method: 'DELETE', body: '{}' });
+  return apiFetch<{ ok: boolean; uncategorised?: number }>(`/categories/${id}`, { method: 'DELETE', body: '{}' });
 }
 
 // ---- Plans (subscription catalog) + invoices (manual billing) ----
