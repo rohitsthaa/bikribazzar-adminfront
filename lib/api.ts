@@ -136,6 +136,24 @@ export type InventoryLog = {
   createdAt: string;
 };
 
+/**
+ * Accepts either response shape from the admin list endpoints.
+ *
+ * These endpoints used to return a bare array and now return { items, total, page, limit,
+ * counts }. The admin and the API deploy from separate repos, so for a window — however short
+ * — one is live and the other is not. Reading `.items` off an array yields undefined and takes
+ * the whole page down, which is exactly what happened to Products, Orders, Customers, Delivery
+ * and the Dashboard when the frontend shipped first.
+ *
+ * So the client tolerates both. Counts are derived from the array in the legacy case, which is
+ * what the pages did themselves before paging existed — correct, just not cheap. Once the API
+ * is deployed everywhere this is dead weight and can go.
+ */
+function asPaged<T, C>(res: T[] | Paged<T, C>, deriveCounts: (items: T[]) => C): Paged<T, C> {
+  if (!Array.isArray(res)) return res;
+  return { items: res, total: res.length, page: 1, limit: res.length || 1, counts: deriveCounts(res) };
+}
+
 /** Envelope returned by the paginated admin lists. */
 export type Paged<T, C = Record<string, number>> = {
   items: T[];
@@ -160,7 +178,16 @@ export function getProducts(opts: { bucket?: string; q?: string; page?: number; 
   if (opts.bucket && opts.bucket !== 'all') sp.set('bucket', opts.bucket);
   if (opts.q) sp.set('q', opts.q);
   if (opts.page && opts.page > 1) sp.set('page', String(opts.page));
-  return apiFetch<Paged<Product, ProductCounts>>(`/products?${sp}`);
+  return apiFetch<Product[] | Paged<Product, ProductCounts>>(`/products?${sp}`).then((res) =>
+    asPaged(res, (items) => ({
+      all: items.length,
+      live: items.filter((p) => p.available).length,
+      hidden: items.filter((p) => !p.available).length,
+      low: items.filter((p) => p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint).length,
+      oos: items.filter((p) => p.stockQty !== null && p.stockQty === 0).length,
+      draft: items.filter((p) => p.status === 'draft').length,
+      archived: items.filter((p) => p.status === 'archived').length,
+    })));
 }
 
 /** Every product in one call. Only for callers that genuinely need the whole catalogue
@@ -649,14 +676,32 @@ export type OrderCounts = {
 /** Every order, unpaginated. Only the dashboard should use this — it computes revenue and
  *  month-over-month over a store's whole history, and a capped fetch would silently understate
  *  the numbers. Everything else wants getOrders(). */
-export function getAllOrders() { return apiFetch<Paged<Order, OrderCounts>>('/orders?limit=0'); }
+export function getAllOrders() {
+  return apiFetch<Order[] | Paged<Order, OrderCounts>>('/orders?limit=0').then((res) =>
+    asPaged(res, (items) => ({
+      all: items.length,
+      new: items.filter((o) => o.status === 'new').length,
+      confirmed: items.filter((o) => o.status === 'confirmed').length,
+      shipped: items.filter((o) => o.status === 'shipped').length,
+      delivered: items.filter((o) => o.status === 'delivered').length,
+      cancelled: items.filter((o) => o.status === 'cancelled').length,
+    })));
+}
 
 export function getOrders(opts: { status?: string; q?: string; page?: number; limit?: number } = {}) {
   const sp = new URLSearchParams({ limit: String(opts.limit ?? 50) });
   if (opts.status && opts.status !== 'all') sp.set('status', opts.status);
   if (opts.q) sp.set('q', opts.q);
   if (opts.page && opts.page > 1) sp.set('page', String(opts.page));
-  return apiFetch<Paged<Order, OrderCounts>>(`/orders?${sp}`);
+  return apiFetch<Order[] | Paged<Order, OrderCounts>>(`/orders?${sp}`).then((res) =>
+    asPaged(res, (items) => ({
+      all: items.length,
+      new: items.filter((o) => o.status === 'new').length,
+      confirmed: items.filter((o) => o.status === 'confirmed').length,
+      shipped: items.filter((o) => o.status === 'shipped').length,
+      delivered: items.filter((o) => o.status === 'delivered').length,
+      cancelled: items.filter((o) => o.status === 'cancelled').length,
+    })));
 }
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }
 export function updateOrderStatus(id: string, status: Order['status'], deliveryFee?: number) {
