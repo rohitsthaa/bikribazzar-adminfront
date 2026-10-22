@@ -433,6 +433,7 @@ export default function Sidebar({
                  !pathname.startsWith('/platform/templates') &&
                  !pathname.startsWith('/platform/users') &&
                  !pathname.startsWith('/platform/plans') &&
+                 !pathname.startsWith('/platform/settings') &&
                  pathname !== '/platform')
               }
             />
@@ -453,6 +454,12 @@ export default function Sidebar({
               label="Users"
               Icon={Icons.Users}
               active={pathname === '/platform/users' || pathname.startsWith('/platform/users/')}
+            />
+            <PlatformNavItem
+              href="/platform/settings"
+              label="Settings"
+              Icon={Icons.Settings}
+              active={pathname === '/platform/settings'}
             />
           </nav>
 

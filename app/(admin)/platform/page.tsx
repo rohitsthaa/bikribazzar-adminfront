@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
-import { getPlatformOverview, getPlatformFeatures } from '@/lib/api';
+import { getPlatformOverview } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 import PlatformOverview from './PlatformOverview';
-import FeatureToggles from './FeatureToggles';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +10,6 @@ export default async function PlatformPage() {
   if (admin?.role !== 'super') redirect('/dashboard');
 
   const overview = await getPlatformOverview().catch(() => null);
-  const features = await getPlatformFeatures().catch(() => ({}));
 
   return (
     <main className="p-6 md:p-8 max-w-5xl">
@@ -25,10 +23,6 @@ export default async function PlatformPage() {
             ? `${overview.totals.active} active store${overview.totals.active !== 1 ? 's' : ''} · ${overview.totals.orders.toLocaleString()} orders all-time`
             : 'Manage all stores on this platform.'}
         </p>
-      </div>
-
-      <div className="mb-6">
-        <FeatureToggles initial={features} />
       </div>
 
       {overview ? (
