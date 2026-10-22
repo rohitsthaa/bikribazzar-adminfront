@@ -36,79 +36,44 @@ function relativeDay(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 
-// ─── Store chip (used in lifecycle grid) ─────────────────────────────────────
-
-function StoreChip({ s, sub }: { s: Data['stores'][number]; sub?: string }) {
-  const color = storeColor(s.id);
-  const initials = storeInitials(s.name);
-  return (
-    <form action={enterStore.bind(null, s.id)} className="group w-full">
-      <button
-        type="submit"
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-stone-50 border border-transparent hover:border-stone-200 transition-all duration-150 text-left"
-      >
-        <span
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-          style={{ backgroundColor: color }}
-        >
-          {initials}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-stone-800 truncate leading-snug">{s.name}</p>
-          {sub && <p className="text-[11px] text-stone-400 leading-snug truncate">{sub}</p>}
-        </div>
-        <span className="text-stone-300 group-hover:text-stone-500 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </span>
-      </button>
-    </form>
-  );
-}
 
 // ─── Lifecycle segment card ───────────────────────────────────────────────────
 
+/**
+ * One lifecycle segment, as a count.
+ *
+ * This used to list the stores in the segment. Capping each card at five didn't help much:
+ * there are four cards, so the section still drew twenty store names on a page that is
+ * supposed to be read at a glance.
+ *
+ * What the section is actually for is the distribution — how many stores are trading, slowing
+ * down, gone quiet, or have never sold. The names belong on /platform/stores, which is one
+ * click away and exists to list stores.
+ */
 function LifecycleCard({
-  icon, label, count, accent, stores: storeList, sub,
+  icon, label, count, accent,
 }: {
   icon: React.ReactNode;
   label: string;
   count: number;
   accent: string;
-  stores: Data['stores'];
-  sub: (s: Data['stores'][number]) => string | undefined;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${accent}18`, color: accent }}
-          >
-            {icon}
-          </span>
-          <span className="text-sm font-semibold text-stone-900">{label}</span>
-        </div>
-        <span
-          className="text-xs font-bold px-2 py-0.5 rounded-full"
-          style={{ backgroundColor: `${accent}14`, color: accent }}
-        >
-          {count}
-        </span>
-      </div>
-
-      {storeList.length === 0 ? (
-        <p className="text-xs text-stone-300 px-1 py-2">None right now</p>
-      ) : (
-        <div className="space-y-0.5">
-          {storeList.map((s) => (
-            <StoreChip key={s.id} s={s} sub={sub(s)} />
-          ))}
-        </div>
-      )}
-    </div>
+    <Link
+      href="/platform/stores"
+      className="bg-white rounded-2xl border border-stone-200 p-4 flex items-center gap-3 hover:border-stone-300 hover:shadow-sm transition-all"
+    >
+      <span
+        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: `${accent}18`, color: accent }}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-xl font-bold leading-none text-stone-900">{count}</span>
+        <span className="block text-xs text-stone-400 mt-1 truncate">{label}</span>
+      </span>
+    </Link>
   );
 }
 
@@ -346,8 +311,6 @@ export default function PlatformOverview({ data }: { data: Data }) {
             label="Active"
             count={active.length}
             accent="#059669"
-            stores={active}
-            sub={(s) => `${s.orderCount} orders · ${s.lastOrderAt ? relativeDay(s.lastOrderAt) : ''}`}
             icon={
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -358,8 +321,6 @@ export default function PlatformOverview({ data }: { data: Data }) {
             label="Growing"
             count={growing.length}
             accent="#0891b2"
-            stores={growing}
-            sub={(s) => `last order ${s.lastOrderAt ? relativeDay(s.lastOrderAt) : ''}`}
             icon={
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
@@ -370,8 +331,6 @@ export default function PlatformOverview({ data }: { data: Data }) {
             label="Dormant"
             count={dormant.length}
             accent="#d97706"
-            stores={dormant}
-            sub={(s) => `went quiet ${s.lastOrderAt ? relativeDay(s.lastOrderAt) : ''}`}
             icon={
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 17H17.01M12 17H12.01M7 17H7.01M12 12H12.01M7 12H7.01M17 12H17.01M3 8h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
@@ -382,8 +341,6 @@ export default function PlatformOverview({ data }: { data: Data }) {
             label="Never ordered"
             count={never.length}
             accent="#6366f1"
-            stores={never}
-            sub={(_s) => 'no orders yet'}
             icon={
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
