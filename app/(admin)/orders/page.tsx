@@ -4,7 +4,7 @@ import Pager from '@/components/Pager';
 import OrdersClient from './OrdersClient';
 
 export const metadata = {
-  title: 'Orders — Soul Thread Admin',
+  title: 'Orders — Bikri Bazaar',
 };
 
 const PAGE_SIZE = 50;

@@ -1,7 +1,7 @@
 import { getLedgerEntries, getFinanceCategories, getSettings } from '@/lib/api';
 import TransactionsClient from './TransactionsClient';
 
-export const metadata = { title: 'Transactions — Soul Thread Admin' };
+export const metadata = { title: 'Transactions — Bikri Bazaar' };
 
 export default async function TransactionsPage() {
   let entries: Awaited<ReturnType<typeof getLedgerEntries>> = [];

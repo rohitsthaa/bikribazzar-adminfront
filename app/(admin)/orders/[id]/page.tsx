@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: Props) {
   try {
     const { id } = await params;
     const order = await getOrder(id);
-    return { title: `Order #${order.id} — Soul Thread Admin` };
+    return { title: `Order #${order.id} — Bikri Bazaar` };
   } catch {
     return { title: 'Order Not Found' };
   }
@@ -317,7 +317,7 @@ export default async function OrderDetailPage({ params }: Props) {
               {/* Quick contact actions */}
               <div className="flex gap-2 mt-5 pt-4 border-t border-stone-100">
                 <a
-                  href={`mailto:${order.email}?subject=Your Soul Thread order %23${order.id}`}
+                  href={`mailto:${order.email}?subject=${encodeURIComponent(`Your order #${order.id}`)}`}
                   className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium transition-colors"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>

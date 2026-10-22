@@ -10,7 +10,7 @@ import EmptyState from '@/components/EmptyState';
 
 const RECENT_LIMIT = 8;
 
-export const metadata = { title: 'Finance — Soul Thread Admin' };
+export const metadata = { title: 'Finance — Bikri Bazaar' };
 
 export default async function FinancePage({
   searchParams,

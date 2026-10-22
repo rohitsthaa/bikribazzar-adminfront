@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getAllOrders, getSettings, type Order } from '@/lib/api';
 
-export const metadata = { title: 'Customer — Soul Thread Admin' };
+export const metadata = { title: 'Customer — Bikri Bazaar' };
 
 const TZ = 'Asia/Kathmandu';
 const fmtDate = (d: string) =>

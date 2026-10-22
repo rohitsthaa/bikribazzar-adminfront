@@ -84,6 +84,7 @@ export type ProductVariant = {
   sku: string | null;
   image?: string | null;     // e.g. a photo of this color — falls back to the product's main image
   sortOrder?: number;
+  costNpr?: number | null;   // null = inherit the product's cost; admin-only
 };
 
 export type Product = {
@@ -116,7 +117,10 @@ export type Product = {
   compareAtPriceNpr?: number | null;    // "original" price shown struck through when set
   deliveryFee?: number | null;       // per-product delivery fee override; null = use store default, 0 = free
   tags?: string[];                      // multi-value tags for storefront filtering (separate from `tag` badge)
-  status?: 'draft' | 'active' | 'archived';  // organizational label — independent of `available`
+  // Stored separately from `available`, but the shop only shows Available AND active.
+  // The admin presents the pair as one Visibility choice — see lib/visibility.ts.
+  status?: 'draft' | 'active' | 'archived';
+  costNpr?: number | null;              // unit cost, for margin; admin-only (stripped from public reads)
   // What distinguishes the variants, if any — "color"/"style" means variants look
   // different (storefront may show photo swatches from ProductVariant.image);
   // "size" or null means no visual difference (storefront shows text pills only).
@@ -173,12 +177,19 @@ export type ProductCounts = {
  * catalogue, not the page, because the UI's tabs show those numbers and a shopkeeper restocks
  * from them.
  */
-export function getProducts(opts: { bucket?: string; q?: string; page?: number; limit?: number } = {}) {
+export type ProductSort = 'name' | 'price_asc' | 'price_desc' | 'stock_asc' | 'newest' | 'updated';
+
+export function getProducts(opts: {
+  bucket?: string; q?: string; category?: string; sort?: string; page?: number; limit?: number;
+} = {}) {
   const sp = new URLSearchParams({ all: '1', limit: String(opts.limit ?? 50) });
   if (opts.bucket && opts.bucket !== 'all') sp.set('bucket', opts.bucket);
   if (opts.q) sp.set('q', opts.q);
+  if (opts.category) sp.set('category', opts.category);
+  if (opts.sort) sp.set('sort', opts.sort);
   if (opts.page && opts.page > 1) sp.set('page', String(opts.page));
-  return apiFetch<Product[] | Paged<Product, ProductCounts>>(`/products?${sp}`).then((res) =>
+  // sampleIds: placeholder products from signup still in the catalogue (API ≥ 2026-10-22).
+  return apiFetch<Product[] | (Paged<Product, ProductCounts> & { sampleIds?: string[] })>(`/products?${sp}`).then((res) =>
     asPaged(res, (items) => ({
       all: items.length,
       live: items.filter((p) => p.available).length,
@@ -217,6 +228,32 @@ export function updateProduct(id: string, data: Partial<ProductWrite>) {
 
 export function deleteProduct(id: string) {
   return apiFetch<{ ok: boolean }>(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export type BulkProductAction =
+  | { action: 'show' | 'hide' | 'draft' | 'archive' }
+  | { action: 'category'; categoryId: number | null }
+  | { action: 'price_percent'; percent: number };
+
+export function bulkProductAction(ids: string[], change: BulkProductAction) {
+  return apiFetch<{ updated: number }>('/products/bulk-action', {
+    method: 'POST',
+    body: JSON.stringify({ ids, ...change }),
+  });
+}
+
+export function duplicateProduct(id: string) {
+  return apiFetch<{ id: string }>(`/products/${encodeURIComponent(id)}/duplicate`, { method: 'POST' });
+}
+
+export function mergeProductsAsVariants(body: {
+  id: string; name: string; variantAxis: 'size' | 'color' | 'style' | null;
+  items: Array<{ productId: string; label: string }>;
+}) {
+  return apiFetch<{ id: string; archived: string[] }>('/products/merge-variants', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 // ---- Uploaded files ----

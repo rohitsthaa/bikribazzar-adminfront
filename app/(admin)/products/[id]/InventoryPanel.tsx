@@ -147,7 +147,7 @@ export default function InventoryPanel({ product, logs: initialLogs, currency }:
                 <div>
                   <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1 ml-1">Batch notes</label>
                   <input type="text" value={restockNote} onChange={e => setRestockNote(e.target.value)}
-                    placeholder="e.g. Undyed cotton · June weave · 3mm cord"
+                    placeholder="e.g. Supplier, invoice no., or batch details"
                     className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400" />
                 </div>
               </div>

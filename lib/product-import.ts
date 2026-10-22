@@ -27,7 +27,7 @@ export const COLUMNS: {
 }[] = [
   { key: 'id', label: 'ID', required: false, primary: true,
     hint: 'Slug/SKU. Leave blank to auto-generate from the name. Re-importing the same id updates that product.',
-    example: 'macrame-shelf-single' },
+    example: 'single-tier-hanging-shelf' },
   { key: 'name', label: 'Name', required: true, primary: true,
     hint: 'Product title.', example: 'Single-Tier Hanging Shelf' },
   { key: 'priceNpr', label: 'Price', required: true, primary: true,

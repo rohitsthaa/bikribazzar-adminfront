@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getAllOrders, getSettings, type Order } from '@/lib/api';
 import EmptyState from '@/components/EmptyState';
 
-export const metadata = { title: 'Customers — Soul Thread Admin' };
+export const metadata = { title: 'Customers — Bikri Bazaar' };
 
 type Customer = {
   name: string;

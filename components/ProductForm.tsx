@@ -3,6 +3,8 @@ import { useRef, useState, useActionState, type MouseEvent, type ReactNode } fro
 import Link from 'next/link';
 import type { Product, Category } from '@/lib/api';
 import { slugify } from '@/lib/slug';
+import { VISIBILITY_OPTIONS, visibilityOf, type Visibility } from '@/lib/visibility';
+import { marginPercent } from '@/lib/stock';
 import ImageUploader from './ImageUploader';
 import ImageCropModal from './ImageCropModal';
 import SubmitButton from './SubmitButton';
@@ -35,6 +37,17 @@ const numInput =
 const textInput =
   'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 focus:border-[#c96a3a]/50';
 const fieldLabel = 'block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide';
+
+// "Cotton Kurta — Indigo" → "COTTON-KURTA-INDIGO". Suggested, never forced: plenty of shops
+// already have their own codes. Kept short enough to print on a label.
+function suggestSku(...parts: string[]): string {
+  return parts
+    .map((p) => p.toUpperCase().normalize('NFKD').replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, ''))
+    .filter(Boolean)
+    .join('-')
+    .slice(0, 32)
+    .replace(/-+$/, '');
+}
 
 // 16px line icons, same visual language as components/Sidebar.tsx's `Icons`.
 function TabIcon({ d }: { d: string }) {
@@ -264,18 +277,20 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
   const [variantAxis, setVariantAxis] = useState<string>(product?.variantAxis ?? '');
   const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
-  type VariantRow = { id?: string; label: string; priceNpr: string; stockQty: string; sku: string; image: string };
+  type VariantRow = { id?: string; label: string; priceNpr: string; costNpr: string; stockQty: string; untracked: boolean; sku: string; image: string };
   const [variants, setVariants] = useState<VariantRow[]>(
     (product?.variants ?? []).map((v) => ({
       id: v.id,
       label: v.label,
       priceNpr: v.priceNpr == null ? '' : String(v.priceNpr),
+      costNpr: v.costNpr == null ? '' : String(v.costNpr),
       stockQty: v.stockQty == null ? '' : String(v.stockQty),
+      untracked: v.stockQty == null,
       sku: v.sku ?? '',
       image: v.image ?? '',
     })),
   );
-  function addVariant() { setVariants([...variants, { label: '', priceNpr: '', stockQty: '', sku: '', image: '' }]); }
+  function addVariant() { setVariants([...variants, { label: '', priceNpr: '', costNpr: '', stockQty: '', untracked: false, sku: '', image: '' }]); }
   function removeVariant(idx: number) { setVariants(variants.filter((_, i) => i !== idx)); }
   function updateVariant(idx: number, patch: Partial<VariantRow>) {
     setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
@@ -290,6 +305,25 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   // want a custom slug and further Name edits shouldn't clobber that choice.
   const idInputRef = useRef<HTMLInputElement>(null);
   const idTouchedRef = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const skuInputRef = useRef<HTMLInputElement>(null);
+
+  // Visibility is ONE choice in the UI (Live/Hidden/Draft/Archived) stored as the API's
+  // available + status pair — see lib/visibility.ts for why they used to disagree.
+  const [visibility, setVisibility] = useState<Visibility>(product ? visibilityOf(product) : 'live');
+
+  // Price on request is an explicit choice, not "whatever 0 means" — a product saved at 0
+  // by mistake used to silently turn into "On request" on the shop.
+  const [onRequest, setOnRequest] = useState(product ? product.priceNpr === 0 : false);
+  const [price, setPrice] = useState(product && product.priceNpr > 0 ? String(product.priceNpr) : '');
+  const [cost, setCost] = useState(product?.costNpr != null ? String(product.costNpr) : '');
+  const margin = marginPercent(Number(price) || 0, Number(cost) || null);
+
+  // Stock tracking is explicit too. Blank used to mean "unlimited", so one empty field
+  // let the shop oversell. On edit the count itself is read-only (Inventory panel owns it);
+  // only switching tracking on/off is sent, via `stockTracking`.
+  const initiallyUntracked = product ? product.stockQty === null : false;
+  const [untracked, setUntracked] = useState(initiallyUntracked);
   // Serialized for the form action: empty price/stock → null (inherit / unlimited).
   // For a variant that already exists on the server, its Stock field in this
   // form is read-only (see the Variants tab) — stock only actually changes via
@@ -307,7 +341,9 @@ export default function ProductForm({ product, action, categories = [], canSetPr
           id: v.id,
           label: v.label.trim(),
           priceNpr: v.priceNpr.trim() === '' ? null : Number(v.priceNpr),
-          stockQty: persisted ? persisted.stockQty : (v.stockQty.trim() === '' ? null : Number(v.stockQty)),
+          costNpr: v.costNpr.trim() === '' ? null : Number(v.costNpr),
+          // New rows: "Not tracked" → null (unlimited); otherwise blank counts as 0, never unlimited.
+          stockQty: persisted ? persisted.stockQty : (v.untracked ? null : Number(v.stockQty.trim() || 0)),
           sku: v.sku.trim() || null,
           image: v.image.trim() || null,
           sortOrder: i,
@@ -410,29 +446,37 @@ export default function ProductForm({ product, action, categories = [], canSetPr
         )}
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left: persistent media + visibility rail — stays visible across every tab */}
-        <div className="lg:w-[300px] shrink-0 space-y-4">
+        {/* Left rail on desktop: visibility, media, inventory — visible across every tab.
+            Below lg it stacks AFTER the tabbed form (order-2), with the photo capped in
+            width: the 4:5 drop zone used to fill the whole first screen there, pushing
+            name/price/stock below the fold. Visibility stays first in the rail. */}
+        <div className="order-2 lg:order-1 lg:w-[300px] shrink-0 space-y-4">
+          <div className={`rounded-xl border p-4 space-y-2.5 ${
+            visibility === 'live' ? 'bg-emerald-50 border-emerald-200' : 'bg-stone-50 border-stone-200'
+          }`}>
+            <h2 className="text-[14.5px] font-semibold text-stone-900">Visibility</h2>
+            <select
+              name="visibility"
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as Visibility)}
+              className="w-full border border-stone-300 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 bg-white"
+            >
+              {VISIBILITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.value === 'live' ? '● ' : ''}{o.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-stone-500 leading-snug">
+              {VISIBILITY_OPTIONS.find((o) => o.value === visibility)?.hint}
+            </p>
+          </div>
+
           <div className="bg-white rounded-xl border border-stone-200 p-[18px]">
             <h2 className="text-[14.5px] font-semibold text-stone-900">Primary image</h2>
             <p className="text-xs text-stone-400 mt-0.5 mb-3.5">Shown on product cards, emails, and SEO.</p>
-            <ImageUploader value={image} onChange={setImage} enableCrop templateId={templateId} />
+            <div className="max-w-[240px] lg:max-w-none">
+              <ImageUploader value={image} onChange={setImage} enableCrop templateId={templateId} />
+            </div>
             <input type="hidden" name="image" value={image} />
-          </div>
-
-          {/* The one toggle that actually controls the shop — kept isolated and
-              visible on every tab so it's never confused with the (tab-buried)
-              Catalog stage / Sort order, which are purely internal. */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-2.5">
-            <h2 className="text-[14.5px] font-semibold text-stone-900">Visibility</h2>
-            <select
-              name="available"
-              defaultValue={product?.available === false ? 'false' : 'true'}
-              className="w-full border border-emerald-300 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 bg-white"
-            >
-              <option value="true">● Available (visible in shop)</option>
-              <option value="false">Hidden</option>
-            </select>
-            <p className="text-xs text-emerald-800/70 leading-snug">This is what controls whether customers can see it.</p>
           </div>
 
           {inventoryPanel && (
@@ -442,8 +486,8 @@ export default function ProductForm({ product, action, categories = [], canSetPr
           )}
         </div>
 
-        {/* Right: tabbed content */}
-        <div className="flex-1 min-w-0">
+        {/* Right: tabbed content (first on narrow screens) */}
+        <div className="order-1 lg:order-2 flex-1 min-w-0">
           {/* Tab bar — underline style, matches this app's page-nav convention
               elsewhere more closely than a segmented control would for four
               top-level sections (the segmented look stays reserved for the
@@ -491,19 +535,35 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   </div>
                   <div>
                     <label className={fieldLabel}>SKU</label>
-                    <input
-                      name="sku"
-                      defaultValue={product?.sku ?? ''}
-                      placeholder="Optional"
-                      className={`${textInput} font-mono`}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Blank if using per-variant SKUs.</p>
+                    <div className="flex gap-1.5">
+                      <input
+                        ref={skuInputRef}
+                        name="sku"
+                        defaultValue={product?.sku ?? ''}
+                        placeholder="Optional"
+                        className={`${textInput} font-mono`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!skuInputRef.current) return;
+                          skuInputRef.current.value = suggestSku(nameInputRef.current?.value ?? '');
+                          setIsDirty(true);
+                        }}
+                        title="Suggest a SKU from the product name"
+                        className="shrink-0 px-2.5 rounded-lg border border-gray-300 text-xs font-medium text-stone-600 hover:bg-stone-50"
+                      >
+                        Generate
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Your stock code. Blank if each option has its own.</p>
                   </div>
                 </div>
 
                 <div>
                   <label className={fieldLabel}>Name <span className="text-red-400">*</span></label>
                   <input
+                    ref={nameInputRef}
                     name="name"
                     defaultValue={product?.name}
                     required
@@ -696,23 +756,56 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   <SectionHeading icon={TAB_ICONS.pricing} title="Pricing" />
 
                   <div className="space-y-4">
-                    <div className="max-w-[240px]">
-                      <label className={fieldLabel}>Price (NPR)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
-                        <input
-                          name="priceNpr"
-                          type="number"
-                          min={0}
-                          defaultValue={product?.priceNpr ?? 0}
-                          placeholder="0"
-                          disabled={!canSetPrice}
-                          className={`${numInput} pl-10 text-base font-semibold disabled:bg-gray-100 disabled:text-gray-400`}
-                        />
+                    <div className="grid grid-cols-2 gap-4 max-w-[480px]">
+                      <div>
+                        <label className={fieldLabel}>Price (NPR){canSetPrice && !onRequest && <span className="text-red-400"> *</span>}</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
+                          <input
+                            name={onRequest ? undefined : 'priceNpr'}
+                            type="number"
+                            min={1}
+                            required={canSetPrice && !onRequest}
+                            value={onRequest ? '' : price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            placeholder={onRequest ? 'On request' : '0'}
+                            disabled={!canSetPrice || onRequest}
+                            className={`${numInput} pl-10 text-base font-semibold disabled:bg-gray-100 disabled:text-gray-400`}
+                          />
+                          {onRequest && <input type="hidden" name="priceNpr" value="0" />}
+                        </div>
+                        {canSetPrice ? (
+                          <label className="mt-2 flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                            <input type="checkbox" name="priceOnRequest" value="1" checked={onRequest}
+                              onChange={(e) => { setOnRequest(e.target.checked); setIsDirty(true); }}
+                              className="rounded border-gray-300 text-[#c96a3a] focus:ring-[#c96a3a]" />
+                            Price on request (customers ask instead of buying)
+                          </label>
+                        ) : (
+                          <p className="text-xs text-gray-400 mt-1">Managed by the store owner.</p>
+                        )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {canSetPrice ? 'Set 0 for "price on request".' : 'Managed by the store owner.'}
-                      </p>
+                      <div>
+                        <label className={fieldLabel}>Unit cost (NPR)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">NPR</span>
+                          <input
+                            name="costNpr"
+                            type="number"
+                            min={0}
+                            value={cost}
+                            onChange={(e) => setCost(e.target.value)}
+                            placeholder="Optional"
+                            disabled={!canSetPrice}
+                            className={`${numInput} pl-10 disabled:bg-gray-100 disabled:text-gray-400`}
+                          />
+                        </div>
+                        <p className={`text-xs mt-1 ${margin !== null && margin < 20 ? 'text-amber-700' : 'text-gray-400'}`}>
+                          {margin !== null
+                            ? `${margin}% margin · NPR ${((Number(price) || 0) - (Number(cost) || 0)).toLocaleString()} per sale`
+                            : 'What one unit costs you. Never shown to customers.'}
+                        </p>
+                      </div>
                     </div>
 
                     <div>
@@ -742,14 +835,22 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   <SectionHeading
                     icon="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01"
                     title="Inventory"
-                    subtitle={isNew ? 'Leave stock blank to allow unlimited orders.' : 'Stock is set once here, then tracked as batches — see the Inventory panel.'}
+                    subtitle={isNew ? 'How many you have on hand now. The shop stops selling at 0.' : 'Stock is set once here, then tracked as batches — see the Inventory panel.'}
                   />
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={fieldLabel}>Stock qty</label>
                         {isNew ? (
-                          <input name="stockQty" type="number" min={0} defaultValue={currentStockQty ?? ''} placeholder="Unlimited" className={numInput} />
+                          <input
+                            name={untracked ? undefined : 'stockQty'}
+                            type="number" min={0}
+                            required={!untracked}
+                            disabled={untracked}
+                            defaultValue={currentStockQty ?? ''}
+                            placeholder={untracked ? 'Not tracked' : 'e.g. 10'}
+                            className={`${numInput} disabled:bg-gray-100 disabled:text-gray-400`}
+                          />
                         ) : (
                           <>
                             {/* Deliberately not a form field on edit: every save used to
@@ -759,7 +860,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                                 Read-only here; the Inventory panel is the only place
                                 this number actually changes, so it can't go stale. */}
                             <div className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
-                              {currentStockQty == null ? 'Unlimited' : `${currentStockQty} in stock`}
+                              {untracked ? 'Not tracked' : currentStockQty == null ? 'Tracked from 0 after save' : `${currentStockQty} in stock`}
                             </div>
                             {/* The panel now always lives in the left rail (visible
                                 alongside every tab), so a plain anchor scroll works
@@ -776,6 +877,24 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                         <p className="text-xs text-gray-400 mt-1">Alert when stock ≤ this.</p>
                       </div>
                     </div>
+
+                    <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox" checked={untracked}
+                        onChange={(e) => { setUntracked(e.target.checked); setIsDirty(true); }}
+                        className="mt-0.5 rounded border-gray-300 text-[#c96a3a] focus:ring-[#c96a3a]"
+                      />
+                      <span>
+                        Don&apos;t track stock — sell without limit
+                        <span className="block text-gray-400">For made-to-order, digital, or service items only. Physical stock should be tracked.</span>
+                      </span>
+                    </label>
+                    {!isNew && (
+                      <input
+                        type="hidden" name="stockTracking"
+                        value={untracked === initiallyUntracked ? 'keep' : untracked ? 'untrack' : 'track'}
+                      />
+                    )}
 
                     <div>
                       <label className={fieldLabel}>Lead time (days)</label>
@@ -866,8 +985,21 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                   </div>
                 ) : (
                   <div className="space-y-3 mt-3">
-                    <div className="hidden sm:grid grid-cols-[56px_1fr_150px_110px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
-                      <span /><span>Label</span><span>Price</span><span>SKU</span><span />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const base = skuInputRef.current?.value.trim() || suggestSku(nameInputRef.current?.value ?? '');
+                          setVariants(variants.map((v) => (v.sku.trim() || !v.label.trim() ? v : { ...v, sku: suggestSku(base, v.label) })));
+                          setIsDirty(true);
+                        }}
+                        className="text-xs font-medium text-[#c96a3a] hover:underline"
+                      >
+                        Fill empty SKUs
+                      </button>
+                    </div>
+                    <div className="hidden sm:grid grid-cols-[56px_1fr_110px_100px_120px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
+                      <span /><span>Label</span><span>Price</span><span>Cost</span><span>SKU</span><span />
                     </div>
                     {variants.map((v, idx) => {
                       // Server-side record for this row, if it's been saved before —
@@ -878,7 +1010,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                       const isExpanded = expandedStockId === v.id;
                       return (
                         <div key={idx} className="rounded-xl border border-gray-200 hover:border-gray-300 transition-colors p-3 space-y-3">
-                          <div className="grid grid-cols-2 sm:grid-cols-[56px_1fr_150px_110px_28px] gap-2 sm:items-center">
+                          <div className="grid grid-cols-2 sm:grid-cols-[56px_1fr_110px_100px_120px_28px] gap-2 sm:items-center">
                             <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} templateId={templateId} />
                             <input
                               value={v.label}
@@ -893,6 +1025,15 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               inputMode="numeric"
                               disabled={!canSetPrice}
                               title="Blank = use the product's price"
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                            />
+                            <input
+                              value={v.costNpr}
+                              onChange={(e) => updateVariant(idx, { costNpr: e.target.value })}
+                              placeholder="Cost"
+                              inputMode="numeric"
+                              disabled={!canSetPrice}
+                              title="Blank = use the product's unit cost"
                               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
                             />
                             <input
@@ -916,14 +1057,21 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               with Restock/Adjust — same reasoning as the product-level
                               Stock qty field on the Pricing tab. */}
                           {!persisted ? (
-                            <div className="max-w-[180px]">
+                            <div className="flex items-center gap-3">
                               <input
-                                value={v.stockQty}
+                                value={v.untracked ? '' : v.stockQty}
                                 onChange={(e) => updateVariant(idx, { stockQty: e.target.value })}
-                                placeholder="Stock — unlimited"
+                                placeholder={v.untracked ? 'Not tracked' : 'Stock on hand'}
                                 inputMode="numeric"
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                                disabled={v.untracked}
+                                className="w-[160px] border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
                               />
+                              <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                                <input type="checkbox" checked={v.untracked}
+                                  onChange={(e) => updateVariant(idx, { untracked: e.target.checked })}
+                                  className="rounded border-gray-300 text-[#c96a3a] focus:ring-[#c96a3a]" />
+                                Don&apos;t track
+                              </label>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
@@ -932,7 +1080,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                                 stockQty === 0 ? 'bg-red-50 text-red-600' :
                                 'bg-green-50 text-green-700'
                               }`}>
-                                {stockQty === null ? 'Unlimited' : stockQty === 0 ? 'Out of stock' : `${stockQty} in stock`}
+                                {stockQty === null ? 'Not tracked' : stockQty === 0 ? 'Out of stock' : `${stockQty} in stock`}
                               </span>
                               <button
                                 type="button"
@@ -952,7 +1100,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                     })}
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mt-3">Blank price = use the product price. Blank stock = unlimited.</p>
+                <p className="text-xs text-gray-400 mt-3">Blank price or cost = use the product&apos;s. Blank stock on a new option = 0 — tick &ldquo;Don&apos;t track&rdquo; only for made-to-order options.</p>
               </div>
             </div>
 
@@ -960,20 +1108,8 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             <div data-tab="settings" className={panel('settings')}>
               <div className="space-y-4">
                 <div className="bg-white rounded-xl border border-stone-200 p-6">
-                  <SectionHeading icon={TAB_ICONS.settings} title="Organize" subtitle="For your own tracking — doesn't affect the shop." />
+                  <SectionHeading icon={TAB_ICONS.settings} title="Organize" subtitle="Draft and Archived now live in Visibility, at the top." />
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={fieldLabel}>Catalog stage</label>
-                      <select
-                        name="status"
-                        defaultValue={product?.status ?? 'active'}
-                        className={`${textInput} bg-white`}
-                      >
-                        <option value="draft">Draft — still being set up</option>
-                        <option value="active">Active</option>
-                        <option value="archived">Archived — discontinued</option>
-                      </select>
-                    </div>
                     <div>
                       <label className={fieldLabel}>Sort order</label>
                       <input name="sortOrder" type="number" defaultValue={product?.sortOrder ?? 0} className={numInput} />

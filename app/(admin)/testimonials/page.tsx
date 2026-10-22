@@ -2,7 +2,7 @@ import { getTestimonials } from '@/lib/api';
 import { addTestimonial, editTestimonial, removeTestimonial } from './actions';
 import TestimonialsClient from './TestimonialsClient';
 
-export const metadata = { title: 'Testimonials — Soul Thread Admin' };
+export const metadata = { title: 'Testimonials — Bikri Bazaar' };
 
 export default async function TestimonialsPage() {
   const testimonials = await getTestimonials();

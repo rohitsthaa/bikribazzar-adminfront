@@ -1,7 +1,7 @@
 import { getAllProducts, getSettings } from '@/lib/api';
 import CreateOrderForm from './CreateOrderForm';
 
-export const metadata = { title: 'New Order — Soul Thread Admin' };
+export const metadata = { title: 'New Order — Bikri Bazaar' };
 
 export default async function NewOrderPage() {
   const [products, settings] = await Promise.all([

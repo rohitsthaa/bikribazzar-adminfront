@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getOrder, getAllProducts, getSettings } from '@/lib/api';
+import { getOrder, getAllProducts, getSettings, getStore } from '@/lib/api';
+import { currentStoreId } from '@/lib/store-context';
 import PrintButton from './PrintButton';
 
 interface Props { params: Promise<{ id: string }> }
@@ -10,9 +11,12 @@ export default async function PrintPackSlip({ params }: Props) {
   try { order = await getOrder(id); } catch { notFound(); }
   if (!order) notFound();
 
-  const [products, settings] = await Promise.all([
+  const [products, settings, store] = await Promise.all([
     getAllProducts().catch(() => []),
     getSettings().catch(() => ({} as Record<string, string>)),
+    // The invoice header used to be hardcoded to Soul Thread (tenant #1) — every store's
+    // printed invoices carried Soul Thread's name and Budanilkantha address.
+    currentStoreId().then((id) => getStore(id)).catch(() => null),
   ]);
   const currency = settings.currency_symbol || 'NPR';
   const productMap = new Map(products.map((p) => [p.id, p]));
@@ -37,8 +41,12 @@ export default async function PrintPackSlip({ params }: Props) {
         {/* Header */}
         <div className="flex items-start justify-between mb-8 pb-6 border-b border-stone-200">
           <div>
-            <p className="text-xl font-bold tracking-tight">Soul Thread</p>
-            <p className="text-xs text-stone-400 mt-1">Handwoven Macramé · Budanilkantha, Kathmandu</p>
+            <p className="text-xl font-bold tracking-tight">{store?.name ?? ''}</p>
+            {(settings.tagline || settings.contact_location) && (
+              <p className="text-xs text-stone-400 mt-1">
+                {[settings.tagline, settings.contact_location].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <p className="font-bold text-lg">Order #{order.id}</p>
