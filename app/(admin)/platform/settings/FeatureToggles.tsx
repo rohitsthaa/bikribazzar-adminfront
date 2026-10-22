@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { setPlatformFeaturesAction } from './actions';
+import { setPlatformFeaturesAction } from '../actions';
 
 const LABELS: Record<string, { label: string; hint: string }> = {
   content:   { label: 'Content',   hint: 'Site copy and page content' },
