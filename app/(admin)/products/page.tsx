@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getProducts, getSettings } from '@/lib/api';
+import { getProducts, getSettings, getCategories } from '@/lib/api';
 import Pager from '@/components/Pager';
 import { getAdmin, can } from '@/lib/auth';
 import ProductsClient from './ProductsClient';
@@ -18,10 +18,13 @@ export default async function ProductsPage({
   const bucket = sp.bucket ?? 'all';
   const page = Math.max(1, Number(sp.page ?? '1') || 1);
 
-  const [res, settings, admin] = await Promise.all([
+  const [res, settings, admin, categories] = await Promise.all([
     getProducts({ bucket, page, limit: PAGE_SIZE }),
     getSettings().catch(() => ({} as Record<string, string>)),
     getAdmin(),
+    // Arrives with the page load, so the import grid can offer real categories as a
+    // dropdown instead of a free-text key that silently lands products uncategorised.
+    getCategories().catch(() => []),
   ]);
   const products = res.items;
   const currency = settings.currency_symbol || 'NPR';
@@ -35,7 +38,10 @@ export default async function ProductsPage({
           <p className="text-sm text-gray-400 mt-0.5">{res.counts.all.toLocaleString()} item{res.counts.all !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex items-center gap-2">
-          <CsvImportButton />
+          <CsvImportButton
+            categories={categories.map((c) => ({ key: c.key, label: c.label }))}
+            currency={currency}
+          />
           <Link
             href="/products/new"
             className="flex items-center gap-1.5 px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-white text-sm rounded-xl transition-colors font-medium shadow-sm"

@@ -201,7 +201,7 @@ export function createProduct(data: ProductWrite) {
   return apiFetch<Product>('/products', { method: 'POST', body: JSON.stringify(data) });
 }
 
-export function bulkImportProducts(items: Array<ProductWrite>) {
+export function bulkImportProducts(items: Array<ProductWrite & { suppliedFields?: string[] }>) {
   return apiFetch<{ created: number; updated: number }>('/products/bulk', {
     method: 'POST',
     body: JSON.stringify(items),

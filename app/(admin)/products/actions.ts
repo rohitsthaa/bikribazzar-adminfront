@@ -3,31 +3,49 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
+import { friendlyApiError } from '@/lib/errors';
+import type { ImportRow } from '@/lib/product-import';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
 
-export type CsvRow = {
-  id: string;
-  name: string;
-  description: string;
-  priceNpr: number;
-  category: string;
-  details?: string;
-  tag?: string;
-  available: boolean;
-  stockQty: number | null;
-  reorderPoint: number;
-};
+export type ImportResult =
+  | { ok: true; created: number; updated: number }
+  | { ok: false; error: string };
 
-export type ImportResult = {
-  created: number;
-  updated: number;
-  errors: Array<{ row: number; id: string; error: string }>;
-};
+/**
+ * The columns a spreadsheet actually carries, as JSON property names the API understands.
+ *
+ * Sent as `suppliedFields` so the API only writes these on an update. Without it, the row
+ * below — which has to send *something* for every field — wiped the merchant's product
+ * photos, SKU, sale price, dimensions, delivery-fee override and SEO on every re-import,
+ * and reset archived products to active.
+ *
+ * sortOrder is deliberately absent: it is the row index, so including it would reshuffle
+ * the whole catalogue into file order every time someone updated a price.
+ */
+const SUPPLIED_FIELDS = [
+  'name', 'description', 'priceNpr', 'categoryId',
+  'details', 'tag', 'available', 'stockQty', 'reorderPoint',
+];
 
-export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
+/**
+ * Returns rather than throws, matching the convention documented in settings/actions.ts:
+ * Next.js redacts a thrown Server Action message in production, so the API's genuinely
+ * useful 402 ("Your Starter plan allows up to 50 products — upgrade or trim the file")
+ * reached the user as a blank error page via the route boundary.
+ */
+export async function importProductsCsv(rows: ImportRow[]): Promise<ImportResult> {
   const admin = await getAdmin();
-  if (!admin) throw new Error('Unauthorized');
+  if (!admin) return { ok: false, error: 'Unauthorized' };
+  // Import sets prices, so it needs the same permission the product form gates pricing
+  // behind — otherwise it is a way for staff to change prices they cannot change directly.
+  if (!can(admin.role, 'setPrice')) {
+    return { ok: false, error: 'Your role cannot change product pricing.' };
+  }
+
+  // The client is not a trust boundary, and the API rejects the whole batch for a blank id.
+  const blank = rows.findIndex((r) => !r.id?.trim());
+  if (blank !== -1) return { ok: false, error: `Row ${blank + 1} has no id.` };
 
   // CSV rows carry a free-text category key (matches what a merchant would export/
   // edit by hand); resolve it against the store's real categories. No match (or
@@ -55,12 +73,17 @@ export async function importProductsCsv(rows: CsvRow[]): Promise<ImportResult> {
     isDigital: false,
     metaTitle: null,
     metaDescription: null,
+    suppliedFields: SUPPLIED_FIELDS,
   }));
 
-  const { created, updated } = await bulkImportProducts(payload);
-  revalidatePath('/products');
-  await revalidateStorefront();
-  return { created, updated, errors: [] };
+  try {
+    const { created, updated } = await bulkImportProducts(payload);
+    revalidatePath('/products');
+    await revalidateStorefront();
+    return { ok: true, created, updated };
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not import these products.') };
+  }
 }
 
 // Shared -1-sentinel-on-edit pattern: on create, a blank field is unambiguous
