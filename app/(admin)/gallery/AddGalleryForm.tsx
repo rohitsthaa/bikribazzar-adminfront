@@ -42,7 +42,7 @@ export default function AddGalleryForm({
           <label className={fieldLabel}>Alt text</label>
           <input
             name="alt"
-            placeholder="Macramé shelf on white wall"
+            placeholder="e.g. Product photographed on a white wall"
             className={textInput}
           />
           <p className="text-xs text-gray-400 mt-1">Shown to screen readers and search engines.</p>

@@ -1,7 +1,7 @@
 import { getCoupons } from '@/lib/api';
 import CouponsClient from './CouponsClient';
 
-export const metadata = { title: 'Coupons — Soul Thread Admin' };
+export const metadata = { title: 'Coupons — Bikri Bazaar' };
 
 export default async function CouponsPage() {
   let coupons: Awaited<ReturnType<typeof getCoupons>> = [];

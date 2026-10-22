@@ -1,7 +1,7 @@
 import { getNcmBranches, getNcmPricingList } from '@/lib/api';
 import CourierClient from './CourierClient';
 
-export const metadata = { title: 'Courier — Soul Thread Admin' };
+export const metadata = { title: 'Courier — Bikri Bazaar' };
 
 export default async function CourierPage() {
   let branchesError: string | null = null;

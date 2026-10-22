@@ -1,7 +1,8 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, bulkImportProducts, getAllProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront } from '@/lib/api';
+import { createProduct, bulkImportProducts, getAllProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront, bulkProductAction, duplicateProduct, mergeProductsAsVariants, getProduct, type BulkProductAction } from '@/lib/api';
+import { fieldsForVisibility, type Visibility } from '@/lib/visibility';
 import { getAdmin, can } from '@/lib/auth';
 import { friendlyApiError } from '@/lib/errors';
 import type { ExistingProduct, ImportRow } from '@/lib/product-import';
@@ -206,6 +207,28 @@ export async function saveProduct(_: unknown, formData: FormData) {
   const role = (await getAdmin())?.role;
   const canPrice = can(role, 'setPrice'); // staff can't set/change price
 
+  // One Visibility choice → the API's available + status pair (lib/visibility.ts).
+  const visibilityRaw = formData.get('visibility') as Visibility | null;
+  const vis = fieldsForVisibility(
+    visibilityRaw && ['live', 'hidden', 'draft', 'archived'].includes(visibilityRaw) ? visibilityRaw : 'live',
+  );
+
+  // Price on request must be ticked on purpose; a bare 0 is a missing price, not a choice.
+  const priceOnRequest = formData.get('priceOnRequest') === '1';
+  if (canPrice && !priceOnRequest && !(Number(formData.get('priceNpr')) > 0)) {
+    return { error: 'Enter a price, or tick "Price on request".' };
+  }
+
+  // Stock on edit: the count is owned by the Inventory panel, so it is never resent — doing
+  // that is what used to happen by accident. With no stockQty field on the edit form,
+  // parseOptionalNumberWithClearSentinel(null) returned -1, and the API reads -1 as "clear to
+  // unlimited": EVERY save of an existing product silently switched its stock tracking off.
+  // Only an explicit tracking toggle is sent now.
+  const tracking = formData.get('stockTracking') as 'keep' | 'track' | 'untrack' | null;
+  const stockQty = isNew
+    ? parseOptionalNumberWithClearSentinel(formData.get('stockQty') as string, true)
+    : tracking === 'untrack' ? -1 : tracking === 'track' ? 0 : undefined;
+
   const data = {
     id,
     name: formData.get('name') as string,
@@ -216,11 +239,11 @@ export async function saveProduct(_: unknown, formData: FormData) {
     tag: parseOptionalStringWithClearSentinel(formData.get('tag') as string, isNew),
     image: (formData.get('image') as string) || '',
     images: JSON.parse((formData.get('images') as string) || '[]') as string[],
-    available: formData.get('available') === 'true',
+    available: vis.available,
     sortOrder: Number(formData.get('sortOrder') ?? 0),
     prepaymentType: (formData.get('prepaymentType') as 'none' | 'percentage' | 'fixed') || 'none',
     prepaymentValue: Number(formData.get('prepaymentValue') ?? 0),
-    stockQty: parseOptionalNumberWithClearSentinel(formData.get('stockQty') as string, isNew),
+    ...(stockQty !== undefined ? { stockQty } : {}),
     reorderPoint: Number(formData.get('reorderPoint') ?? 0),
     digitalAssetUrl: parseOptionalStringWithClearSentinel(formData.get('digitalAssetUrl') as string, isNew),
     isDigital: formData.get('isDigital') === 'true',
@@ -234,18 +257,29 @@ export async function saveProduct(_: unknown, formData: FormData) {
     compareAtPriceNpr: parseCompareAtPrice(formData.get('compareAtPriceNpr') as string, isNew),
     deliveryFee: parseDeliveryFeeOverride(formData.get('deliveryFee') as string, isNew),
     tags: parseTags(formData.get('tags') as string),
-    status: (formData.get('status') as 'draft' | 'active' | 'archived') || 'active',
+    status: vis.status,
+    costNpr: parseOptionalNumberWithClearSentinel(formData.get('costNpr') as string, isNew),
     variantAxis: parseOptionalStringWithClearSentinel(formData.get('variantAxis') as string, isNew) as 'size' | 'color' | 'style' | null | undefined,
   };
 
-  // Variants (optional). Parsed from the hidden JSON field. Staff can't set
-  // prices, so strip per-variant price overrides for them.
-  let variants: Array<{ id?: string; label: string; priceNpr: number | null; stockQty: number | null; sku: string | null; image?: string | null; sortOrder: number }> | undefined;
+  // Variants (optional). Parsed from the hidden JSON field. Staff can't set prices or costs,
+  // so theirs come from the saved product — the API replaces the whole variant list, and
+  // nulling them (as this used to) wiped every per-option price whenever staff saved.
+  let variants: Array<{ id?: string; label: string; priceNpr: number | null; costNpr?: number | null; stockQty: number | null; sku: string | null; image?: string | null; sortOrder: number }> | undefined;
   const variantsRaw = formData.get('variants') as string | null;
   if (variantsRaw != null) {
     try {
-      const parsed = JSON.parse(variantsRaw) as typeof variants;
-      variants = (parsed ?? []).map((v) => ({ ...v, priceNpr: canPrice ? v.priceNpr : null }));
+      const parsed = (JSON.parse(variantsRaw) ?? []) as NonNullable<typeof variants>;
+      if (canPrice) {
+        variants = parsed;
+      } else {
+        const saved = isNew ? [] : ((await getProduct(id).catch(() => null))?.variants ?? []);
+        const byId = new Map(saved.map((v) => [v.id, v]));
+        variants = parsed.map((v) => {
+          const prev = v.id ? byId.get(v.id) : undefined;
+          return { ...v, priceNpr: prev?.priceNpr ?? null, costNpr: prev?.costNpr ?? null };
+        });
+      }
     } catch { variants = undefined; }
   }
 
@@ -253,12 +287,12 @@ export async function saveProduct(_: unknown, formData: FormData) {
     if (isNew) {
       // Staff may create products, but price stays owner-controlled (defaults to
       // 0 = "price on request" until an owner sets it).
-      if (!canPrice) { data.priceNpr = 0; data.compareAtPriceNpr = null; }
-      await createProduct({ ...data, ...(variants !== undefined ? { variants } : {}) });
+      if (!canPrice) { data.priceNpr = 0; data.compareAtPriceNpr = null; data.costNpr = null; }
+      await createProduct({ ...data, stockQty: stockQty ?? null, ...(variants !== undefined ? { variants } : {}) });
     } else {
       // On edit, staff cannot change price (or the sale price alongside it): omit
       // both so the API preserves the existing values (PATCH is a partial update).
-      const { priceNpr, compareAtPriceNpr, ...rest } = data;
+      const { priceNpr, compareAtPriceNpr, costNpr, ...rest } = data;
       const base = canPrice ? data : rest;
       await updateProduct(id, { ...base, ...(variants !== undefined ? { variants } : {}) });
 
@@ -283,7 +317,9 @@ export async function saveProduct(_: unknown, formData: FormData) {
 }
 
 export async function toggleAvailability(id: string, available: boolean) {
-  await updateProduct(id, { available });
+  // "Live" means Available AND active — making a draft/archived product live has to move
+  // its status too, or it would stay off the shop while the badge says Live.
+  await updateProduct(id, available ? { available, status: 'active' } : { available });
   revalidatePath('/products');
   await revalidateStorefront();
 }
@@ -354,4 +390,81 @@ export async function adjustVariantStockAction(
   revalidatePath(`/products/${productId}`);
   await revalidateStorefront();
   return { ok: true };
+}
+
+// ── List-page tools (2026-10-22) ─────────────────────────────────────────────
+// All return { error } rather than throwing — see the note on importProductsCsv.
+
+type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
+
+export async function bulkProductsAction(ids: string[], change: BulkProductAction): Promise<ActionResult<{ updated: number }>> {
+  const admin = await getAdmin();
+  if (!admin) return { ok: false, error: 'Unauthorized' };
+  if (change.action === 'price_percent' && !can(admin.role, 'setPrice')) {
+    return { ok: false, error: 'Your role cannot change product pricing.' };
+  }
+  try {
+    const { updated } = await bulkProductAction(ids, change);
+    revalidatePath('/products');
+    await revalidateStorefront();
+    return { ok: true, updated };
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not update these products.') };
+  }
+}
+
+export async function duplicateProductAction(id: string): Promise<ActionResult<{ id: string }>> {
+  if (!(await getAdmin())) return { ok: false, error: 'Unauthorized' };
+  try {
+    const res = await duplicateProduct(id);
+    revalidatePath('/products');
+    return { ok: true, id: res.id };
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not duplicate this product.') };
+  }
+}
+
+export async function mergeAsVariantsAction(body: {
+  id: string; name: string; variantAxis: 'size' | 'color' | 'style' | null;
+  items: Array<{ productId: string; label: string }>;
+}): Promise<ActionResult<{ id: string }>> {
+  if (!(await getAdmin())) return { ok: false, error: 'Unauthorized' };
+  const id = body.id.trim().toLowerCase().replace(/\s+/g, '-');
+  if (!id) return { ok: false, error: 'A URL slug is required.' };
+  try {
+    const res = await mergeProductsAsVariants({ ...body, id });
+    revalidatePath('/products');
+    await revalidateStorefront();
+    return { ok: true, id: res.id };
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not combine these products.') };
+  }
+}
+
+/**
+ * Clears the placeholder products seeded at signup. Owners delete them; staff (who can't
+ * delete) archive them instead. A sample that somehow ended up in an order can't be deleted
+ * either — it is archived, which takes it off the shop just the same.
+ */
+export async function removeSampleProductsAction(ids: string[]): Promise<ActionResult<{ removed: number }>> {
+  const admin = await getAdmin();
+  if (!admin) return { ok: false, error: 'Unauthorized' };
+  const samples = ids.filter((id) => /-sample-\d+$/.test(id));
+  if (samples.length === 0) return { ok: true, removed: 0 };
+
+  const leftovers: string[] = [];
+  if (can(admin.role, 'deleteProduct')) {
+    const results = await Promise.allSettled(samples.map((id) => apiDeleteProduct(id)));
+    results.forEach((r, i) => { if (r.status === 'rejected') leftovers.push(samples[i]); });
+  } else {
+    leftovers.push(...samples);
+  }
+  try {
+    if (leftovers.length) await bulkProductAction(leftovers, { action: 'archive' });
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not remove the sample products.') };
+  }
+  revalidatePath('/products');
+  await revalidateStorefront();
+  return { ok: true, removed: samples.length };
 }

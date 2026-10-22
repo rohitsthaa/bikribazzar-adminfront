@@ -6,7 +6,7 @@ import { IncomeExpenseChart, CategoryBreakdown } from '../finance/FinanceCharts'
 import EmptyState from '@/components/EmptyState';
 import { FINANCE_RANGES, parseFinanceRange, financeRangeToParams } from '@/lib/date-range';
 
-export const metadata = { title: 'Dashboard — Soul Thread Admin' };
+export const metadata = { title: 'Dashboard — Bikri Bazaar' };
 
 const STATUS_COLORS: Record<string, string> = {
   new: '#3b82f6', confirmed: '#f59e0b', shipped: '#a855f7',

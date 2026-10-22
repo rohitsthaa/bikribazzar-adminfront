@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getAllOrders, getSettings, type Order } from '@/lib/api';
 
-export const metadata = { title: 'Delivery Schedule — Soul Thread Admin' };
+export const metadata = { title: 'Delivery Schedule — Bikri Bazaar' };
 
 const STATUS_BADGE: Record<string, string> = {
   confirmed: 'bg-amber-100 text-amber-700',

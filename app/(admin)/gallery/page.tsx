@@ -4,7 +4,7 @@ import AddGalleryForm from './AddGalleryForm';
 import GalleryImage from './GalleryImage';
 import EmptyState from '@/components/EmptyState';
 
-export const metadata = { title: 'Gallery — Soul Thread Admin' };
+export const metadata = { title: 'Gallery — Bikri Bazaar' };
 
 export default async function GalleryPage() {
   const images = await getGalleryImages();
