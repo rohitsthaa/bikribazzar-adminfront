@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, bulkImportProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront } from '@/lib/api';
+import { createProduct, bulkImportProducts, getAllProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { friendlyApiError } from '@/lib/errors';
 import type { ImportRow } from '@/lib/product-import';
@@ -34,6 +34,29 @@ const SUPPLIED_FIELDS = [
  * useful 402 ("Your Starter plan allows up to 50 products — upgrade or trim the file")
  * reached the user as a blank error page via the route boundary.
  */
+/**
+ * Ids of every product in the store, so the review grid can tell the merchant which rows
+ * will be added and which will overwrite something that already exists.
+ *
+ * Called once when a file is parsed rather than on every Products page load — the page is
+ * paginated now, so it only holds 50 products and can't answer this itself. The full
+ * product objects never cross to the browser; only this string array does.
+ *
+ * Follow-up worth having: the API has no "ids only" mode, so this fetches whole products
+ * server-side to throw nearly all of it away.
+ */
+export async function getExistingProductIds(): Promise<string[]> {
+  const admin = await getAdmin();
+  if (!admin) return [];
+  try {
+    const products = await getAllProducts();
+    return products.map((p) => p.id);
+  } catch {
+    // Not fatal: the grid just shows no badges rather than blocking the import.
+    return [];
+  }
+}
+
 export async function importProductsCsv(rows: ImportRow[]): Promise<ImportResult> {
   const admin = await getAdmin();
   if (!admin) return { ok: false, error: 'Unauthorized' };

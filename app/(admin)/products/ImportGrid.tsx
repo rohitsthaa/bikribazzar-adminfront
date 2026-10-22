@@ -2,7 +2,7 @@
 
 import { memo, useState } from 'react';
 import {
-  PRIMARY_COLUMNS, SECONDARY_COLUMNS, hasError,
+  PRIMARY_COLUMNS, SECONDARY_COLUMNS, effectiveId, hasError,
   type DraftRow, type ImportField, type RowIssues,
 } from '@/lib/product-import';
 
@@ -16,12 +16,14 @@ type Category = { key: string; label: string };
  * guessing what we wanted and re-exporting from their spreadsheet.
  */
 export default function ImportGrid({
-  rows, issues, categories, currency, onCell, onInclude,
+  rows, issues, categories, currency, existingIds, onCell, onInclude,
 }: {
   rows: DraftRow[];
   issues: Map<string, RowIssues>;
   categories: Category[];
   currency: string;
+  /** null while still loading — the grid shows no badges rather than guessing. */
+  existingIds: Set<string> | null;
   onCell: (key: string, field: ImportField, value: string) => void;
   onInclude: (key: string, include: boolean) => void;
 }) {
@@ -49,6 +51,9 @@ export default function ImportGrid({
             <tr>
               <th scope="col" className="w-8 px-2 py-2 font-medium" title="Include this row">✓</th>
               <th scope="col" className="w-10 px-2 py-2 text-left font-medium">Row</th>
+              <th scope="col" className="w-16 px-2 py-2 text-left font-medium" title="Whether this row creates a product or overwrites an existing one">
+                Action
+              </th>
               {PRIMARY_COLUMNS.map((c) => (
                 <th key={c.key} scope="col" className="px-2 py-2 text-left font-medium" title={c.hint}>
                   {c.label}
@@ -66,6 +71,7 @@ export default function ImportGrid({
                 row={row}
                 issues={issues.get(row.key) ?? {}}
                 categories={categories}
+                existing={existingIds === null ? null : existingIds.has(effectiveId(row))}
                 onCell={onCell}
                 onInclude={onInclude}
               />
@@ -84,11 +90,13 @@ export default function ImportGrid({
 // Memoised, and the parent updates rows with a keyed functional update that preserves the
 // identity of untouched rows — so typing in one cell re-renders one row, not all of them.
 const Row = memo(function Row({
-  row, issues, categories, onCell, onInclude,
+  row, issues, categories, existing, onCell, onInclude,
 }: {
   row: DraftRow;
   issues: RowIssues;
   categories: Category[];
+  /** true = overwrites an existing product, false = new, null = not known yet. */
+  existing: boolean | null;
   onCell: (key: string, field: ImportField, value: string) => void;
   onInclude: (key: string, include: boolean) => void;
 }) {
@@ -110,6 +118,22 @@ const Row = memo(function Row({
           />
         </td>
         <td className="px-2 py-1.5 align-top text-stone-400">{row.line}</td>
+        <td className="px-2 py-1.5 align-top">
+          {existing === null ? (
+            <span className="text-stone-300">—</span>
+          ) : existing ? (
+            <span
+              className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-100"
+              title="A product with this id already exists — importing will overwrite the columns in this file"
+            >
+              Update
+            </span>
+          ) : (
+            <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-green-100">
+              New
+            </span>
+          )}
+        </td>
 
         {PRIMARY_COLUMNS.map((c) => (
           <td key={c.key} className="px-1.5 py-1.5 align-top">
@@ -139,6 +163,7 @@ const Row = memo(function Row({
 
       {expanded && (
         <tr className={dim}>
+          <td />
           <td />
           <td />
           <td colSpan={PRIMARY_COLUMNS.length + 1} className="px-1.5 pb-3">
