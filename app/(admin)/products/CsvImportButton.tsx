@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useTransition } from 'react';
-import { getExistingProductIds, importProductsCsv, type ImportResult } from './actions';
+import { getExistingProductSummaries, importProductsCsv, type ImportResult } from './actions';
 import ImportGrid from './ImportGrid';
 import {
-  COLUMNS, MAX_ROWS, buildDraftRows, effectiveId, hasError, templateCsv, toImportRow,
-  validateRows, type DraftRow, type ImportField,
+  COLUMNS, MAX_ROWS, buildDraftRows, diffRow, effectiveId, hasError, templateCsv,
+  toImportRow, validateRows,
+  type DraftRow, type ExistingProduct, type ImportField,
 } from '@/lib/product-import';
 
 type Category = { key: string; label: string };
@@ -42,7 +43,7 @@ export default function CsvImportButton({
   const [touched, setTouched] = useState(false);
   // null until the lookup returns, so the grid shows "—" rather than claiming every row
   // is new while it waits.
-  const [existingIds, setExistingIds] = useState<Set<string> | null>(null);
+  const [existing, setExisting] = useState<Map<string, ExistingProduct> | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importing, startImport] = useTransition();
 
@@ -61,10 +62,14 @@ export default function CsvImportButton({
 
   // Counted over the rows that will actually be sent, and recounted as ids are edited —
   // renaming an id in the grid flips a row between New and Update.
-  const updating = existingIds === null
-    ? 0
-    : included.filter((r) => existingIds.has(effectiveId(r))).length;
-  const adding = included.length - updating;
+  const matched = existing === null
+    ? []
+    : included.map((r) => ({ row: r, found: existing.get(effectiveId(r)) })).filter((m) => m.found);
+  // Split the updates: a row that matches an existing product but changes none of the
+  // columns in the file is a no-op, and saying so is more honest than counting it.
+  const changing = matched.filter((m) => diffRow(m.row, m.found!).length > 0).length;
+  const unchanged = matched.length - changing;
+  const adding = existing === null ? 0 : included.length - matched.length;
 
   // Keyed functional update: untouched rows keep their object identity, so the memoised
   // row component genuinely skips them.
@@ -118,10 +123,10 @@ export default function CsvImportButton({
       // Which rows overwrite something is the most useful thing to know before importing,
       // now that a re-import updates in place. Fetched here rather than on every Products
       // page load, since the page is paginated and only holds 50 products anyway.
-      setExistingIds(null);
-      getExistingProductIds()
-        .then((ids) => setExistingIds(new Set(ids)))
-        .catch(() => setExistingIds(new Set()));
+      setExisting(null);
+      getExistingProductSummaries()
+        .then((list) => setExisting(new Map(list.map((p) => [p.id, p]))))
+        .catch(() => setExisting(new Map()));
     };
     reader.readAsText(file);
   }
@@ -149,7 +154,7 @@ export default function CsvImportButton({
     setFileName('');
     setFileError('');
     setTouched(false);
-    setExistingIds(null);
+    setExisting(null);
     if (fileRef.current) fileRef.current.value = '';
   }
 
@@ -229,9 +234,10 @@ export default function CsvImportButton({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <p className="text-stone-600">
                     <span className="font-semibold text-stone-900">{included.length}</span> of {rows.length} rows will import
-                    {existingIds !== null && included.length > 0 && (
+                    {existing !== null && included.length > 0 && (
                       <span className="text-stone-500">
-                        {' '}· {adding} new · {updating} {updating === 1 ? 'update' : 'updates'}
+                        {' '}· {adding} new · {changing} {changing === 1 ? 'update' : 'updates'}
+                        {unchanged > 0 && ` · ${unchanged} unchanged`}
                       </span>
                     )}
                     {brokenIncluded.length > 0 && (
@@ -250,7 +256,7 @@ export default function CsvImportButton({
                   issues={issues}
                   categories={categories}
                   currency={currency}
-                  existingIds={existingIds}
+                  existing={existing}
                   onCell={onCell}
                   onInclude={onInclude}
                 />

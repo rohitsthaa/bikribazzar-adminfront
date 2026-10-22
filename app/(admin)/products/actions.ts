@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { createProduct, bulkImportProducts, getAllProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { friendlyApiError } from '@/lib/errors';
-import type { ImportRow } from '@/lib/product-import';
+import type { ExistingProduct, ImportRow } from '@/lib/product-import';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
 
@@ -35,24 +35,38 @@ const SUPPLIED_FIELDS = [
  * reached the user as a blank error page via the route boundary.
  */
 /**
- * Ids of every product in the store, so the review grid can tell the merchant which rows
- * will be added and which will overwrite something that already exists.
+ * The importable fields of every product in the store, so the review grid can show which
+ * rows overwrite something and exactly what each one would change.
  *
- * Called once when a file is parsed rather than on every Products page load — the page is
- * paginated now, so it only holds 50 products and can't answer this itself. The full
- * product objects never cross to the browser; only this string array does.
+ * Only the ten columns a spreadsheet carries — not whole products. The admin's Product type
+ * has thirty fields and the grid needs nine of them; sending the rest would be payload for
+ * nothing.
  *
- * Follow-up worth having: the API has no "ids only" mode, so this fetches whole products
- * server-side to throw nearly all of it away.
+ * Called once when a file is parsed rather than on every Products page load: that page is
+ * paginated now, so it only holds 50 products and cannot answer this itself. Returns [] on
+ * failure, so the grid degrades to no badges rather than blocking the import.
+ *
+ * Follow-up worth having: the API has no "fields" parameter, so this still fetches whole
+ * products server-side to throw most of each one away.
  */
-export async function getExistingProductIds(): Promise<string[]> {
+export async function getExistingProductSummaries(): Promise<ExistingProduct[]> {
   const admin = await getAdmin();
   if (!admin) return [];
   try {
     const products = await getAllProducts();
-    return products.map((p) => p.id);
+    return products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      priceNpr: p.priceNpr,
+      category: p.category ?? null,
+      details: p.details,
+      tag: p.tag,
+      available: p.available,
+      stockQty: p.stockQty,
+      reorderPoint: p.reorderPoint,
+    }));
   } catch {
-    // Not fatal: the grid just shows no badges rather than blocking the import.
     return [];
   }
 }

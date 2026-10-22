@@ -2,8 +2,8 @@
 
 import { memo, useState } from 'react';
 import {
-  PRIMARY_COLUMNS, SECONDARY_COLUMNS, effectiveId, hasError,
-  type DraftRow, type ImportField, type RowIssues,
+  PRIMARY_COLUMNS, SECONDARY_COLUMNS, diffRow, effectiveId, hasError,
+  type DraftRow, type ExistingProduct, type FieldChange, type ImportField, type RowIssues,
 } from '@/lib/product-import';
 
 type Category = { key: string; label: string };
@@ -16,14 +16,14 @@ type Category = { key: string; label: string };
  * guessing what we wanted and re-exporting from their spreadsheet.
  */
 export default function ImportGrid({
-  rows, issues, categories, currency, existingIds, onCell, onInclude,
+  rows, issues, categories, currency, existing, onCell, onInclude,
 }: {
   rows: DraftRow[];
   issues: Map<string, RowIssues>;
   categories: Category[];
   currency: string;
   /** null while still loading — the grid shows no badges rather than guessing. */
-  existingIds: Set<string> | null;
+  existing: Map<string, ExistingProduct> | null;
   onCell: (key: string, field: ImportField, value: string) => void;
   onInclude: (key: string, include: boolean) => void;
 }) {
@@ -71,7 +71,7 @@ export default function ImportGrid({
                 row={row}
                 issues={issues.get(row.key) ?? {}}
                 categories={categories}
-                existing={existingIds === null ? null : existingIds.has(effectiveId(row))}
+                existing={existing === null ? null : existing.get(effectiveId(row)) ?? false}
                 onCell={onCell}
                 onInclude={onInclude}
               />
@@ -95,13 +95,16 @@ const Row = memo(function Row({
   row: DraftRow;
   issues: RowIssues;
   categories: Category[];
-  /** true = overwrites an existing product, false = new, null = not known yet. */
-  existing: boolean | null;
+  /** The product this row would overwrite, false if it is new, null if not looked up yet. */
+  existing: ExistingProduct | false | null;
   onCell: (key: string, field: ImportField, value: string) => void;
   onInclude: (key: string, include: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const rowHasError = hasError(issues);
+  // Recomputed per render from the row's current cells, so editing a price updates the
+  // change list as you type.
+  const changes: FieldChange[] = existing ? diffRow(row, existing) : [];
 
   // Excluded rows stay editable — the point is to fix one and put it back in.
   const dim = row.include ? '' : 'opacity-45';
@@ -121,17 +124,25 @@ const Row = memo(function Row({
         <td className="px-2 py-1.5 align-top">
           {existing === null ? (
             <span className="text-stone-300">—</span>
-          ) : existing ? (
-            <span
-              className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-100"
-              title="A product with this id already exists — importing will overwrite the columns in this file"
-            >
-              Update
-            </span>
-          ) : (
+          ) : existing === false ? (
             <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-green-100">
               New
             </span>
+          ) : changes.length === 0 ? (
+            // Worth saying plainly: re-importing an unchanged sheet is a no-op, and a row
+            // that looks like it will overwrite something but changes nothing is reassuring.
+            <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500" title="Nothing in this row differs from the saved product">
+              No change
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-100 hover:bg-amber-100"
+              title={changes.map((c) => `${c.label}: ${c.from || '(blank)'} → ${c.to || '(blank)'}`).join('\n')}
+            >
+              {changes.length} {changes.length === 1 ? 'change' : 'changes'}
+            </button>
           )}
         </td>
 
@@ -167,6 +178,26 @@ const Row = memo(function Row({
           <td />
           <td />
           <td colSpan={PRIMARY_COLUMNS.length + 1} className="px-1.5 pb-3">
+            {changes.length > 0 && (
+              <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50/60 px-2.5 py-2">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-amber-700">
+                  This row will change
+                </p>
+                <ul className="space-y-0.5">
+                  {changes.map((c) => (
+                    <li key={c.field} className="text-[11px] text-stone-600">
+                      <span className="text-stone-500">{c.label}:</span>{' '}
+                      <span className="line-through decoration-stone-300">{c.from || '(blank)'}</span>
+                      {' → '}
+                      <span className="font-medium text-stone-800">{c.to || '(blank)'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1.5 text-[10px] text-stone-500">
+                  Photos, SEO and other fields not in this file are left as they are.
+                </p>
+              </div>
+            )}
             <div className="grid gap-2 sm:grid-cols-2">
               {SECONDARY_COLUMNS.map((c) => (
                 <label key={c.key} className="block">
