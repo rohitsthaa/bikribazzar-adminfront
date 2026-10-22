@@ -1,11 +1,11 @@
-import { getProducts, getSettings } from '@/lib/api';
+import { getAllProducts, getSettings } from '@/lib/api';
 import CreateOrderForm from './CreateOrderForm';
 
 export const metadata = { title: 'New Order — Soul Thread Admin' };
 
 export default async function NewOrderPage() {
   const [products, settings] = await Promise.all([
-    getProducts().catch(() => []),
+    getAllProducts().catch(() => []),
     getSettings().catch(() => ({} as Record<string, string>)),
   ]);
 

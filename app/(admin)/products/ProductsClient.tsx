@@ -204,33 +204,28 @@ function ProductCard({ p, currency, canDelete }: { p: Product; currency: string;
   );
 }
 
-export default function ProductsClient({ products, currency = 'NPR', canDelete = true }: { products: Product[]; currency?: string; canDelete?: boolean }) {
-  const [filter, setFilter] = useState<Filter>('all');
+// Changing bucket is a navigation, not local state: the server re-queries and resets to
+// page 1 by omitting ?page.
+function bucketHref(b: Filter) {
+  return b === 'all' ? '/products' : `/products?bucket=${b}`;
+}
 
-  const filtered = products.filter(p => {
-    if (filter === 'live') return p.available;
-    if (filter === 'hidden') return !p.available;
-    if (filter === 'oos') return p.stockQty !== null && p.stockQty === 0;
-    if (filter === 'low') return p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint;
-    if (filter === 'draft') return p.status === 'draft';
-    if (filter === 'archived') return p.status === 'archived';
-    return true;
-  });
+export default function ProductsClient({
+  products, currency = 'NPR', canDelete = true, counts, bucket,
+}: {
+  products: Product[];
+  currency?: string;
+  canDelete?: boolean;
+  // Whole-catalogue counts from the server. A "Low stock 4" tab has to mean four products in
+  // the store — it is the number a shopkeeper reorders from.
+  counts: { all: number; live: number; hidden: number; low: number; oos: number; draft: number; archived: number };
+  bucket: string;
+}) {
+  const filter = (['all','live','hidden','oos','low','draft','archived'].includes(bucket) ? bucket : 'all') as Filter;
 
-  const lowCount = products.filter(p => p.stockQty !== null && p.stockQty > 0 && p.reorderPoint > 0 && p.stockQty <= p.reorderPoint).length;
-  const oosCount = products.filter(p => p.stockQty !== null && p.stockQty === 0).length;
-  const draftCount = products.filter(p => p.status === 'draft').length;
-  const archivedCount = products.filter(p => p.status === 'archived').length;
-
-  const counts = {
-    all: products.length,
-    live: products.filter(p => p.available).length,
-    hidden: products.filter(p => !p.available).length,
-    low: lowCount,
-    oos: oosCount,
-    draft: draftCount,
-    archived: archivedCount,
-  };
+  // The server already applied the bucket; this page IS the filtered set.
+  const filtered = products;
+  const { low: lowCount, oos: oosCount, draft: draftCount, archived: archivedCount } = counts;
 
   const tabs: { key: Filter; label: string; alert?: boolean }[] = [
     { key: 'all', label: 'All' },
@@ -247,9 +242,10 @@ export default function ProductsClient({ products, currency = 'NPR', canDelete =
       {/* Filter tabs */}
       <div className="flex items-center gap-1 mb-6 bg-stone-100 rounded-xl p-1 w-fit">
         {tabs.map(t => (
-          <button
+          <Link
             key={t.key}
-            onClick={() => setFilter(t.key)}
+            href={bucketHref(t.key)}
+            scroll={false}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
               filter === t.key
                 ? t.alert ? 'bg-red-500 text-white shadow-sm' : 'bg-[#c96a3a] text-white shadow-sm'
@@ -262,7 +258,7 @@ export default function ProductsClient({ products, currency = 'NPR', canDelete =
             }`}>
               {counts[t.key]}
             </span>
-          </button>
+          </Link>
         ))}
       </div>
 

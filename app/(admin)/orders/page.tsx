@@ -1,28 +1,46 @@
 import Link from 'next/link';
-import { getOrders, getSettings, type Order } from '@/lib/api';
+import { getOrders, getSettings, type Order, type OrderCounts } from '@/lib/api';
+import Pager from '@/components/Pager';
 import OrdersClient from './OrdersClient';
 
 export const metadata = {
   title: 'Orders — Soul Thread Admin',
 };
 
-export default async function OrdersPage() {
+const PAGE_SIZE = 50;
+
+// Status/page live in the URL rather than component state, so a shopkeeper can bookmark or
+// share "new orders, page 2" and the back button behaves. It also means the filtered query
+// runs in SQL instead of the browser holding every order the store has ever taken.
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
+  const status = sp.status ?? 'all';
+  const q = sp.q ?? '';
+  const page = Math.max(1, Number(sp.page ?? '1') || 1);
+
   let orders: Order[] = [];
+  let counts: OrderCounts = { all: 0, new: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0 };
+  let total = 0;
   let error: string | null = null;
   let currency = 'NPR';
 
   try {
-    const [raw] = await Promise.all([
-      getOrders(),
+    const [res] = await Promise.all([
+      getOrders({ status, q, page, limit: PAGE_SIZE }),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
     ]);
-    orders = Array.isArray(raw) ? raw : (raw as any).items ?? [];
+    orders = res.items;
+    counts = res.counts;
+    total = res.total;
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load orders';
   }
-
-  // Sort by newest first
-  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Already newest-first from the API; no client sort, since sorting one page of a paginated
+  // list would only reorder that page and quietly imply it was the whole set.
 
   return (
     <main className="p-6 md:p-8 max-w-6xl">
@@ -50,7 +68,8 @@ export default async function OrdersPage() {
         </div>
       )}
 
-      <OrdersClient orders={orders} currency={currency} />
+      <OrdersClient orders={orders} currency={currency} counts={counts} status={status} q={q} />
+          <Pager page={page} limit={PAGE_SIZE} total={total} basePath="/orders" params={{ status: status === 'all' ? undefined : status, q: q || undefined }} />
     </main>
   );
 }

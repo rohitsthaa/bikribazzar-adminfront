@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getOrders, getProducts, getSettings, getFinanceSummary, type Order, type Product, type FinanceSummary } from '@/lib/api';
+import { getAllOrders, getAllProducts, getSettings, getFinanceSummary, type Order, type Product, type FinanceSummary } from '@/lib/api';
 import { RevenueChart, StatusDonut, TopProductsChart } from './DashboardCharts';
 import type { RevenueDay, StatusCount, TopProduct } from './DashboardCharts';
 import { IncomeExpenseChart, CategoryBreakdown } from '../finance/FinanceCharts';
@@ -87,8 +87,8 @@ export default async function DashboardPage({
 
   try {
     await Promise.all([
-      getOrders().then((o) => { orders = Array.isArray(o) ? o : (o as any).items ?? []; }).catch(() => {}),
-      getProducts().then((p) => { allProducts = Array.isArray(p) ? p : (p as any).items ?? []; }).catch(() => {}),
+      getAllOrders().then((o) => { orders = o.items; }).catch(() => {}),
+      getAllProducts().then((p) => { allProducts = p; }).catch(() => {}),
       getSettings().then((s) => { currency = s.currency_symbol || 'NPR'; }).catch(() => {}),
       getFinanceSummary({ from: rangeFrom.toISOString(), to: rangeTo.toISOString(), groupBy })
         .then((s) => { finance = s; }).catch(() => {}),

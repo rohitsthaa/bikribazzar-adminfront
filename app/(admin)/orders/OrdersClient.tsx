@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
 import type { Order } from '@/lib/api';
 import EmptyState from '@/components/EmptyState';
 
@@ -53,28 +52,41 @@ function exportCsv(orders: Order[], label: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Order[]; currency?: string }) {
-  const [tab, setTab] = useState<Tab>('all');
+// Changing tab is a navigation, not local state: the server re-queries with the new status
+// and resets to page 1 by omitting ?page.
+function tabHref(t: Tab, q: string) {
+  const sp = new URLSearchParams();
+  if (t !== 'all') sp.set('status', t);
+  if (q) sp.set('q', q);
+  const qs = sp.toString();
+  return qs ? `/orders?${qs}` : '/orders';
+}
 
-  const counts: Record<Tab, number> = {
-    all: orders.length,
-    new: orders.filter((o) => o.status === 'new').length,
-    confirmed: orders.filter((o) => o.status === 'confirmed').length,
-    shipped: orders.filter((o) => o.status === 'shipped').length,
-    delivered: orders.filter((o) => o.status === 'delivered').length,
-    cancelled: orders.filter((o) => o.status === 'cancelled').length,
-  };
+export default function OrdersClient({
+  orders, currency = 'NPR', counts, status, q,
+}: {
+  orders: Order[];
+  currency?: string;
+  // Counts describe the whole store (or the whole search), never just this page — a tab
+  // reading "12 new" has to mean twelve new orders or it is actively misleading.
+  counts: Record<Tab, number>;
+  status: string;
+  q: string;
+}) {
+  const tab = (ALL_TABS.includes(status as Tab) ? status : 'all') as Tab;
 
-  const filtered = tab === 'all' ? orders : orders.filter((o) => o.status === tab);
+  // The server already applied the status filter; this page IS the filtered set.
+  const filtered = orders;
 
   return (
     <div>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
         <div className="flex gap-1 flex-wrap">
           {ALL_TABS.map((t) => (
-            <button
+            <Link
               key={t}
-              onClick={() => setTab(t)}
+              href={tabHref(t, q)}
+              scroll={false}
               className={`px-3.5 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
                 tab === t
                   ? 'bg-stone-800 text-white'
@@ -85,11 +97,12 @@ export default function OrdersClient({ orders, currency = 'NPR' }: { orders: Ord
               <span className={`ml-1.5 text-xs ${tab === t ? 'text-stone-300' : 'text-stone-400'}`}>
                 {counts[t]}
               </span>
-            </button>
+            </Link>
           ))}
         </div>
         <button
           onClick={() => exportCsv(filtered, tab)}
+          title="Exports the orders currently shown on this page"
           className="inline-flex items-center gap-2 bg-white border border-stone-200 text-stone-600 hover:text-stone-900 hover:bg-stone-50 hover:border-stone-300 text-sm font-medium px-3.5 py-1.5 rounded-lg transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

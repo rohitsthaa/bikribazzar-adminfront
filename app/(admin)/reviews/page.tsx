@@ -1,4 +1,4 @@
-import { getReviews, getProducts } from '@/lib/api';
+import { getReviews, getAllProducts } from '@/lib/api';
 import ReviewsClient from './ReviewsClient';
 
 export const metadata = { title: 'Reviews — Admin' };
@@ -16,7 +16,7 @@ export default async function ReviewsPage() {
   // "single-tier-hanging-shelf" to a non-technical reader.
   const productNames: Record<string, string> = {};
   try {
-    const products = await getProducts();
+    const products = await getAllProducts();
     for (const p of products) productNames[p.id] = p.name;
   } catch {
     // Fall back to showing the raw slug below if products can't be loaded.

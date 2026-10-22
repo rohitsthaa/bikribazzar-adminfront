@@ -136,7 +136,36 @@ export type InventoryLog = {
   createdAt: string;
 };
 
-export function getProducts() { return apiFetch<Product[]>('/products?all=1'); }
+/** Envelope returned by the paginated admin lists. */
+export type Paged<T, C = Record<string, number>> = {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  counts: C;
+};
+
+export type ProductCounts = {
+  all: number; live: number; hidden: number;
+  low: number; oos: number; draft: number; archived: number;
+};
+
+/**
+ * Admin product list. Paginated and filtered in SQL — `counts` always describes the whole
+ * catalogue, not the page, because the UI's tabs show those numbers and a shopkeeper restocks
+ * from them.
+ */
+export function getProducts(opts: { bucket?: string; q?: string; page?: number; limit?: number } = {}) {
+  const sp = new URLSearchParams({ all: '1', limit: String(opts.limit ?? 50) });
+  if (opts.bucket && opts.bucket !== 'all') sp.set('bucket', opts.bucket);
+  if (opts.q) sp.set('q', opts.q);
+  if (opts.page && opts.page > 1) sp.set('page', String(opts.page));
+  return apiFetch<Paged<Product, ProductCounts>>(`/products?${sp}`);
+}
+
+/** Every product in one call. Only for callers that genuinely need the whole catalogue
+ *  (CSV export, the product picker on a manual order) — not for rendering a list. */
+export function getAllProducts() { return apiFetch<Product[]>('/products?all=1'); }
 export function getProduct(id: string) { return apiFetch<Product>(`/products/${encodeURIComponent(id)}`); }
 
 type ProductWrite = Omit<Product, 'createdAt' | 'updatedAt' | 'category' | 'categoryLabel'>;
@@ -607,7 +636,28 @@ export function deleteAdminUser(id: number) {
   return apiFetch<{ ok: boolean }>(`/admin-auth/users/${id}`, { method: 'DELETE' });
 }
 
-export function getOrders() { return apiFetch<Order[]>('/orders'); }
+export type OrderCounts = {
+  all: number; new: number; confirmed: number;
+  shipped: number; delivered: number; cancelled: number;
+};
+
+/**
+ * Admin order list. Paginated and filtered in SQL. This used to fetch every order the store
+ * had ever taken — full rows including line items and status history — and filter in the
+ * browser.
+ */
+/** Every order, unpaginated. Only the dashboard should use this — it computes revenue and
+ *  month-over-month over a store's whole history, and a capped fetch would silently understate
+ *  the numbers. Everything else wants getOrders(). */
+export function getAllOrders() { return apiFetch<Paged<Order, OrderCounts>>('/orders?limit=0'); }
+
+export function getOrders(opts: { status?: string; q?: string; page?: number; limit?: number } = {}) {
+  const sp = new URLSearchParams({ limit: String(opts.limit ?? 50) });
+  if (opts.status && opts.status !== 'all') sp.set('status', opts.status);
+  if (opts.q) sp.set('q', opts.q);
+  if (opts.page && opts.page > 1) sp.set('page', String(opts.page));
+  return apiFetch<Paged<Order, OrderCounts>>(`/orders?${sp}`);
+}
 export function getOrder(id: string) { return apiFetch<Order>(`/orders/${id}`); }
 export function updateOrderStatus(id: string, status: Order['status'], deliveryFee?: number) {
   return apiFetch<Order>(`/orders/${id}`, {

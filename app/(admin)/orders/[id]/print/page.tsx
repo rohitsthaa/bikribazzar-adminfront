@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getOrder, getProducts, getSettings } from '@/lib/api';
+import { getOrder, getAllProducts, getSettings } from '@/lib/api';
 import PrintButton from './PrintButton';
 
 interface Props { params: Promise<{ id: string }> }
@@ -11,7 +11,7 @@ export default async function PrintPackSlip({ params }: Props) {
   if (!order) notFound();
 
   const [products, settings] = await Promise.all([
-    getProducts().catch(() => []),
+    getAllProducts().catch(() => []),
     getSettings().catch(() => ({} as Record<string, string>)),
   ]);
   const currency = settings.currency_symbol || 'NPR';
