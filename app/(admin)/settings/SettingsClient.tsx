@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
 import { SettingCard, Field } from '@/components/SettingCard';
-import { saveAboutImage, saveContactInfo, saveCurrency, saveBranding } from './actions';
+import { saveAboutImage, saveContactInfo, saveCurrency, saveBranding, saveShopCopy } from './actions';
 
 export default function SettingsClient({
   initialAboutImage,
@@ -18,6 +18,10 @@ export default function SettingsClient({
   initialFontFamily,
   initialLogoUrl,
   initialOgImage,
+  initialShopTitle,
+  initialShopSubtitle,
+  initialDeliveryNote,
+  initialReturnsNote,
 }: {
   initialAboutImage: string;
   initialPhone: string;
@@ -30,7 +34,27 @@ export default function SettingsClient({
   initialFontFamily: string;
   initialLogoUrl: string;
   initialOgImage: string;
+  initialShopTitle: string;
+  initialShopSubtitle: string;
+  initialDeliveryNote: string;
+  initialReturnsNote: string;
 }) {
+  // Shop page & policies
+  const [shopTitle, setShopTitle] = useState(initialShopTitle);
+  const [shopSubtitle, setShopSubtitle] = useState(initialShopSubtitle);
+  const [deliveryNote, setDeliveryNote] = useState(initialDeliveryNote);
+  const [returnsNote, setReturnsNote] = useState(initialReturnsNote);
+  const [shopCopySaved, setShopCopySaved] = useState(false);
+  const [shopCopyPending, startShopCopyTransition] = useTransition();
+
+  function handleShopCopySave() {
+    startShopCopyTransition(async () => {
+      await saveShopCopy({ shopTitle, shopSubtitle, deliveryNote, returnsNote });
+      setShopCopySaved(true);
+      setTimeout(() => setShopCopySaved(false), 2000);
+    });
+  }
+
   // About image
   const [aboutImage, setAboutImage] = useState(initialAboutImage);
   const [aboutSaved, setAboutSaved] = useState(false);
@@ -126,6 +150,27 @@ export default function SettingsClient({
           onChange={setLocation}
           placeholder="City, Country"
         />
+      </SettingCard>
+
+      {/* Shop page & policies */}
+      <SettingCard
+        title="Shop page & policies"
+        description="Wording your theme shows on the shop and product pages. Leave blank to use a neutral default — your theme won't make promises for you."
+        onSave={handleShopCopySave}
+        isPending={shopCopyPending}
+        saved={shopCopySaved}
+      >
+        <Field label="Shop page heading" value={shopTitle} onChange={setShopTitle}
+          placeholder="Your theme's default (e.g. “Shop”)" />
+        <Field label="Shop page intro" value={shopSubtitle} onChange={setShopSubtitle}
+          placeholder="e.g. Handloom cotton, cut and stitched in Kathmandu."
+          hint="Blank shows the number of products." />
+        <Field label="Delivery" value={deliveryNote} onChange={setDeliveryNote}
+          placeholder="e.g. Kathmandu Valley in 2–3 days. Nationwide on request."
+          hint="Shown on every product page. Blank: “Delivery time and charge are confirmed with you after you order.”" />
+        <Field label="Returns" value={returnsNote} onChange={setReturnsNote}
+          placeholder="e.g. 7-day returns on unworn items."
+          hint="Shown by themes that have a returns box. Blank: “Ask us about returns and exchanges before you order.”" />
       </SettingCard>
 
       {/* Branding & SEO */}

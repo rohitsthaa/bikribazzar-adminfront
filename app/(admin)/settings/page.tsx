@@ -33,6 +33,10 @@ export default async function SettingsPage() {
         initialFontFamily={settings.font_family ?? ''}
         initialLogoUrl={settings.logo_url ?? ''}
         initialOgImage={settings.og_image ?? ''}
+        initialShopTitle={settings.shop_title ?? ''}
+        initialShopSubtitle={settings.shop_subtitle ?? ''}
+        initialDeliveryNote={settings.delivery_note ?? ''}
+        initialReturnsNote={settings.returns_note ?? ''}
       />
     </main>
   );
