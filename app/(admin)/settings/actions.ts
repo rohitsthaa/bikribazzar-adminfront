@@ -44,6 +44,22 @@ export async function saveContactInfo(phone: string, instagram: string, email: s
   await revalidateStorefront();
 }
 
+// Store-specific wording that templates used to hardcode (e.g. "Kathmandu Valley in 2–3 days",
+// "7-day return") — read by the storefront's lib/shop-context.ts. Blank = neutral default.
+export async function saveShopCopy(data: {
+  shopTitle: string; shopSubtitle: string; deliveryNote: string; returnsNote: string;
+}) {
+  await assertCanSettings();
+  await Promise.all([
+    updateSetting('shop_title', data.shopTitle.trim()),
+    updateSetting('shop_subtitle', data.shopSubtitle.trim()),
+    updateSetting('delivery_note', data.deliveryNote.trim()),
+    updateSetting('returns_note', data.returnsNote.trim()),
+  ]);
+  revalidatePath('/settings');
+  await revalidateStorefront();
+}
+
 export async function saveCurrency(symbol: string) {
   await assertCanSettings();
   await updateSetting('currency_symbol', symbol.trim() || 'NPR');
