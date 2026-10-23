@@ -3,11 +3,13 @@ import { revalidatePath } from 'next/cache';
 import { getStore, updateStore, updateSetting } from '@/lib/api';
 import { isFontFamilyName } from '@/lib/fonts';
 import { getAdmin, can } from '@/lib/auth';
+import { assertFeatureOn } from '@/lib/features';
 import { currentStoreId } from '@/lib/store-context';
 
 async function assertCanSettings() {
   const admin = await getAdmin();
   if (!can(admin?.role, 'settings')) throw new Error('Not allowed.');
+  await assertFeatureOn('design');
 }
 
 /**

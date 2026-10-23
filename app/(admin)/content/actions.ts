@@ -2,10 +2,12 @@
 import { revalidatePath } from 'next/cache';
 import { updateSetting, revalidateStorefront } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
+import { assertFeatureOn } from '@/lib/features';
 
 async function assertCanSettings() {
   const me = await getAdmin();
   if (!can(me?.role, 'settings')) throw new Error('Forbidden');
+  await assertFeatureOn('content');
 }
 
 export async function saveAboutContent(title: string, body: string): Promise<{ error?: string }> {

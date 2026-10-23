@@ -66,6 +66,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/dashboard');
   }
 
+  // Same for an area switched off in Platform → Settings → Feature availability: the sidebar
+  // hides it, and typing the URL lands on the dashboard instead of a working editor.
+  // Route slugs are the feature keys (see FeaturePolicy.Keys in the API).
+  if (!isPlatformRoute && firstSegment && (features as Record<string, boolean>)[firstSegment] === false) {
+    redirect('/dashboard');
+  }
+
   return (
     <div className="flex min-h-screen bg-stone-50">
       <Sidebar
