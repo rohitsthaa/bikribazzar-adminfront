@@ -18,23 +18,6 @@ const TAGLINES = [
   'Live in minutes, not months',
 ];
 
-// ─── Templates shown in the picker ────────────────────────────────────────
-// Built-in fallback, used until the real catalog (name, tagline, palette, optional
-// preview photo — same data the marketing site's template showcase reads from
-// /templates) loads, or if that request fails. Keeps signup working either way.
-const FALLBACK_TEMPLATES: SignupTemplate[] = [
-  { id: 'aurora',   name: 'Aurora',   tagline: 'Modern · Minimal · Clean',        palette: ['#6d28d9'], paletteLabels: [] },
-  { id: 'bloom',    name: 'Bloom',    tagline: 'Botanical · Warm · Serif',         palette: ['#5a7d5a'], paletteLabels: [] },
-  { id: 'coastal',  name: 'Coastal',  tagline: 'Ocean · Bold · Modern',            palette: ['#2d7d9a'], paletteLabels: [] },
-  { id: 'neon',     name: 'Neon',     tagline: 'Dark · Electric · Bold',           palette: ['#00e5ff'], paletteLabels: [] },
-  { id: 'bubbly',   name: 'Bubbly',   tagline: 'Playful · Colourful · Fun',        palette: ['#ff4d6d'], paletteLabels: [] },
-  { id: 'folio',    name: 'Folio',    tagline: 'Editorial · Minimal · Portfolio',  palette: ['#e05c2a'], paletteLabels: [] },
-  { id: 'profile',  name: 'Profile',  tagline: 'Professional · Trust · Business',  palette: ['#c9a227'], paletteLabels: [] },
-  { id: 'artisan',  name: 'Artisan',  tagline: 'Handicraft · Golden · Warm',       palette: ['#b5651d'], paletteLabels: [] },
-  { id: 'capsule',  name: 'Capsule',  tagline: 'Fashion · Y2K · Feminine',         palette: ['#c94070'], paletteLabels: [] },
-  { id: 'soulthread', name: 'Soul Thread', tagline: 'Warm · Artisan · Earthy',     palette: ['#c96a3a'], paletteLabels: [] },
-];
-
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function slugify(name: string): string {
@@ -109,7 +92,11 @@ export default function SignupPage() {
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle');
   const [slugError, setSlugError] = useState('');
   const [templateId, setTemplateId] = useState('aurora');
-  const [templates, setTemplates] = useState<SignupTemplate[]>(FALLBACK_TEMPLATES);
+  // The catalog comes from the API (switched-on public templates). There's no built-in copy
+  // any more — it went stale every time a template was added. If it can't load, signup still
+  // works: the store starts on the default template and the owner picks one later in Design.
+  const [templates, setTemplates] = useState<SignupTemplate[]>([]);
+  const [templatesState, setTemplatesState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [poppedId, setPoppedId] = useState<string | null>(null);
 
   // Fun bits: cycling tagline + confetti bursts (slug win, final success)
@@ -124,13 +111,15 @@ export default function SignupPage() {
   const [phone, setPhone] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // ── Load the real template catalog (name, tagline, palette, preview photo) ──
-  // Starts from FALLBACK_TEMPLATES so the picker is never empty; swaps in the
-  // real data once it arrives, or silently keeps the fallback if the API is down.
+  // ── Load the template catalog (name, tagline, palette, preview photo) ──
   useEffect(() => {
     let cancelled = false;
     getSignupTemplatesAction().then((data) => {
-      if (!cancelled && data) setTemplates(data);
+      if (cancelled) return;
+      if (!data) { setTemplatesState('failed'); setTemplateId(''); return; }
+      setTemplates(data);
+      setTemplatesState('ready');
+      setTemplateId((cur) => (data.some((t) => t.id === cur) ? cur : data[0].id));
     });
     return () => { cancelled = true; };
   }, []);
@@ -233,7 +222,7 @@ export default function SignupPage() {
   }
 
   // ── Template colour pill ─────────────────────────────────────────────────
-  const selectedTemplate = templates.find((t) => t.id === templateId) ?? templates[0];
+  const selectedTemplate: SignupTemplate | undefined = templates.find((t) => t.id === templateId) ?? templates[0];
 
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 py-10">
@@ -302,7 +291,22 @@ export default function SignupPage() {
                   Choose a template<span className="text-red-500 ml-0.5">*</span>
                 </label>
                 <p className="hidden md:block text-xs text-stone-400 -mt-1 mb-2">Watch it come to life in the preview →</p>
+                {templatesState === 'failed' && (
+                  <p className="text-xs text-stone-500 bg-stone-100 rounded-xl px-3.5 py-2.5">
+                    Templates couldn&apos;t load right now. We&apos;ll start your store on our default template —
+                    you can switch any time from Design in your dashboard.
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {templatesState === 'loading' && Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-stone-200 overflow-hidden animate-pulse" aria-hidden>
+                      <div className="h-[84px] bg-stone-100" />
+                      <div className="p-2.5 space-y-1.5 bg-white">
+                        <div className="h-2.5 w-16 rounded bg-stone-200" />
+                        <div className="h-2 w-24 rounded bg-stone-100" />
+                      </div>
+                    </div>
+                  ))}
                   {templates.map((t) => (
                     <button
                       key={t.id} type="button"
@@ -374,12 +378,12 @@ export default function SignupPage() {
               </div>
 
               <div className="flex items-center gap-2 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-600">
-                <div className="w-4 h-2 rounded-sm shrink-0" style={{ background: selectedTemplate.palette[0] }} />
+                <div className="w-4 h-2 rounded-sm shrink-0" style={{ background: selectedTemplate?.palette[0] ?? '#a8a29e' }} />
                 <span className="font-medium">{storeName}</span>
                 <span className="text-stone-400 mx-1">·</span>
                 <span className="text-stone-400">{slug}.{PLATFORM_DOMAIN}</span>
                 <span className="text-stone-400 mx-1">·</span>
-                <span className="text-stone-500">{selectedTemplate.name}</span>
+                <span className="text-stone-500">{selectedTemplate?.name ?? 'Default template'}</span>
               </div>
 
               <Input

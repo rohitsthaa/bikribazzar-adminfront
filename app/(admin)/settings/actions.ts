@@ -68,13 +68,12 @@ export async function saveCurrency(symbol: string) {
 }
 
 export async function saveBranding(data: {
-  tagline: string; metaDescription: string; fontFamily: string; logoUrl: string; ogImage: string;
+  tagline: string; metaDescription: string; logoUrl: string; ogImage: string;
 }) {
   await assertCanSettings();
   await Promise.all([
     updateSetting('tagline', data.tagline.trim()),
     updateSetting('meta_description', data.metaDescription.trim()),
-    updateSetting('font_family', data.fontFamily.trim()),
     updateSetting('logo_url', data.logoUrl.trim()),
     updateSetting('og_image', data.ogImage.trim()),
   ]);

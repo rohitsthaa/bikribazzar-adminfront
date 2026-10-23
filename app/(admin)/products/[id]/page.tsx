@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import ProductForm from '@/components/ProductForm';
-import { getProduct, getSettings, getCategories, getInventoryLog, getStore } from '@/lib/api';
+import { getProduct, getSettings, getCategories, getInventoryLog, getStore, getStoreTemplate } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
 import { saveProduct } from '../actions';
@@ -20,6 +20,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   if (!product) notFound();
 
   const currency = settings.currency_symbol || 'NPR';
+  const template = await getStoreTemplate(store?.templateId);
   const canSetPrice = can((await getAdmin())?.role, 'setPrice');
 
   return (
@@ -30,7 +31,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         categories={categories.length > 0 ? categories : undefined}
         canSetPrice={canSetPrice}
         inventoryPanel={<InventoryPanel product={product} logs={logs} currency={currency} />}
-        templateId={store?.templateId}
+        cardAspect={template?.cardAspect}
       />
     </main>
   );

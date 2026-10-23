@@ -9,8 +9,102 @@ import {
   revokeTemplateAccessAction,
   setTemplateAccessAction,
   setShowOnMarketingAction,
+  setTemplateEnabledAction,
   updateTemplateDetailsAction,
 } from './actions';
+
+// ── On/off switch (offered in pickers, signup and marketing) ────────────────────
+// A template the storefront deploys for the first time arrives switched off. Switching one
+// off never affects stores already on it — it only stops new stores from choosing it.
+
+function EnabledToggle({
+  template,
+  onChange,
+}: {
+  template: TemplateMeta;
+  onChange: (id: string, patch: Partial<TemplateMeta>) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const on = template.enabled !== false;
+  const available = template.available !== false;
+
+  function toggle() {
+    setBusy(true);
+    setError(null);
+    startTransition(async () => {
+      const result = await setTemplateEnabledAction(template.id, !on);
+      if ('error' in result) setError(result.error);
+      else onChange(template.id, { enabled: !on });
+      setBusy(false);
+    });
+  }
+
+  if (!available) {
+    return (
+      <span
+        title="The deployed storefront no longer has this template. Stores still on it show a 'back soon' page."
+        className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-600"
+      >
+        Not in storefront
+      </span>
+    );
+  }
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      title={error ?? (on
+        ? 'Offered to stores, signup and the marketing site — click to switch off (stores already on it keep it)'
+        : 'Switched off — not offered anywhere. Click to switch on')}
+      className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-50 ${
+        error ? 'bg-red-50 text-red-600' :
+        on ? 'bg-emerald-50 text-emerald-700 hover:bg-stone-100 hover:text-stone-500'
+           : 'bg-stone-100 text-stone-500 hover:bg-emerald-50 hover:text-emerald-700'
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${on ? 'bg-emerald-500' : 'bg-stone-300'}`} />
+      {busy ? '…' : on ? 'On' : 'Off'}
+    </button>
+  );
+}
+
+// ── Code-owned fields (read-only) ───────────────────────────────────────────────
+
+function firstFamily(stack: string | undefined) {
+  return (stack ?? '').split(',')[0]?.trim().replace(/^['"]|['"]$/g, '') || '—';
+}
+
+function ManifestFacts({ template }: { template: TemplateMeta }) {
+  const synced = template.syncedAt ? new Date(template.syncedAt).toLocaleString() : null;
+  return (
+    <div className="rounded-lg border border-stone-200 bg-white px-3 py-2.5 space-y-2">
+      <p className="text-[10px] text-stone-400">
+        From the storefront&apos;s code (<code>templates/{template.id}/manifest.ts</code>) — change these there.
+        {synced ? ` Last published ${synced}.` : ' Not published by a storefront deploy yet.'}
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        {template.palette.map((hex, i) => (
+          <span key={i} className="flex items-center gap-1.5 text-[11px] text-stone-600">
+            <span className="w-4 h-4 rounded-full border border-stone-200" style={{ backgroundColor: hex }} />
+            {template.paletteLabels[i] ?? hex}
+          </span>
+        ))}
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+        <dt className="text-stone-400">Fonts</dt>
+        <dd className="text-stone-700">{firstFamily(template.fonts?.display)} / {firstFamily(template.fonts?.body)}</dd>
+        <dt className="text-stone-400">Card image</dt>
+        <dd className="text-stone-700">{template.cardAspect ?? '—'}</dd>
+        <dt className="text-stone-400">Home sections</dt>
+        <dd className="text-stone-700">{(template.homeSections ?? []).map((h) => h.label).join(' · ') || '—'}</dd>
+      </dl>
+    </div>
+  );
+}
+
+const SITE_TYPES = ['store', 'portfolio', 'business'] as const;
 
 // ── Marketing-visibility switch ─────────────────────────────────────────────────
 
@@ -116,24 +210,20 @@ function TemplateEditForm({
   const [imageUrl, setImageUrl] = useState(template.imageUrl ?? '');
   const [sortOrder, setSortOrder] = useState(template.sortOrder ?? 0);
   const [isPremium, setIsPremium] = useState(template.isPremium ?? false);
-  const [palette, setPalette] = useState<string[]>(template.palette);
-  const [paletteLabels, setPaletteLabels] = useState<string[]>(template.paletteLabels);
+  const [siteTypes, setSiteTypes] = useState<string[]>(template.siteTypes ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  function setSwatch(i: number, hex: string) {
-    setPalette((p) => p.map((c, idx) => (idx === i ? hex : c)));
-  }
-  function setSwatchLabel(i: number, label: string) {
-    setPaletteLabels((p) => p.map((l, idx) => (idx === i ? label : l)));
+  function toggleSiteType(type: string) {
+    setSiteTypes((cur) => (cur.includes(type) ? cur.filter((t) => t !== type) : [...cur, type]));
   }
 
   function save() {
     setSaving(true);
     setError(null);
     const patch: TemplateUpdateInput = {
-      name, tagline, description, demoUrl, imageUrl, sortOrder, isPremium, palette, paletteLabels,
+      name, tagline, description, demoUrl, imageUrl, sortOrder, isPremium, siteTypes,
     };
     startTransition(async () => {
       const result = await updateTemplateDetailsAction(template.id, patch);
@@ -179,28 +269,7 @@ function TemplateEditForm({
         <ImageUploader value={imageUrl} onChange={setImageUrl} />
       </div>
 
-      <div>
-        <p className={labelCls}>Palette</p>
-        <div className="mt-1 flex flex-wrap gap-3">
-          {palette.map((hex, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <input
-                type="color"
-                value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000'}
-                onChange={(e) => setSwatch(i, e.target.value)}
-                className="w-7 h-7 rounded border border-stone-200 cursor-pointer p-0"
-                title={hex}
-              />
-              <input
-                className="w-24 text-[11px] border border-stone-200 rounded-lg px-1.5 py-1"
-                value={paletteLabels[i] ?? ''}
-                onChange={(e) => setSwatchLabel(i, e.target.value)}
-                placeholder="Label"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <ManifestFacts template={template} />
 
       <div className="flex items-center gap-5">
         <label className="text-[11px] text-stone-500 flex items-center gap-1.5">
@@ -216,6 +285,15 @@ function TemplateEditForm({
           <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} />
           Premium
         </label>
+        <span className="text-[11px] text-stone-500 flex items-center gap-2">
+          Suits
+          {SITE_TYPES.map((type) => (
+            <label key={type} className="flex items-center gap-1">
+              <input type="checkbox" checked={siteTypes.includes(type)} onChange={() => toggleSiteType(type)} />
+              {type}
+            </label>
+          ))}
+        </span>
       </div>
 
       {error && <p className="text-[11px] text-red-600">{error}</p>}
@@ -351,6 +429,7 @@ function PrivateTemplateCard({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <EnabledToggle template={template} onChange={onOverride} />
           <MarketingToggle templateId={template.id} visible={template.showOnMarketing ?? true} onChange={onOverride} />
           <button
             onClick={() => setEditing((e) => !e)}
@@ -442,6 +521,7 @@ function PublicTemplateCard({
           <p className="text-xs text-stone-400">{template.tagline}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <EnabledToggle template={template} onChange={onOverride} />
           <MarketingToggle templateId={template.id} visible={template.showOnMarketing ?? true} onChange={onOverride} />
           <button
             onClick={() => setEditing((e) => !e)}
@@ -489,6 +569,8 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
     .map((t) => ({ ...t, ...overrides[t.id] }))
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
+  const switchedOff = templates.filter((t) => t.available !== false && t.enabled === false);
+  const gone = templates.filter((t) => t.available === false);
   const privateTemplates = templates.filter((t) => (t.access ?? 'public') === 'private');
   const publicTemplates  = templates.filter((t) => (t.access ?? 'public') !== 'private');
   const allPublicIds = publicTemplates.map((t) => t.id);
@@ -502,6 +584,23 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
 
   return (
     <div className="space-y-10">
+      {(switchedOff.length > 0 || gone.length > 0) && (
+        <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-xs text-stone-600 space-y-1">
+          {switchedOff.length > 0 && (
+            <p>
+              <strong className="font-medium">Switched off:</strong> {switchedOff.map((t) => t.name).join(', ')}.
+              New templates from a storefront deploy arrive switched off — add a tagline, description and
+              preview image, then switch them on.
+            </p>
+          )}
+          {gone.length > 0 && (
+            <p>
+              <strong className="font-medium text-red-600">Not in the storefront:</strong> {gone.map((t) => t.name).join(', ')}.
+              The latest storefront deploy doesn&apos;t include them; stores still on them show a &ldquo;back soon&rdquo; page.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Exclusive ── */}
       <section className="space-y-4">
@@ -541,9 +640,10 @@ export default function TemplatesClient({ allTemplates, stores }: Props) {
           <h2 className="text-sm font-semibold text-stone-900">Public templates</h2>
           <p className="text-xs text-stone-400 mt-0.5">
             Available to all stores by default. The blue toggle controls whether a template
-            appears in the showcase on the marketing site (bikribazaar.com); "Edit details" edits
-            everything else — name, tagline, description, palette, demo link, sort order,
-            premium flag — directly in the database, no deploy required.
+            appears in the showcase on the marketing site (bikribazaar.com); the green one switches
+            it on or off everywhere (stores already on it keep it). &ldquo;Edit details&rdquo; edits name,
+            tagline, description, image, demo link, sort order, premium and site types. Colours,
+            fonts, card shape and home sections come from the storefront code and show read-only.
           </p>
         </div>
         <div className="space-y-2">

@@ -1,6 +1,6 @@
 import ProductForm from '@/components/ProductForm';
 import { saveProduct } from '../actions';
-import { getCategories, getStore } from '@/lib/api';
+import { getCategories, getStore, getStoreTemplate } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
 
@@ -10,6 +10,7 @@ export default async function NewProductPage() {
     getCategories().catch(() => []),
     getStore(storeId).catch(() => null),
   ]);
+  const template = await getStoreTemplate(store?.templateId);
   const canSetPrice = can((await getAdmin())?.role, 'setPrice');
 
   return (
@@ -18,7 +19,7 @@ export default async function NewProductPage() {
         action={saveProduct}
         categories={categories.length > 0 ? categories : undefined}
         canSetPrice={canSetPrice}
-        templateId={store?.templateId}
+        cardAspect={template?.cardAspect}
       />
     </main>
   );
