@@ -46,8 +46,26 @@ export async function setShowOnMarketingAction(
 }
 
 /**
- * Update any subset of a template's catalog fields — name, tagline, description, palette,
- * demo URL, sort order, etc. There's no hardcoded template list on the backend anymore, so
+ * Switch a template on or off for pickers, signup and the marketing site. Stores already on
+ * it are unaffected. The API refuses to switch on a template the storefront doesn't have.
+ */
+export async function setTemplateEnabledAction(
+  id: string,
+  enabled: boolean
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await updateTemplate(id, { enabled });
+    revalidatePath('/platform/templates');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to switch template' };
+  }
+}
+
+/**
+ * Update any subset of a template's presentation fields — name, tagline, description, image,
+ * demo URL, sort order, premium, site types. (Palette etc. come from the storefront code.) There's no hardcoded template list on the backend anymore, so
  * this is the only way to change any of that content (previously only access/showOnMarketing
  * were DB-editable; everything else required a code deploy).
  */

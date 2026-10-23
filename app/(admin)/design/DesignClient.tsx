@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { setTemplateAction, saveSectionsAction } from './actions';
-import { SECTION_REGISTRY, parseSections, type HomeSection } from '@/lib/home-sections';
+import { parseSections, sectionDefs, type HomeSection } from '@/lib/home-sections';
 import type { TemplateMeta } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
@@ -304,21 +304,23 @@ export default function DesignClient({ currentTemplateId, rawSections, templates
   const [isPending, startTransition] = useTransition();
 
   // Sections state — derived from current saved template
-  const [sections, setSections] = useState<HomeSection[]>(() => parseSections(rawSections, currentTemplateId));
+  const templateById = (id: string) => templates.find((t) => t.id === id);
+  const [sections, setSections] = useState<HomeSection[]>(() => parseSections(rawSections, templateById(currentTemplateId)));
   const [sectionsSaved, setSectionsSaved] = useState(false);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
   const [isPendingSections, startSections] = useTransition();
 
   const isDirty = selected !== saved;
-  const sectionsDef = SECTION_REGISTRY[selected] ?? SECTION_REGISTRY.soulthread;
+  // Section lists come from the API (published by the storefront from each template's manifest).
+  const sectionsDef = sectionDefs(templateById(selected));
 
   function handleTemplateSelect(templateId: string) {
     setSelected(templateId);
     // Reset sections to the new template's defaults when template changes
     if (templateId !== saved) {
-      setSections(parseSections('', templateId));
+      setSections(parseSections('', templateById(templateId)));
     } else {
-      setSections(parseSections(rawSections, templateId));
+      setSections(parseSections(rawSections, templateById(templateId)));
     }
     setSectionsSaved(false);
   }
@@ -393,6 +395,11 @@ export default function DesignClient({ currentTemplateId, rawSections, templates
                       <span key={i} className="w-6 h-6 rounded-full border border-white/40 flex-shrink-0" style={{ backgroundColor: c }} />
                     ))}
                   </div>
+                )}
+                {isActive && t.enabled === false && (
+                  <span className="absolute top-2 left-2 bg-stone-700/80 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                    No longer offered — keeps working for you
+                  </span>
                 )}
                 {isActive && (
                   <span className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
@@ -484,6 +491,9 @@ export default function DesignClient({ currentTemplateId, rawSections, templates
           <p className="text-xs text-stone-400 mt-0.5">Toggle sections on or off, and drag to reorder how they appear.</p>
         </div>
 
+        {sectionsDef.length === 0 && (
+          <p className="text-sm text-stone-400">This template&apos;s sections couldn&apos;t be loaded — try again in a moment.</p>
+        )}
         <div className="space-y-2">
           {sections.map((section, idx) => {
             const def = sectionsDef.find((d) => d.id === section.id);

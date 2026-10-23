@@ -15,7 +15,6 @@ export default function SettingsClient({
   initialCurrency,
   initialTagline,
   initialMetaDescription,
-  initialFontFamily,
   initialLogoUrl,
   initialOgImage,
   initialShopTitle,
@@ -31,7 +30,6 @@ export default function SettingsClient({
   initialCurrency: string;
   initialTagline: string;
   initialMetaDescription: string;
-  initialFontFamily: string;
   initialLogoUrl: string;
   initialOgImage: string;
   initialShopTitle: string;
@@ -71,7 +69,6 @@ export default function SettingsClient({
   // Branding & SEO
   const [tagline, setTagline] = useState(initialTagline);
   const [metaDescription, setMetaDescription] = useState(initialMetaDescription);
-  const [fontFamily, setFontFamily] = useState(initialFontFamily);
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [ogImage, setOgImage] = useState(initialOgImage);
   const [brandingSaved, setBrandingSaved] = useState(false);
@@ -79,7 +76,7 @@ export default function SettingsClient({
 
   function handleBrandingSave() {
     startBrandingTransition(async () => {
-      await saveBranding({ tagline, metaDescription, fontFamily, logoUrl, ogImage });
+      await saveBranding({ tagline, metaDescription, logoUrl, ogImage });
       setBrandingSaved(true);
       setTimeout(() => setBrandingSaved(false), 2000);
     });
@@ -176,7 +173,7 @@ export default function SettingsClient({
       {/* Branding & SEO */}
       <SettingCard
         title="Branding & SEO"
-        description="Your store's tagline, search/social description, logo, and font. Shown in the browser tab, Google results, and social shares."
+        description="Your store's tagline, search/social description and logo. Shown in the browser tab, Google results, and social shares. Fonts are on the Design page."
         onSave={handleBrandingSave}
         isPending={brandingPending}
         saved={brandingSaved}
@@ -194,13 +191,6 @@ export default function SettingsClient({
           onChange={setMetaDescription}
           placeholder="One or two sentences describing your store."
           hint="Used by Google and social previews. Falls back to your tagline."
-        />
-        <Field
-          label="Font (Google Fonts family name)"
-          value={fontFamily}
-          onChange={setFontFamily}
-          placeholder="e.g. Poppins, Playfair Display"
-          hint="Optional. Must match a Google Fonts family name exactly."
         />
         <div>
           <label className="block text-xs text-gray-500 mb-1.5 font-medium">Logo / favicon</label>

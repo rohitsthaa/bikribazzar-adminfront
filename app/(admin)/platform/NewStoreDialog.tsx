@@ -12,6 +12,9 @@ const HIDDEN_SITE_TYPES = ['portfolio', 'business'];
 export default function NewStoreDialog({ allTemplates }: { allTemplates: TemplateMeta[] }) {
   const templates = allTemplates
     .filter((t) => !t.siteTypes?.every((st) => HIDDEN_SITE_TYPES.includes(st)))
+    // Switched-off templates stay listed (that's how you try a new one on a demo store before
+    // switching it on); ones the storefront no longer has can't be used at all.
+    .filter((t) => t.available !== false)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
@@ -108,6 +111,7 @@ export default function NewStoreDialog({ allTemplates }: { allTemplates: Templat
                       {t.name}
                       {t.isPremium ? ' (Premium)' : ''}
                       {t.access === 'private' ? ' (Private)' : ''}
+                      {t.enabled === false ? ' (Switched off)' : ''}
                     </option>
                   ))}
                 </select>

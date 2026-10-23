@@ -25,7 +25,7 @@ type Props = {
   // Active store template — threaded down to every image uploader (primary,
   // gallery, variant photos) so the crop tool's "how this will look on your
   // storefront" preview uses this store's real card aspect ratio.
-  templateId?: string;
+  cardAspect?: string;
 };
 
 // Shared class for numeric inputs — hides the native up/down spinner so a
@@ -116,7 +116,7 @@ function SectionHeading({ icon, title, subtitle }: { icon: string; title: string
 // crop tool was built to prevent for the primary image. Still small at this
 // size, though, so a filled thumbnail opens a larger preview on click rather
 // than jumping straight to the file picker — Replace/Crop/Remove live there.
-function VariantImageCell({ value, onChange, templateId }: { value: string; onChange: (url: string) => void; templateId?: string }) {
+function VariantImageCell({ value, onChange, cardAspect }: { value: string; onChange: (url: string) => void; cardAspect?: string }) {
   const [uploading, setUploading] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -242,7 +242,7 @@ function VariantImageCell({ value, onChange, templateId }: { value: string; onCh
       {cropSrc && (
         <ImageCropModal
           imageSrc={cropSrc}
-          templateId={templateId}
+          cardAspect={cardAspect}
           mode="variant"
           onCancel={closeCrop}
           onSave={handleCropSave}
@@ -262,7 +262,7 @@ function Submit({ isNew, onClick }: { isNew: boolean; onClick?: (e: MouseEvent<H
   );
 }
 
-export default function ProductForm({ product, action, categories = [], canSetPrice = true, inventoryPanel, templateId }: Props) {
+export default function ProductForm({ product, action, categories = [], canSetPrice = true, inventoryPanel, cardAspect }: Props) {
   const [state, formAction] = useActionState(action, null);
   const [image, setImage] = useState(product?.image ?? '');
   const [galleryImages, setGalleryImages] = useState<string[]>(product?.images ?? []);
@@ -474,7 +474,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             <h2 className="text-[14.5px] font-semibold text-stone-900">Primary image</h2>
             <p className="text-xs text-stone-400 mt-0.5 mb-3.5">Shown on product cards, emails, and SEO.</p>
             <div className="max-w-[240px] lg:max-w-none">
-              <ImageUploader value={image} onChange={setImage} enableCrop templateId={templateId} />
+              <ImageUploader value={image} onChange={setImage} enableCrop cardAspect={cardAspect} />
             </div>
             <input type="hidden" name="image" value={image} />
           </div>
@@ -653,7 +653,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               setGalleryImages(next);
                             }}
                             enableCrop
-                            templateId={templateId}
+                            cardAspect={cardAspect}
                           />
                         </div>
                         <button
@@ -1011,7 +1011,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                       return (
                         <div key={idx} className="rounded-xl border border-gray-200 hover:border-gray-300 transition-colors p-3 space-y-3">
                           <div className="grid grid-cols-2 sm:grid-cols-[56px_1fr_110px_100px_120px_28px] gap-2 sm:items-center">
-                            <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} templateId={templateId} />
+                            <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} cardAspect={cardAspect} />
                             <input
                               value={v.label}
                               onChange={(e) => updateVariant(idx, { label: e.target.value })}

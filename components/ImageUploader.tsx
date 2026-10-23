@@ -14,10 +14,10 @@ type Props = {
   // Active store template — passed through to the crop modal so its "how
   // this will look on your storefront" previews use the real card aspect
   // ratio for this store, not a generic guess. Only relevant when enableCrop.
-  templateId?: string;
+  cardAspect?: string;
 };
 
-export default function ImageUploader({ value, onChange, enableCrop = false, templateId }: Props) {
+export default function ImageUploader({ value, onChange, enableCrop = false, cardAspect }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -248,7 +248,7 @@ export default function ImageUploader({ value, onChange, enableCrop = false, tem
       {cropSrc && (
         <ImageCropModal
           imageSrc={cropSrc}
-          templateId={templateId}
+          cardAspect={cardAspect}
           onCancel={closeCrop}
           onSave={handleCropSave}
         />

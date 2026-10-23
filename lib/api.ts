@@ -829,10 +829,16 @@ export type Review = {
 
 // ---- Templates ----
 
+export type TemplateHomeSection = { id: string; label: string; description: string };
+
 /**
- * A template is fully DB-driven now (template_configs table) — every field here is
- * admin-editable via PATCH /templates/:id, not just access/showOnMarketing. There is no
- * hardcoded catalog on the backend anymore.
+ * A storefront template (API table template_configs). Two kinds of field:
+ * - From the storefront's code (templates/<id>/manifest.ts, published to the API on every
+ *   storefront deploy): palette + paletteLabels, fonts, cardAspect, homeSections. Read-only
+ *   here — change them in the storefront repo.
+ * - Presentation, edited in Platform → Templates (PATCH /templates/:id): name, tagline,
+ *   description, image, demo link, premium, access, sort order, marketing, site types, and
+ *   `enabled` (offered in pickers/signup/marketing).
  */
 export type TemplateMeta = {
   id: string;
@@ -852,15 +858,28 @@ export type TemplateMeta = {
   imageUrl?: string;
   /** Display order in template pickers/listings (ascending). */
   sortOrder?: number;
+  /** Offered in pickers, signup and marketing. New templates arrive switched off. */
+  enabled: boolean;
+  /** The deployed storefront has this template (false = removed from the storefront code). */
+  available: boolean;
+  /** Shop-grid card image ratio, e.g. "4/5". */
+  cardAspect: string;
+  /** Default font stacks; a store can override them (store.theme.fonts). */
+  fonts: { display: string; body: string };
+  homeSections: TemplateHomeSection[];
+  /** Old section id → new id, so a store's saved order survives a rename. */
+  homeSectionRenames: Record<string, string>;
+  /** Which storefront build last published this template ('' = never). */
+  manifestVersion?: string;
+  syncedAt?: string | null;
 };
 
 export type TemplateUpdateInput = Partial<{
   name: string;
   tagline: string;
   description: string;
-  palette: string[];
-  paletteLabels: string[];
   siteTypes: string[];
+  enabled: boolean;
   access: 'public' | 'private';
   isPremium: boolean;
   showOnMarketing: boolean;
@@ -869,8 +888,18 @@ export type TemplateUpdateInput = Partial<{
   sortOrder: number;
 }>;
 
-/** Returns store-scoped templates (filtered by x-store-id). */
+/**
+ * Templates this store may pick (filtered by x-store-id): switched on and public, or granted
+ * to the store — plus the store's current template even if it has since been switched off.
+ */
 export function getTemplates() { return apiFetch<TemplateMeta[]>('/templates'); }
+
+/** The store's current template from getTemplates(), or null if the API can't be reached. */
+export async function getStoreTemplate(templateId: string | undefined): Promise<TemplateMeta | null> {
+  if (!templateId) return null;
+  const list = await getTemplates().catch(() => [] as TemplateMeta[]);
+  return list.find((t) => t.id === templateId) ?? null;
+}
 
 /** Returns ALL templates including private ones. Internal-token only. Super-admin use. */
 export function getAllTemplates() { return apiFetch<TemplateMeta[]>('/templates/all'); }

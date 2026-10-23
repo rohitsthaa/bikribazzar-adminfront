@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { getCroppedImageBlob, type CropPixels } from '@/lib/cropImage';
-import { cardAspectFor, DETAIL_ASPECT } from '@/lib/template-aspects';
+
+// The product page photo is 4:5 on every template. The shop-grid card ratio varies per
+// template; it comes from the template's manifest via the API (TemplateMeta.cardAspect).
+const DETAIL_ASPECT = '4/5';
 
 // Fixed at 4:5 — matches the storefront's product-detail photo on every
-// template, and most templates' shop-grid card too (see lib/template-aspects.ts).
+// template, and most templates' shop-grid card too (TemplateMeta.cardAspect).
 // Not user-adjustable: letting merchants pick an arbitrary aspect would bring
 // back the original problem (guessing what actually shows), just one step
 // removed.
@@ -17,7 +20,8 @@ type Props = {
   // an already-uploaded image, fetched by the caller) — must not be a raw
   // cross-origin URL or the canvas export below will be tainted and throw.
   imageSrc: string;
-  templateId?: string;
+  /** Shop-grid card ratio for the store's template, e.g. "4/5" (TemplateMeta.cardAspect). */
+  cardAspect?: string;
   // 'product' (primary/gallery images): previews show the shop-grid card
   // and the product page, since that's everywhere those images appear.
   // 'variant': variant photos never show on the card — on the storefront
@@ -29,7 +33,7 @@ type Props = {
   onSave: (blob: Blob) => void;
 };
 
-export default function ImageCropModal({ imageSrc, templateId, mode = 'product', onCancel, onSave }: Props) {
+export default function ImageCropModal({ imageSrc, cardAspect = DETAIL_ASPECT, mode = 'product', onCancel, onSave }: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [areaPixels, setAreaPixels] = useState<CropPixels | null>(null);
@@ -75,8 +79,6 @@ export default function ImageCropModal({ imageSrc, templateId, mode = 'product',
       setSaving(false);
     }
   }
-
-  const cardAspect = cardAspectFor(templateId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

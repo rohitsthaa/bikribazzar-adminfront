@@ -91,8 +91,8 @@ export type SignupTemplate = {
  * /templates/marketing — that one is filtered down to just the homepage showcase
  * subset (showOnMarketing flag), but signup should offer every publicly-available
  * template. With no x-store-id header the API treats this as an unscoped request
- * and returns all non-private templates. Fails to `null` if the API is unreachable
- * so the client can fall back to its built-in template list instead of breaking signup.
+ * and returns the switched-on, non-private templates. Fails to `null` if the API is
+ * unreachable; the page then signs up without a template id and the API picks the default.
  */
 export async function getSignupTemplatesAction(): Promise<SignupTemplate[] | null> {
   try {

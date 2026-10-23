@@ -27,8 +27,11 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
 // checkboxes, so this picker and the access-grant panel below never disagree
 // about what's actually usable. Locking a card here is just a clear UX signal —
 // PATCH /stores/:id is the real enforcement (see StoreEndpoints.cs).
+// Also locked: a template the deployed storefront no longer has, and (for unrestricted stores)
+// one that's switched off in Platform → Templates — same rules as PATCH /stores/:id.
 function isLocked(t: TemplateMeta, allowedTemplates: string[] | null): boolean {
-  if (allowedTemplates === null) return t.access === 'private';
+  if (t.available === false) return true;
+  if (allowedTemplates === null) return t.access === 'private' || t.enabled === false;
   return !allowedTemplates.includes(t.id);
 }
 
@@ -48,7 +51,9 @@ function TemplateCard({
       type="button"
       onClick={locked ? undefined : onSelect}
       disabled={locked}
-      title={locked ? 'Not granted to this store — grant access in "Template access" below to enable.' : undefined}
+      title={locked ? (template.available === false
+        ? 'Not in the deployed storefront.'
+        : 'Switched off, or not granted to this store — grant access in "Template access" below to enable.') : undefined}
       className={`text-left rounded-xl border overflow-hidden transition-all bg-white ${
         selected
           ? 'border-[#c96a3a] ring-2 ring-[#c96a3a]/30'
