@@ -1,9 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection } from '@/lib/api';
+import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection, updateStoreCourierConfig } from '@/lib/api';
 import type { FonepayTestResult } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
+import { currentStoreId } from '@/lib/store-context';
 
 /** Settings are owner-only (super + store-admin); staff are blocked. */
 async function assertCanSettings() {
@@ -124,5 +125,30 @@ export async function savePaymentGateways(data: {
   }
   revalidatePath('/settings');
   await revalidateStorefront();
+  return { ok: true };
+}
+
+/**
+ * Save NCM setup for the signed-in store. The store id always comes from the
+ * authenticated session, never from form data, so a store admin cannot target
+ * another tenant. A blank token keeps the encrypted token already on file.
+ */
+export async function saveCourierConfig(data: {
+  ncmEnabled: boolean;
+  ncmFromBranch: string;
+  ncmToken: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await assertCanSettings();
+  try {
+    const storeId = await currentStoreId();
+    await updateStoreCourierConfig(storeId, {
+      ncmEnabled: data.ncmEnabled,
+      ncmFromBranch: data.ncmFromBranch.trim(),
+      ncmToken: data.ncmToken.trim() || null,
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Could not save courier settings.' };
+  }
+  revalidatePath('/settings/courier');
   return { ok: true };
 }
