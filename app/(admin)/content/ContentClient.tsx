@@ -1,14 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import MarkdownEditor from '@/components/MarkdownEditor';
-import { saveAboutContent, saveCustomContent, savePageVisibility } from './actions';
+import { useState, useTransition } from "react";
+import CustomPageEditor from "./CustomPageEditor";
+import type { CustomPageConfig } from "@/lib/custom-page-config";
+import MarkdownEditor from "@/components/MarkdownEditor";
+import {
+  saveAboutContent,
+  saveCustomContent,
+  savePageVisibility,
+} from "./actions";
 
-const inputCls = 'w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30';
+const inputCls =
+  "w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30";
 const textareaCls = `${inputCls} resize-y min-h-[120px]`;
-const btnCls = 'px-5 py-2 rounded-lg bg-[#c96a3a] text-white text-sm font-medium hover:bg-[#b85f33] disabled:opacity-50 transition-colors';
+const btnCls =
+  "px-5 py-2 rounded-lg bg-[#c96a3a] text-white text-sm font-medium hover:bg-[#b85f33] disabled:opacity-50 transition-colors";
 
-function PageToggle({ enabled, onChange, disabled }: { enabled: boolean; onChange: (next: boolean) => void; disabled?: boolean }) {
+function PageToggle({
+  enabled,
+  onChange,
+  disabled,
+}: {
+  enabled: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
@@ -16,16 +32,28 @@ function PageToggle({ enabled, onChange, disabled }: { enabled: boolean; onChang
       aria-checked={enabled}
       disabled={disabled}
       onClick={() => onChange(!enabled)}
-      title={enabled ? 'Visible on storefront — click to hide' : 'Hidden from storefront — click to show'}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${enabled ? 'bg-[#c96a3a]' : 'bg-stone-300'}`}
+      title={
+        enabled
+          ? "Visible on storefront — click to hide"
+          : "Hidden from storefront — click to show"
+      }
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${enabled ? "bg-[#c96a3a]" : "bg-stone-300"}`}
     >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`}
+      />
     </button>
   );
 }
 
 function Section({
-  title, hint, children, enabled, onToggle, togglePending, toggleSaved,
+  title,
+  hint,
+  children,
+  enabled,
+  onToggle,
+  togglePending,
+  toggleSaved,
 }: {
   title: string;
   hint?: string;
@@ -44,9 +72,21 @@ function Section({
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-0.5">
           <span className="text-xs w-14 text-right text-stone-400">
-            {togglePending ? 'Saving…' : toggleSaved ? <span className="text-emerald-600">Saved ✓</span> : (enabled ? 'Visible' : 'Hidden')}
+            {togglePending ? (
+              "Saving…"
+            ) : toggleSaved ? (
+              <span className="text-emerald-600">Saved ✓</span>
+            ) : enabled ? (
+              "Visible"
+            ) : (
+              "Hidden"
+            )}
           </span>
-          <PageToggle enabled={enabled} onChange={onToggle} disabled={togglePending} />
+          <PageToggle
+            enabled={enabled}
+            onChange={onToggle}
+            disabled={togglePending}
+          />
         </div>
       </div>
       {children}
@@ -63,13 +103,20 @@ interface Props {
   initialCustomTitle: string;
   initialCustomBody: string;
   initialCustomEnabled: boolean;
+  initialCustomConfig: CustomPageConfig;
   initialBlogEnabled: boolean;
 }
 
 export default function ContentClient({
-  initialAboutTitle, initialAboutBody, initialAboutImage, initialAboutEnabled,
+  initialAboutTitle,
+  initialAboutBody,
+  initialAboutImage,
+  initialAboutEnabled,
   initialGalleryEnabled,
-  initialCustomTitle, initialCustomBody, initialCustomEnabled,
+  initialCustomTitle,
+  initialCustomBody,
+  initialCustomEnabled,
+  initialCustomConfig,
   initialBlogEnabled,
 }: Props) {
   // About
@@ -88,6 +135,7 @@ export default function ContentClient({
   const [galleryToggleSaved, setGalleryToggleSaved] = useState(false);
 
   // Custom
+  const [customConfig, setCustomConfig] = useState(initialCustomConfig);
   const [customTitle, setCustomTitle] = useState(initialCustomTitle);
   const [customBody, setCustomBody] = useState(initialCustomBody);
   const [customSaved, setCustomSaved] = useState(false);
@@ -103,7 +151,7 @@ export default function ContentClient({
   const [blogToggleSaved, setBlogToggleSaved] = useState(false);
 
   function toggle(
-    page: 'about' | 'gallery' | 'custom' | 'blog',
+    page: "about" | "gallery" | "custom" | "blog",
     setEnabled: (v: boolean) => void,
     startTransition: (fn: () => Promise<void> | void) => void,
     setSaved: (v: boolean) => void,
@@ -113,7 +161,10 @@ export default function ContentClient({
     setSaved(false);
     startTransition(async () => {
       const res = await savePageVisibility(page, next);
-      if (res.error) { setEnabled(!next); return; } // revert on failure
+      if (res.error) {
+        setEnabled(!next);
+        return;
+      } // revert on failure
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     });
@@ -121,24 +172,32 @@ export default function ContentClient({
 
   function handleAbout(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setAboutSaved(false); setAboutError(null);
+    setAboutSaved(false);
+    setAboutError(null);
     const fd = new FormData(e.currentTarget);
-    const body = (fd.get('aboutBody') as string) ?? aboutBody;
+    const body = (fd.get("aboutBody") as string) ?? aboutBody;
     startAbout(async () => {
       const res = await saveAboutContent(aboutTitle, body);
-      if (res.error) { setAboutError(res.error); return; }
+      if (res.error) {
+        setAboutError(res.error);
+        return;
+      }
       setAboutSaved(true);
     });
   }
 
   function handleCustom(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setCustomSaved(false); setCustomError(null);
+    setCustomSaved(false);
+    setCustomError(null);
     const fd = new FormData(e.currentTarget);
-    const body = (fd.get('customBody') as string) ?? customBody;
+    const body = (fd.get("customBody") as string) ?? customBody;
     startCustom(async () => {
-      const res = await saveCustomContent(customTitle, body);
-      if (res.error) { setCustomError(res.error); return; }
+      const res = await saveCustomContent(customTitle, body, customConfig);
+      if (res.error) {
+        setCustomError(res.error);
+        return;
+      }
       setCustomSaved(true);
     });
   }
@@ -150,21 +209,36 @@ export default function ContentClient({
         title="About page"
         hint="Shown at /about on your storefront"
         enabled={aboutEnabled}
-        onToggle={(next) => toggle('about', setAboutEnabled, startAboutToggle, setAboutToggleSaved, next)}
+        onToggle={(next) =>
+          toggle(
+            "about",
+            setAboutEnabled,
+            startAboutToggle,
+            setAboutToggleSaved,
+            next,
+          )
+        }
         togglePending={isPendingAboutToggle}
         toggleSaved={aboutToggleSaved}
       >
         <form onSubmit={handleAbout} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Page title</label>
+            <label className="block text-xs font-medium text-stone-500 mb-1.5">
+              Page title
+            </label>
             <input
-              type="text" value={aboutTitle} onChange={e => setAboutTitle(e.target.value)}
-              placeholder="Our Story" maxLength={120}
+              type="text"
+              value={aboutTitle}
+              onChange={(e) => setAboutTitle(e.target.value)}
+              placeholder="Our Story"
+              maxLength={120}
               className={inputCls}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Body text</label>
+            <label className="block text-xs font-medium text-stone-500 mb-1.5">
+              Body text
+            </label>
             <MarkdownEditor
               name="aboutBody"
               defaultValue={aboutBody}
@@ -172,22 +246,39 @@ export default function ContentClient({
               placeholder="Tell your story — who you are, how you make things, what drives you…"
               rows={6}
             />
-            <p className="text-xs text-stone-400 mt-1">{aboutBody.length} / 3000</p>
+            <p className="text-xs text-stone-400 mt-1">
+              {aboutBody.length} / 3000
+            </p>
           </div>
           {initialAboutImage && (
             <div>
-              <p className="text-xs font-medium text-stone-500 mb-1.5">About image</p>
+              <p className="text-xs font-medium text-stone-500 mb-1.5">
+                About image
+              </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={initialAboutImage} alt="About" className="h-20 w-auto rounded-lg object-cover border border-stone-100" />
-              <p className="text-xs text-stone-400 mt-1">Change image in <a href="/settings" className="underline hover:text-stone-700">Settings → About image</a></p>
+              <img
+                src={initialAboutImage}
+                alt="About"
+                className="h-20 w-auto rounded-lg object-cover border border-stone-100"
+              />
+              <p className="text-xs text-stone-400 mt-1">
+                Change image in{" "}
+                <a href="/settings" className="underline hover:text-stone-700">
+                  Settings → About image
+                </a>
+              </p>
             </div>
           )}
           <div className="flex items-center gap-3">
             <button type="submit" disabled={isPendingAbout} className={btnCls}>
-              {isPendingAbout ? 'Saving…' : 'Save'}
+              {isPendingAbout ? "Saving…" : "Save"}
             </button>
-            {aboutSaved && <span className="text-sm text-emerald-600">Saved ✓</span>}
-            {aboutError && <span className="text-sm text-red-600">{aboutError}</span>}
+            {aboutSaved && (
+              <span className="text-sm text-emerald-600">Saved ✓</span>
+            )}
+            {aboutError && (
+              <span className="text-sm text-red-600">{aboutError}</span>
+            )}
           </div>
         </form>
       </Section>
@@ -197,14 +288,25 @@ export default function ContentClient({
         title="Gallery page"
         hint="Shown at /gallery — images managed in the Gallery section"
         enabled={galleryEnabled}
-        onToggle={(next) => toggle('gallery', setGalleryEnabled, startGalleryToggle, setGalleryToggleSaved, next)}
+        onToggle={(next) =>
+          toggle(
+            "gallery",
+            setGalleryEnabled,
+            startGalleryToggle,
+            setGalleryToggleSaved,
+            next,
+          )
+        }
         togglePending={isPendingGalleryToggle}
         toggleSaved={galleryToggleSaved}
       >
         <p className="text-sm text-stone-500">
-          Gallery images are managed in the{' '}
-          <a href="/gallery" className="text-[#c96a3a] hover:underline">Gallery</a>{' '}
-          section. Upload or reorder images there — they appear automatically on the gallery page.
+          Gallery images are managed in the{" "}
+          <a href="/gallery" className="text-[#c96a3a] hover:underline">
+            Gallery
+          </a>{" "}
+          section. Upload or reorder images there — they appear automatically on
+          the gallery page.
         </p>
       </Section>
 
@@ -213,21 +315,36 @@ export default function ContentClient({
         title="Custom orders page"
         hint="Shown at /custom — for bespoke enquiries"
         enabled={customEnabled}
-        onToggle={(next) => toggle('custom', setCustomEnabled, startCustomToggle, setCustomToggleSaved, next)}
+        onToggle={(next) =>
+          toggle(
+            "custom",
+            setCustomEnabled,
+            startCustomToggle,
+            setCustomToggleSaved,
+            next,
+          )
+        }
         togglePending={isPendingCustomToggle}
         toggleSaved={customToggleSaved}
       >
         <form onSubmit={handleCustom} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Page title</label>
+            <label className="block text-xs font-medium text-stone-500 mb-1.5">
+              Page title
+            </label>
             <input
-              type="text" value={customTitle} onChange={e => setCustomTitle(e.target.value)}
-              placeholder="Custom Orders" maxLength={120}
+              type="text"
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="Custom Orders"
+              maxLength={120}
               className={inputCls}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Description</label>
+            <label className="block text-xs font-medium text-stone-500 mb-1.5">
+              Description
+            </label>
             <MarkdownEditor
               name="customBody"
               defaultValue={customBody}
@@ -236,16 +353,32 @@ export default function ContentClient({
               rows={5}
             />
           </div>
+          <CustomPageEditor
+            value={customConfig}
+            onChange={(v) => {
+              setCustomConfig(v);
+              setCustomSaved(false);
+            }}
+            disabled={isPendingCustom}
+          />
           <p className="text-xs text-stone-400">
-            Customers submit their custom request through a form on this page — requests land in{' '}
-            <a href="/orders" className="underline hover:text-stone-700">Orders</a> tagged “Custom”.
+            Customers submit their custom request through a form on this page —
+            requests land in{" "}
+            <a href="/orders" className="underline hover:text-stone-700">
+              Orders
+            </a>{" "}
+            tagged “Custom”.
           </p>
           <div className="flex items-center gap-3">
             <button type="submit" disabled={isPendingCustom} className={btnCls}>
-              {isPendingCustom ? 'Saving…' : 'Save'}
+              {isPendingCustom ? "Saving…" : "Save"}
             </button>
-            {customSaved && <span className="text-sm text-emerald-600">Saved ✓</span>}
-            {customError && <span className="text-sm text-red-600">{customError}</span>}
+            {customSaved && (
+              <span className="text-sm text-emerald-600">Saved ✓</span>
+            )}
+            {customError && (
+              <span className="text-sm text-red-600">{customError}</span>
+            )}
           </div>
         </form>
       </Section>
@@ -255,14 +388,25 @@ export default function ContentClient({
         title="Blog"
         hint="Shown at /blog — posts managed in the Blog section"
         enabled={blogEnabled}
-        onToggle={(next) => toggle('blog', setBlogEnabled, startBlogToggle, setBlogToggleSaved, next)}
+        onToggle={(next) =>
+          toggle(
+            "blog",
+            setBlogEnabled,
+            startBlogToggle,
+            setBlogToggleSaved,
+            next,
+          )
+        }
         togglePending={isPendingBlogToggle}
         toggleSaved={blogToggleSaved}
       >
         <p className="text-sm text-stone-500">
-          Blog posts are managed in the{' '}
-          <a href="/blog" className="text-[#c96a3a] hover:underline">Blog</a>{' '}
-          section. Write and publish posts there — they appear automatically on the blog page.
+          Blog posts are managed in the{" "}
+          <a href="/blog" className="text-[#c96a3a] hover:underline">
+            Blog
+          </a>{" "}
+          section. Write and publish posts there — they appear automatically on
+          the blog page.
         </p>
       </Section>
     </div>
