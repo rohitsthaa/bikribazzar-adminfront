@@ -391,7 +391,8 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               </svg>
               <p className="text-xs text-indigo-800">
                 This is a demo store — eSewa checkout always uses the public sandbox credentials
-                below regardless of the mode/keys saved here, and Khalti is unavailable entirely.
+                below regardless of the mode/keys saved here, Khalti is unavailable entirely, and
+                Fonepay takes test payments only (Test mode, on Fonepay&apos;s test gateway).
               </p>
             </div>
           )}
@@ -514,8 +515,9 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
                     </div>
                     {store.isDemo && (
                       <p className="mt-2 text-[11px] text-amber-700">
-                        This is a demo store, so Khalti and Fonepay stay off whatever is chosen here —
-                        neither has a sandbox merchant to fall back on.
+                        This is a demo store, so Khalti stays off whatever is chosen here (it has no
+                        sandbox merchant). Fonepay works only for test payments: the store&apos;s Fonepay
+                        mode must be Test and this environment must point at Fonepay&apos;s test gateway.
                       </p>
                     )}
                   </div>
