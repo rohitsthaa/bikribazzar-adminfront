@@ -3,22 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-/**
- * Sub-navigation across the Settings pages.
- *
- * /settings used to carry store identity, SEO, currency, an about image, a payment QR and
- * three merchant accounts with private keys — four unrelated jobs in one scroll, with the
- * highest-stakes section furthest from the top. Splitting them needs somewhere to show the
- * split, which is this.
- *
- * Team already lived at its own route and was only reachable from the sidebar; it belongs in
- * the same group, so it's listed here too.
- */
+/** Sub-navigation across the Settings pages. */
 const TABS = [
   { href: '/settings',          label: 'Store profile', hint: 'Contact, branding, currency' },
   { href: '/settings/payments', label: 'Payments',      hint: 'QR and online gateways' },
   { href: '/settings/courier',  label: 'Courier',       hint: 'NCM shipping setup' },
-  { href: '/settings/team',     label: 'Team',          hint: 'Staff and access' },
 ];
 
 export default function SettingsNav() {
