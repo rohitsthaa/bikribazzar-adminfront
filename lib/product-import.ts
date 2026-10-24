@@ -54,6 +54,13 @@ export const SECONDARY_COLUMNS = COLUMNS.filter((c) => !c.primary);
 /** Refuse rather than hang the browser and blow the server-action body limit. */
 export const MAX_ROWS = 500;
 
+/** Normalize category labels and keys to the same lookup shape used during import. */
+export function categoryLookupKey(value: string): string {
+  return value.trim().toLowerCase().normalize('NFC')
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 // ── CSV parsing ───────────────────────────────────────────────────────────────
 
 /**
@@ -299,9 +306,9 @@ export function validateRows(rows: DraftRow[], categoryKeys: Set<string>): Map<s
 
     // A warning, not an error: it imports fine, just uncategorised. Previously this was
     // silent, and the preview showed the typo'd key as though it had matched.
-    const cat = r.cells.category.trim().toLowerCase();
+    const cat = categoryLookupKey(r.cells.category);
     if (cat && !categoryKeys.has(cat)) {
-      issues.category = { severity: 'warning', message: 'Not one of your categories — will import uncategorised' };
+      issues.category = { severity: 'warning', message: 'New category will be created when you import' };
     }
 
     out.set(r.key, issues);
@@ -360,7 +367,7 @@ export function diffRow(row: DraftRow, existing: ExistingProduct): FieldChange[]
   add('stockQty', showStock(existing.stockQty), showStock(next.stockQty));
   add('reorderPoint', String(existing.reorderPoint), String(next.reorderPoint));
   add('available', existing.available ? 'Visible' : 'Hidden', next.available ? 'Visible' : 'Hidden');
-  add('category', (existing.category ?? '').toLowerCase(), next.category.toLowerCase());
+  add('category', categoryLookupKey(existing.category ?? ''), categoryLookupKey(next.category));
   add('tag', existing.tag ?? '', next.tag ?? '');
   add('description', existing.description, next.description);
   add('details', existing.details ?? '', next.details ?? '');

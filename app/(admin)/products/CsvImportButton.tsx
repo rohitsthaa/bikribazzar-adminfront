@@ -5,7 +5,7 @@ import { getExistingProductSummaries, importProductsCsv, type ImportResult } fro
 import ImportGrid from './ImportGrid';
 import {
   COLUMNS, MAX_ROWS, buildDraftRows, diffRow, effectiveId, hasError, templateCsv,
-  toImportRow, validateRows,
+  categoryLookupKey, toImportRow, validateRows,
   type DraftRow, type ExistingProduct, type ImportField,
 } from '@/lib/product-import';
 
@@ -48,7 +48,7 @@ export default function CsvImportButton({
   const [importing, startImport] = useTransition();
 
   const categoryKeys = useMemo(
-    () => new Set(categories.map((c) => c.key.toLowerCase())),
+    () => new Set(categories.flatMap((c) => [categoryLookupKey(c.key), categoryLookupKey(c.label)])),
     [categories],
   );
 
@@ -286,6 +286,7 @@ export default function CsvImportButton({
                   {/* Both numbers, because a re-import of existing products used to report
                       "0 products imported" and read as a failure. */}
                   {result.created} added · {result.updated} updated
+                  {result.categoriesCreated > 0 && ` · ${result.categoriesCreated} ${result.categoriesCreated === 1 ? 'category' : 'categories'} created`}
                 </p>
                 <div className="flex justify-end">
                   <button type="button" onClick={close} className="rounded-xl bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">Done</button>
