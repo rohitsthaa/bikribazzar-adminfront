@@ -3,7 +3,7 @@
 import { useEffect, useTransition, useState } from 'react';
 import { getNcmBranchesAction, getNcmShippingRateAction, updateStatusAction } from '../actions';
 import type { NcmBranch } from '@/lib/api';
-import { rememberNcmBranch } from './ncm-branch';
+import { OPEN_NCM_BOOKING, rememberNcmBranch } from './ncm-branch';
 import type { Order } from '@/lib/api';
 
 const PIPELINE: Array<{
@@ -240,6 +240,12 @@ export default function StatusUpdater({
 
   function handleClick(newStatus: Order['status']) {
     if (newStatus === currentStatus || isPending) return;
+    // With NCM set up, "Shipped" means booking the NCM pickup — that form marks the order
+    // shipped itself, and offers "mark shipped without NCM" for the odd hand delivery.
+    if (newStatus === 'shipped' && ncmReady) {
+      window.dispatchEvent(new Event(OPEN_NCM_BOOKING));
+      return;
+    }
     setPendingStatus(newStatus);
   }
 

@@ -355,6 +355,7 @@ export default async function OrderDetailPage({ params }: Props) {
               ncmTrackingStatus={order.ncmTrackingStatus}
               remainingNpr={order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr}
               deliveryFeePending={order.deliveryFeePending}
+              currentStatus={order.status}
             />
 
             {/* Payment */}
