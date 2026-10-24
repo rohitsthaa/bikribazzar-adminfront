@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createStore, updateStore, updateStorePaymentConfig, updateStoreCourierConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, createInvoice, patchInvoice, updatePlatformFeatures, type StoreDeletionImpact } from '@/lib/api';
+import { createStore, updateStore, updateStorePaymentConfig, updateStoreCourierConfig, createStoreAdmin, deleteAdminUser, getAllTemplates, deleteStore, restoreStore, permanentlyDeleteStore, getStoreDeletionImpact, getStoreClearDataImpact, clearStoreData, revalidateStorefront, createInvoice, patchInvoice, updatePlatformFeatures, type StoreDeletionImpact, type StoreClearDataImpact } from '@/lib/api';
 import { getAdmin } from '@/lib/auth';
 
 function str(fd: FormData, key: string): string {
@@ -238,6 +238,34 @@ export async function getStoreDeletionImpactAction(
     return await getStoreDeletionImpact(storeId);
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to check store data' };
+  }
+}
+
+export async function getStoreClearDataImpactAction(
+  storeId: string
+): Promise<StoreClearDataImpact | { error: string }> {
+  try {
+    await assertSuper();
+    return await getStoreClearDataImpact(storeId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to check store data' };
+  }
+}
+
+export async function clearStoreDataAction(
+  storeId: string,
+  storeName: string
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await assertSuper();
+    await clearStoreData(storeId, storeName);
+    await revalidateStorefront(storeId);
+    revalidatePath('/platform');
+    revalidatePath('/platform/stores');
+    revalidatePath(`/platform/${storeId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to clear store data' };
   }
 }
 

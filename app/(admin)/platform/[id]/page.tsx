@@ -9,6 +9,7 @@ import TemplateThemeClient from './TemplateThemeClient';
 import TemplateAccessClient from './TemplateAccessClient';
 import BillingClient from './BillingClient';
 import DeleteStoreSection from './DeleteStoreSection';
+import ClearStoreDataSection from './ClearStoreDataSection';
 import StoreTabs, { resolveTab } from './StoreTabs';
 import SubmitButton from '@/components/SubmitButton';
 
@@ -337,6 +338,7 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
       </SectionCard>
 
       {/* ── Section 7: Delete / restore ── */}
+      <ClearStoreDataSection storeId={store.id} storeName={store.name} />
       <DeleteStoreSection
         storeId={store.id}
         storeName={store.name}

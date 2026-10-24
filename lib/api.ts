@@ -23,11 +23,11 @@ const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? '';
 // does not configure STOREFRONT_URL, so relying on it alone silently skipped
 // every invalidation there. Best-effort: a missing config or flush failure must
 // never block (or roll back) the save that triggered it.
-export async function revalidateStorefront(): Promise<void> {
+export async function revalidateStorefront(storeId?: string): Promise<void> {
   if (!REVALIDATE_SECRET) return;
   try {
     const storefrontUrl = STOREFRONT_URL || (
-      PLATFORM_DOMAIN ? `https://${await currentStoreId()}.${PLATFORM_DOMAIN}` : ''
+      PLATFORM_DOMAIN ? `https://${storeId ?? await currentStoreId()}.${PLATFORM_DOMAIN}` : ''
     );
     if (!storefrontUrl) return;
 
@@ -614,6 +614,30 @@ export function syncNcmStatus(orderId: number) {
 /** How much data a store has (products/orders) — shown as a warning before deleting. Never blocks deletion. */
 export function getStoreDeletionImpact(id: string) {
   return apiFetch<StoreDeletionImpact>(`/stores/${encodeURIComponent(id)}/deletion-impact`);
+}
+
+export type StoreClearDataImpact = {
+  productCount: number;
+  orderCount: number;
+  paymentCount: number;
+  customerCount: number;
+  reviewCount: number;
+  inventoryLogCount: number;
+  financeEntryCount: number;
+  contentCount: number;
+};
+
+/** Counts operational data that a store reset will remove. Store setup and billing are retained. */
+export function getStoreClearDataImpact(id: string) {
+  return apiFetch<StoreClearDataImpact>(`/stores/${encodeURIComponent(id)}/clear-data-impact`);
+}
+
+/** Clears store operations/content but preserves the store, team, settings, payment/courier setup, and billing. */
+export function clearStoreData(id: string, confirmationName: string) {
+  return apiFetch<{ ok: true; id: string; name: string }>(
+    `/stores/${encodeURIComponent(id)}/clear-data`,
+    { method: 'POST', body: JSON.stringify({ confirmationName }) }
+  );
 }
 
 /**
