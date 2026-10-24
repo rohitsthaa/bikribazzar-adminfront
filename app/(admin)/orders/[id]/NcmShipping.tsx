@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { getNcmBranchesAction, getNcmShippingRateAction, shipViaNcmAction, syncNcmStatusAction, updateStatusAction } from '../actions';
-import type { NcmBranch } from '@/lib/api';
-import { OPEN_NCM_BOOKING, recallNcmBranch } from './ncm-branch';
+import { useState } from 'react';
+import { syncNcmStatusAction } from '../actions';
+import NcmBookingForm from './NcmBookingForm';
 
 // Matches NcmService.ResolveBaseUrl's own default on the API side — every store currently
 // resolves to NCM's demo/UAT host (NCM_BASE_URL is unset everywhere so far). If a real store
@@ -29,87 +28,11 @@ export default function NcmShipping({
   deliveryFeePending?: boolean;
   currentStatus?: string;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const alreadyShipped = currentStatus === 'shipped' || currentStatus === 'delivered';
-  const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
-  const [branches, setBranches] = useState<NcmBranch[] | null>(null);
-  const [toBranch, setToBranch] = useState('');
-  const [cod, setCod] = useState(remainingNpr > 0);
-  const [instruction, setInstruction] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [charge, setCharge] = useState<number | null>(null);
-  const [rateLoading, setRateLoading] = useState(false);
-  const [rateError, setRateError] = useState<string | null>(null);
-  // Charge the customer NCM's quoted rate as the delivery fee (only offered while the fee
-  // is still pending). On by default: that's what "confirm with customer" usually ends up as.
-  const [useNcmFee, setUseNcmFee] = useState(true);
-  const applyFee = deliveryFeePending && useNcmFee && charge !== null;
-  const codAmount = remainingNpr + (applyFee ? charge! : 0);
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
-
-  function handleBranchChange(next: string) {
-    setToBranch(next);
-    setCharge(null);
-    setRateError(null);
-    if (!next) return;
-    setRateLoading(true);
-    // Fire-and-forget, deliberately outside the shared isPending transition — this is an
-    // advisory preview (NCM's own quoted delivery charge for this branch/type), not something
-    // the ship action depends on, so it shouldn't disable Confirm while it loads.
-    getNcmShippingRateAction(next).then((res) => {
-      setRateLoading(false);
-      if ('error' in res) setRateError(res.error);
-      else setCharge(res.charge);
-    });
-  }
-
-  function openForm() {
-    setOpen(true);
-    setError(null);
-    // Branch picked in the Confirm dialog for this order, if any — preselect it and its rate.
-    const remembered = recallNcmBranch(orderId);
-    if (remembered && !toBranch) handleBranchChange(remembered);
-    if (!branches) {
-      startTransition(async () => {
-        const res = await getNcmBranchesAction();
-        if ('error' in res) setError(res.error);
-        else setBranches(res.branches);
-      });
-    }
-  }
-
-  // "Shipped" in the status list opens this form (see StatusUpdater).
-  useEffect(() => {
-    const onOpen = () => {
-      openForm();
-      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    };
-    window.addEventListener(OPEN_NCM_BOOKING, onOpen);
-    return () => window.removeEventListener(OPEN_NCM_BOOKING, onOpen);
-  });
-
-  function markShippedWithoutNcm() {
-    setError(null);
-    startTransition(async () => {
-      await updateStatusAction(orderId, 'shipped');
-      setOpen(false);
-    });
-  }
-
-  function handleShip() {
-    if (!toBranch) { setError('Pick a destination branch.'); return; }
-    setError(null);
-    startTransition(async () => {
-      const res = await shipViaNcmAction(orderId, {
-        toBranch, cod, instruction: instruction || undefined,
-        ...(applyFee ? { deliveryFee: charge! } : {}),
-      });
-      if ('error' in res) setError(res.error);
-      else setOpen(false);
-    });
-  }
 
   function handleSync() {
     // Deliberately its own state, not the shared `isPending` transition — that one wasn't
@@ -164,7 +87,7 @@ export default function NcmShipping({
   }
 
   return (
-    <div ref={cardRef} className="bg-white rounded-2xl border border-stone-200 p-5">
+    <div className="bg-white rounded-2xl border border-stone-200 p-5">
       <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Courier — NCM</h2>
       {alreadyShipped && (
         <p className="text-xs text-amber-700 mb-3">
@@ -173,95 +96,19 @@ export default function NcmShipping({
       )}
       {!open ? (
         <button
-          onClick={openForm}
+          onClick={() => setOpen(true)}
           className="w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-900 text-white hover:bg-stone-700 transition-colors"
         >
           Book NCM pickup
         </button>
       ) : (
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Destination branch</label>
-            {branches === null ? (
-              <p className="text-xs text-stone-400">Loading branches…</p>
-            ) : (
-              <select
-                value={toBranch}
-                onChange={(e) => handleBranchChange(e.target.value)}
-                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-              >
-                <option value="">Select a branch…</option>
-                {branches.map((b) => (
-                  <option key={b.pk} value={b.name}>
-                    {[b.name, [b.district, b.province].filter(Boolean).join(', ')].filter(Boolean).join(' — ')}
-                  </option>
-                ))}
-              </select>
-            )}
-            {toBranch && (() => {
-              const selected = branches?.find((b) => b.name === toBranch);
-              const location = selected ? [selected.district, selected.province].filter(Boolean).join(', ') : '';
-              return (
-                <p className="text-xs mt-1.5 space-y-0.5">
-                  {location && <span className="block text-stone-400">{location}</span>}
-                  {rateLoading ? (
-                    <span className="block text-stone-400">Fetching delivery charge…</span>
-                  ) : rateError ? (
-                    <span className="block text-red-600">{rateError}</span>
-                  ) : charge !== null ? (
-                    <span className="block text-stone-500">Delivery fee (NCM): <span className="font-medium text-stone-800">NPR {charge.toLocaleString()}</span></span>
-                  ) : null}
-                </p>
-              );
-            })()}
-          </div>
-          {deliveryFeePending && charge !== null && (
-            <label className="flex items-center gap-2 text-sm text-stone-600">
-              <input type="checkbox" checked={useNcmFee} onChange={(e) => setUseNcmFee(e.target.checked)} />
-              Set the delivery fee to NCM&apos;s rate (NPR {charge.toLocaleString()})
-            </label>
-          )}
-          <label className="flex items-center gap-2 text-sm text-stone-600">
-            <input type="checkbox" checked={cod} onChange={(e) => setCod(e.target.checked)} />
-            Collect on delivery (NPR {codAmount.toLocaleString()})
-          </label>
-          <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Delivery instruction <span className="text-stone-400 font-normal">— optional</span></label>
-            <textarea
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              rows={2}
-              className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-            />
-          </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleShip}
-              disabled={isPending}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-900 text-white hover:bg-stone-700 transition-colors disabled:opacity-60"
-            >
-              {isPending ? 'Booking…' : 'Book pickup'}
-            </button>
-          </div>
-          {!alreadyShipped && (
-            <button
-              type="button"
-              onClick={markShippedWithoutNcm}
-              disabled={isPending}
-              className="w-full text-xs text-stone-400 hover:text-stone-700 underline underline-offset-2 disabled:opacity-50"
-            >
-              Not using NCM for this one? Mark shipped without a pickup
-            </button>
-          )}
-        </div>
+        <NcmBookingForm
+          orderId={orderId}
+          remainingNpr={remainingNpr}
+          deliveryFeePending={deliveryFeePending}
+          onCancel={() => setOpen(false)}
+          onBooked={() => setOpen(false)}
+        />
       )}
     </div>
   );
