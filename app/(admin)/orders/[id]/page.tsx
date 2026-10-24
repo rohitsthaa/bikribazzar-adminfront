@@ -344,7 +344,13 @@ export default async function OrderDetailPage({ params }: Props) {
             {/* Change status */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
-              <StatusUpdater orderId={id} currentStatus={order.status} ncmReady={ncmReady && !order.ncmOrderId} />
+              <StatusUpdater
+                orderId={id}
+                currentStatus={order.status}
+                ncmReady={ncmReady && !order.ncmOrderId}
+                remainingNpr={order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr}
+                deliveryFeePending={order.deliveryFeePending}
+              />
             </div>
 
             {/* Courier — NCM */}

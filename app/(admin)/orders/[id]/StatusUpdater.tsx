@@ -3,7 +3,8 @@
 import { useEffect, useTransition, useState } from 'react';
 import { getNcmBranchesAction, getNcmShippingRateAction, updateStatusAction } from '../actions';
 import type { NcmBranch } from '@/lib/api';
-import { OPEN_NCM_BOOKING, rememberNcmBranch } from './ncm-branch';
+import { rememberNcmBranch } from './ncm-branch';
+import NcmBookingForm from './NcmBookingForm';
 import type { Order } from '@/lib/api';
 
 const PIPELINE: Array<{
@@ -101,6 +102,94 @@ function NcmRatePicker({ orderId, onRate }: { orderId: string; onRate: (charge: 
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * "Shipped" on a store with NCM: ship with NCM (book the pickup right here — that also marks the
+ * order shipped) or without it (hand delivery, another courier), which just changes the status.
+ */
+function ShipDialog({
+  orderId,
+  remainingNpr,
+  deliveryFeePending,
+  onShipWithout,
+  onDone,
+  onCancel,
+  isPending,
+}: {
+  orderId: string;
+  remainingNpr: number;
+  deliveryFeePending: boolean;
+  onShipWithout: () => void;
+  onDone: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [choice, setChoice] = useState<'ncm' | 'other'>('ncm');
+  const option = (value: 'ncm' | 'other', title: string, hint: string) => (
+    <label className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 cursor-pointer transition-colors ${
+      choice === value ? 'border-stone-900 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
+    }`}>
+      <input type="radio" name="ship-with" checked={choice === value} onChange={() => setChoice(value)} className="mt-0.5" />
+      <span>
+        <span className="block text-sm font-medium text-stone-800">{title}</span>
+        <span className="block text-xs text-stone-500 mt-0.5">{hint}</span>
+      </span>
+    </label>
+  );
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] animate-in fade-in duration-150" onClick={onCancel} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="pointer-events-auto w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-stone-100 animate-in zoom-in-95 fade-in duration-150">
+          <div className="px-6 pt-6 pb-6">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-stone-100 text-stone-700 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              Shipped
+            </span>
+            <p className="text-sm font-semibold text-stone-800 leading-snug mb-1">How is this order shipping?</p>
+            <p className="text-sm text-stone-500 leading-relaxed mb-4">The customer will be notified that it&apos;s on its way.</p>
+
+            <div className="space-y-2 mb-4">
+              {option('ncm', 'With NCM', 'Book an NCM pickup now. NCM collects payment on delivery if you choose.')}
+              {option('other', 'Without NCM', 'Hand delivery, pickup by the customer, or another courier.')}
+            </div>
+
+            {choice === 'ncm' ? (
+              <div className="pt-4 border-t border-stone-100">
+                <NcmBookingForm
+                  orderId={orderId}
+                  remainingNpr={remainingNpr}
+                  deliveryFeePending={deliveryFeePending}
+                  onCancel={onCancel}
+                  onBooked={onDone}
+                  cancelLabel="Keep current"
+                />
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={onCancel}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors disabled:opacity-50"
+                >
+                  Keep current
+                </button>
+                <button
+                  onClick={onShipWithout}
+                  disabled={isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-900 text-white hover:bg-stone-700 transition-colors disabled:opacity-60"
+                >
+                  {isPending ? 'Updating…' : 'Mark shipped'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -229,23 +318,22 @@ export default function StatusUpdater({
   orderId,
   currentStatus,
   ncmReady = false,
+  remainingNpr = 0,
+  deliveryFeePending = false,
 }: {
   orderId: string;
   currentStatus: Order['status'];
   /** NCM is set up for this store and the order hasn't shipped with it yet. */
   ncmReady?: boolean;
+  /** For the NCM booking in the Shipped dialog. */
+  remainingNpr?: number;
+  deliveryFeePending?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingStatus, setPendingStatus] = useState<Order['status'] | null>(null);
 
   function handleClick(newStatus: Order['status']) {
     if (newStatus === currentStatus || isPending) return;
-    // With NCM set up, "Shipped" means booking the NCM pickup — that form marks the order
-    // shipped itself, and offers "mark shipped without NCM" for the odd hand delivery.
-    if (newStatus === 'shipped' && ncmReady) {
-      window.dispatchEvent(new Event(OPEN_NCM_BOOKING));
-      return;
-    }
     setPendingStatus(newStatus);
   }
 
@@ -288,7 +376,18 @@ export default function StatusUpdater({
         })}
       </div>
 
-      {pendingStatus && (
+      {pendingStatus === 'shipped' && ncmReady && (
+        <ShipDialog
+          orderId={orderId}
+          remainingNpr={remainingNpr}
+          deliveryFeePending={deliveryFeePending}
+          onShipWithout={() => handleConfirm(undefined)}
+          onDone={() => setPendingStatus(null)}
+          onCancel={() => setPendingStatus(null)}
+          isPending={isPending}
+        />
+      )}
+      {pendingStatus && !(pendingStatus === 'shipped' && ncmReady) && (
         <ConfirmDialog
           orderId={orderId}
           status={pendingStatus}
