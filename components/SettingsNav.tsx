@@ -17,6 +17,7 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/settings',          label: 'Store profile', hint: 'Contact, branding, currency' },
   { href: '/settings/payments', label: 'Payments',      hint: 'QR and online gateways' },
+  { href: '/settings/courier',  label: 'Courier',       hint: 'NCM shipping setup' },
   { href: '/settings/team',     label: 'Team',          hint: 'Staff and access' },
 ];
 
