@@ -10,6 +10,11 @@ export default function SettingsClient({
   initialAboutImage,
   initialPhone,
   initialInstagram,
+  initialFacebook,
+  initialYoutube,
+  initialTiktok,
+  initialPinterest,
+  initialX,
   initialContactEmail,
   initialLocation,
   initialCurrency,
@@ -25,6 +30,11 @@ export default function SettingsClient({
   initialAboutImage: string;
   initialPhone: string;
   initialInstagram: string;
+  initialFacebook: string;
+  initialYoutube: string;
+  initialTiktok: string;
+  initialPinterest: string;
+  initialX: string;
   initialContactEmail: string;
   initialLocation: string;
   initialCurrency: string;
@@ -61,6 +71,11 @@ export default function SettingsClient({
   // Contact info — no Soul-Thread placeholders; each store sets its own.
   const [phone, setPhone] = useState(initialPhone);
   const [instagram, setInstagram] = useState(initialInstagram);
+  const [facebook, setFacebook] = useState(initialFacebook);
+  const [youtube, setYoutube] = useState(initialYoutube);
+  const [tiktok, setTiktok] = useState(initialTiktok);
+  const [pinterest, setPinterest] = useState(initialPinterest);
+  const [x, setX] = useState(initialX);
   const [contactEmail, setContactEmail] = useState(initialContactEmail);
   const [location, setLocation] = useState(initialLocation);
   const [contactSaved, setContactSaved] = useState(false);
@@ -105,7 +120,7 @@ export default function SettingsClient({
 
   function handleContactSave() {
     startContactTransition(async () => {
-      await saveContactInfo(phone, instagram, contactEmail, location);
+      await saveContactInfo({ phone, instagram, facebook, youtube, tiktok, pinterest, x, email: contactEmail, location });
       setContactSaved(true);
       setTimeout(() => setContactSaved(false), 2000);
     });
@@ -116,7 +131,7 @@ export default function SettingsClient({
       {/* Contact Info */}
       <SettingCard
         title="Contact & social info"
-        description="Phone number, Instagram URL, email and location shown across the site."
+        description="Contact details and social profiles shown in your storefront footer and About page. Leave a social link blank to hide it."
         onSave={handleContactSave}
         isPending={contactPending}
         saved={contactSaved}
@@ -135,6 +150,11 @@ export default function SettingsClient({
           onChange={setInstagram}
           placeholder="https://www.instagram.com/yourhandle/"
         />
+        <Field label="Facebook URL" value={facebook} onChange={setFacebook} placeholder="https://www.facebook.com/yourpage" />
+        <Field label="YouTube URL" value={youtube} onChange={setYoutube} placeholder="https://www.youtube.com/@yourchannel" />
+        <Field label="TikTok URL" value={tiktok} onChange={setTiktok} placeholder="https://www.tiktok.com/@yourhandle" />
+        <Field label="Pinterest URL" value={pinterest} onChange={setPinterest} placeholder="https://www.pinterest.com/yourprofile" />
+        <Field label="X URL" value={x} onChange={setX} placeholder="https://x.com/yourhandle" />
         <Field
           label="Contact email"
           value={contactEmail}
