@@ -384,7 +384,7 @@ export type Order = {
   isNationwide: boolean;
   status: 'new' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   statusLog: Array<{ status: string; at: string }>;
-  paymentMethod?: string | null;          // null | 'esewa' — how recorded payment was taken
+  paymentMethod?: string | null;          // selected checkout method or provider used for payment
   payments?: Payment[];                    // all payment attempts (detail endpoint only)
   ncmOrderId?: number | null;             // set once shipped via NCM
   ncmDestinationBranch?: string | null;

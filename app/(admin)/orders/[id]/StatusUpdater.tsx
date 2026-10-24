@@ -112,6 +112,10 @@ function NcmRatePicker({ orderId, onRate }: { orderId: string; onRate: (charge: 
 function ShipDialog({
   orderId,
   remainingNpr,
+  itemTotalNpr,
+  paidNpr,
+  deliveryFeeNpr,
+  paymentMethod,
   deliveryFeePending,
   onShipWithout,
   onDone,
@@ -120,6 +124,10 @@ function ShipDialog({
 }: {
   orderId: string;
   remainingNpr: number;
+  itemTotalNpr: number;
+  paidNpr: number;
+  deliveryFeeNpr: number;
+  paymentMethod?: string | null;
   deliveryFeePending: boolean;
   onShipWithout: () => void;
   onDone: () => void;
@@ -162,6 +170,10 @@ function ShipDialog({
                 <NcmBookingForm
                   orderId={orderId}
                   remainingNpr={remainingNpr}
+                  itemTotalNpr={itemTotalNpr}
+                  paidNpr={paidNpr}
+                  deliveryFeeNpr={deliveryFeeNpr}
+                  paymentMethod={paymentMethod}
                   deliveryFeePending={deliveryFeePending}
                   onCancel={onCancel}
                   onBooked={onDone}
@@ -319,6 +331,10 @@ export default function StatusUpdater({
   currentStatus,
   ncmReady = false,
   remainingNpr = 0,
+  itemTotalNpr = 0,
+  paidNpr = 0,
+  deliveryFeeNpr = 0,
+  paymentMethod,
   deliveryFeePending = false,
 }: {
   orderId: string;
@@ -327,6 +343,10 @@ export default function StatusUpdater({
   ncmReady?: boolean;
   /** For the NCM booking in the Shipped dialog. */
   remainingNpr?: number;
+  itemTotalNpr?: number;
+  paidNpr?: number;
+  deliveryFeeNpr?: number;
+  paymentMethod?: string | null;
   deliveryFeePending?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -380,6 +400,10 @@ export default function StatusUpdater({
         <ShipDialog
           orderId={orderId}
           remainingNpr={remainingNpr}
+          itemTotalNpr={itemTotalNpr}
+          paidNpr={paidNpr}
+          deliveryFeeNpr={deliveryFeeNpr}
+          paymentMethod={paymentMethod}
           deliveryFeePending={deliveryFeePending}
           onShipWithout={() => handleConfirm(undefined)}
           onDone={() => setPendingStatus(null)}
