@@ -276,6 +276,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   const [advanceOpen, setAdvanceOpen] = useState(prepaymentType !== 'none');
   const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
   const [variantAxis, setVariantAxis] = useState<string>(product?.variantAxis ?? '');
+  const hasVisualVariants = variantAxis === 'color' || variantAxis === 'style';
   const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
   type VariantRow = { id?: string; label: string; priceNpr: string; costNpr: string; stockQty: string; untracked: boolean; sku: string; image: string };
   const [variants, setVariants] = useState<VariantRow[]>(
@@ -474,8 +475,8 @@ export default function ProductForm({ product, action, categories = [], canSetPr
           </div>
 
           <div className="bg-white rounded-xl border border-stone-200 p-[18px]">
-            <h2 className="text-[14.5px] font-semibold text-stone-900">Primary image</h2>
-            <p className="text-xs text-stone-400 mt-0.5 mb-3.5">Shown on product cards, emails, and SEO.</p>
+            <h2 className="text-[14.5px] font-semibold text-stone-900">Cover image</h2>
+            <p className="text-xs text-stone-400 mt-0.5 mb-3.5">Used on product cards and as the first shared product photo.</p>
             <div className="max-w-[240px] lg:max-w-none">
               <ImageUploader value={image} onChange={setImage} enableCrop cardAspect={cardAspect} />
             </div>
@@ -637,8 +638,8 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                 <div className="h-px bg-stone-100" />
 
                 <div>
-                  <label className={fieldLabel}>Gallery images</label>
-                  <p className="text-xs text-gray-400 mt-1 mb-3">Extra angles shown in the product detail carousel.</p>
+                  <label className={fieldLabel}>Shared product gallery</label>
+                  <p className="text-xs text-gray-400 mt-1 mb-3">These photos are available for every option. A visual variant’s own photo appears first, followed by the cover and these shared photos.</p>
                   <input type="hidden" name="images" value={JSON.stringify(galleryImages)} />
                   <div className="space-y-3">
                     {galleryImages.map((url, i) => (
@@ -953,29 +954,26 @@ export default function ProductForm({ product, action, categories = [], canSetPr
 
                 {variants.length > 0 && (
                   <div className="mb-4">
-                    <label className={fieldLabel}>What do these variants change?</label>
+                    <label className={fieldLabel}>What do these options change?</label>
                     <select
                       name="variantAxis"
                       value={variantAxis}
                       onChange={(e) => setVariantAxis(e.target.value)}
                       className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
                     >
-                      <option value="">Size only — no visual difference</option>
+                      <option value="">Size / non-visual — same photos</option>
                       <option value="color">Color / pattern — variants look different</option>
                       <option value="style">Style / material — variants look different</option>
                     </select>
                     <p className="text-xs text-gray-400 mt-1">
-                      Only pick "Color" or "Style" if you upload a photo per variant below — the storefront
-                      shows those as photo swatches. Size-only variants always show as plain buttons, even if
-                      a photo is set.
+                      Choose Color or Style when options look different. Their optional photos appear first in the storefront gallery; options without a photo use the shared gallery. Sizes keep the same shared photos.
                     </p>
                     {!variantAxis && variants.some((v) => v.image.trim()) && (
                       <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                         <span className="mt-px">⚠</span>
                         <span>
                           {variants.filter((v) => v.image.trim()).length} variant photo{variants.filter((v) => v.image.trim()).length === 1 ? '' : 's'} uploaded,
-                          but "What do these variants change?" is still set to "Size only" — those photos
-                          won't show on the storefront. Set it to Color or Style above if they're meant to.
+                          but these options are set to non-visual — those photos won't show on the storefront. Choose Color or Style above if they represent different looks.
                         </span>
                       </div>
                     )}
@@ -1008,10 +1006,25 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                       const persisted = !isNew && v.id ? (product?.variants ?? []).find((pv) => pv.id === v.id) : undefined;
                       const stockQty = persisted?.stockQty ?? null;
                       const isExpanded = expandedStockId === v.id;
+                      const sharedPhotos = [
+                        { url: image, label: 'Cover image' },
+                        ...galleryImages.map((url, photoIndex) => ({ url, label: `Shared photo ${photoIndex + 1}` })),
+                      ].filter((photo): photo is { url: string; label: string } => Boolean(photo.url));
+                      const selectedSharedPhoto = sharedPhotos.some((photo) => photo.url === v.image);
                       return (
                         <div key={idx} className="rounded-xl border border-stone-200 bg-white p-4 transition-colors hover:border-stone-300 space-y-4">
-                          <div className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)_32px] items-center gap-3">
-                            <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} cardAspect={cardAspect} />
+                          <div className={`grid min-w-0 ${hasVisualVariants ? 'grid-cols-[72px_minmax(0,1fr)_32px]' : 'grid-cols-[auto_minmax(0,1fr)_32px]'} items-center gap-3`}>
+                            {hasVisualVariants ? (
+                              <div className="space-y-1 text-center">
+                                <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} cardAspect={cardAspect} />
+                                <span className="block text-[10px] font-medium text-stone-500">Variant photo</span>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1.5 text-[11px] font-medium text-stone-500">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                                Shared gallery
+                              </span>
+                            )}
                             <div className="min-w-0">
                               <label className={fieldLabel}>Option label</label>
                               <input
@@ -1031,6 +1044,27 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               ×
                             </button>
                           </div>
+
+                          {hasVisualVariants && (
+                            <div className="flex flex-col gap-2 rounded-lg bg-stone-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-stone-700">Photo for this look <span className="font-normal text-stone-400">(optional)</span></p>
+                                <p className="mt-0.5 text-[11px] text-stone-500">Click the thumbnail to upload, or reuse a photo from the shared gallery.</p>
+                              </div>
+                              <select
+                                value={selectedSharedPhoto ? v.image : (v.image ? '__uploaded__' : '')}
+                                onChange={(e) => updateVariant(idx, { image: e.target.value === '__uploaded__' ? v.image : e.target.value })}
+                                aria-label={`Choose a shared photo for ${v.label || 'this option'}`}
+                                className="w-full max-w-sm rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                              >
+                                <option value="">Use shared gallery</option>
+                                {sharedPhotos.map((photo, photoIndex) => (
+                                  <option key={`${photo.url}-${photoIndex}`} value={photo.url}>{photo.label}</option>
+                                ))}
+                                {v.image && !selectedSharedPhoto && <option value="__uploaded__">Uploaded variant photo</option>}
+                              </select>
+                            </div>
+                          )}
 
                           <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
                             <div className="min-w-0">
