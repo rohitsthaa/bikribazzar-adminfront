@@ -14,12 +14,23 @@ async function assertCanSettings() {
 export async function saveAboutContent(
   title: string,
   body: string,
+  image = "",
 ): Promise<{ error?: string }> {
   try {
     await assertCanSettings();
+    if (
+      typeof title !== "string" ||
+      typeof body !== "string" ||
+      typeof image !== "string" ||
+      title.length > 120 ||
+      body.length > 3000 ||
+      image.length > 2000
+    )
+      throw new Error("Check the page title, description, and image URL.");
     await Promise.all([
       updateSetting("about_title", title.trim()),
       updateSetting("about_body", body.trim()),
+      updateSetting("about_image", image.trim()),
     ]);
     revalidatePath("/content");
     await revalidateStorefront();
