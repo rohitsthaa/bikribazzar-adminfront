@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { getNcmBranchesAction, getNcmShippingRateAction, shipViaNcmAction, syncNcmStatusAction } from '../actions';
 import type { NcmBranch } from '@/lib/api';
+import { recallNcmBranch } from './ncm-branch';
 
 // Matches NcmService.ResolveBaseUrl's own default on the API side — every store currently
 // resolves to NCM's demo/UAT host (NCM_BASE_URL is unset everywhere so far). If a real store
@@ -63,6 +64,9 @@ export default function NcmShipping({
   function openForm() {
     setOpen(true);
     setError(null);
+    // Branch picked in the Confirm dialog for this order, if any — preselect it and its rate.
+    const remembered = recallNcmBranch(orderId);
+    if (remembered && !toBranch) handleBranchChange(remembered);
     if (!branches) {
       startTransition(async () => {
         const res = await getNcmBranchesAction();

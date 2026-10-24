@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getOrder, getAllProducts, getSettings } from '@/lib/api';
+import { getOrder, getAllProducts, getSettings, getStoreCourierConfig } from '@/lib/api';
+import { currentStoreId } from '@/lib/store-context';
 import type { Order } from '@/lib/api';
 import StatusUpdater from './StatusUpdater';
 import PaymentRecorder from './PaymentRecorder';
@@ -67,10 +68,13 @@ export default async function OrderDetailPage({ params }: Props) {
   try { order = await getOrder(id); } catch { notFound(); }
   if (!order) notFound();
 
-  const [products, settings] = await Promise.all([
+  const [products, settings, courier] = await Promise.all([
     getAllProducts(),
     getSettings().catch(() => ({} as Record<string, string>)),
+    currentStoreId().then((sid) => getStoreCourierConfig(sid)).catch(() => null),
   ]);
+  // NCM set up for this store → the Confirm dialog can quote NCM's rate as the delivery fee.
+  const ncmReady = !!(courier?.ncm.enabled && courier.ncm.hasToken && courier.ncm.fromBranch);
   const currency = settings.currency_symbol || 'NPR';
   const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -340,7 +344,7 @@ export default async function OrderDetailPage({ params }: Props) {
             {/* Change status */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5">
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
-              <StatusUpdater orderId={id} currentStatus={order.status} />
+              <StatusUpdater orderId={id} currentStatus={order.status} ncmReady={ncmReady && !order.ncmOrderId} />
             </div>
 
             {/* Courier — NCM */}
