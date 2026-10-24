@@ -149,6 +149,14 @@ export default function ContentClient({
   const [blogEnabled, setBlogEnabled] = useState(initialBlogEnabled);
   const [isPendingBlogToggle, startBlogToggle] = useTransition();
   const [blogToggleSaved, setBlogToggleSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<"about" | "gallery" | "custom" | "blog">("about");
+
+  const tabs = [
+    { id: "about", label: "About" },
+    { id: "gallery", label: "Gallery" },
+    { id: "custom", label: "Custom orders" },
+    { id: "blog", label: "Blog" },
+  ] as const;
 
   function toggle(
     page: "about" | "gallery" | "custom" | "blog",
@@ -203,8 +211,39 @@ export default function ContentClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div>
+      <div
+        role="tablist"
+        aria-label="Storefront content pages"
+        className="mb-6 flex gap-1 overflow-x-auto border-b border-stone-200"
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            id={`content-tab-${tab.id}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`content-panel-${tab.id}`}
+            onClick={() => setActiveTab(tab.id)}
+            className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-[#c96a3a] text-stone-900"
+                : "border-transparent text-stone-500 hover:text-stone-800"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* About page */}
+      <section
+        id="content-panel-about"
+        role="tabpanel"
+        aria-labelledby="content-tab-about"
+        hidden={activeTab !== "about"}
+      >
       <Section
         title="About page"
         hint="Shown at /about on your storefront"
@@ -282,8 +321,15 @@ export default function ContentClient({
           </div>
         </form>
       </Section>
+      </section>
 
       {/* Gallery */}
+      <section
+        id="content-panel-gallery"
+        role="tabpanel"
+        aria-labelledby="content-tab-gallery"
+        hidden={activeTab !== "gallery"}
+      >
       <Section
         title="Gallery page"
         hint="Shown at /gallery — images managed in the Gallery section"
@@ -309,8 +355,15 @@ export default function ContentClient({
           the gallery page.
         </p>
       </Section>
+      </section>
 
       {/* Custom orders page */}
+      <section
+        id="content-panel-custom"
+        role="tabpanel"
+        aria-labelledby="content-tab-custom"
+        hidden={activeTab !== "custom"}
+      >
       <Section
         title="Custom orders page"
         hint="Shown at /custom — for bespoke enquiries"
@@ -382,8 +435,15 @@ export default function ContentClient({
           </div>
         </form>
       </Section>
+      </section>
 
       {/* Blog */}
+      <section
+        id="content-panel-blog"
+        role="tabpanel"
+        aria-labelledby="content-tab-blog"
+        hidden={activeTab !== "blog"}
+      >
       <Section
         title="Blog"
         hint="Shown at /blog — posts managed in the Blog section"
@@ -409,6 +469,7 @@ export default function ContentClient({
           the blog page.
         </p>
       </Section>
+      </section>
     </div>
   );
 }

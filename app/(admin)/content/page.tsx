@@ -21,7 +21,7 @@ export default async function ContentPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-stone-900">Content</h1>
         <p className="text-sm text-stone-400 mt-0.5">
-          Edit your About and Custom orders pages
+          Manage your storefront pages and visibility
         </p>
       </div>
       <ContentClient
