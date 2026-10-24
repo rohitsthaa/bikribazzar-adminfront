@@ -298,6 +298,7 @@ function UserChip({ email, dark }: { email: string; dark?: boolean }) {
 
 export default function Sidebar({
   isSuper = false,
+  hideDesign = false,
   canSettings = true,
   allowedTabs = null,
   features,
@@ -307,6 +308,8 @@ export default function Sidebar({
   siteType,
 }: {
   isSuper?: boolean;
+  // Store admins should not see or open the storefront design editor.
+  hideDesign?: boolean;
   canSettings?: boolean;
   // Per-admin tab restriction (see lib/tabs.ts) set by a store/super admin when adding a
   // staff member. null = unrestricted (every tab canSettings/role already permits).
@@ -338,6 +341,7 @@ export default function Sidebar({
   // Per-admin tab restriction / site-type gating shared by flat items, dropdown
   // items, and the bottom-pinned items.
   const isNavItemVisible = (href: string) => {
+    if (hideDesign && href === '/design') return false;
     // Platform-wide kill switch first: an area turned off by a super admin is hidden for
     // everyone, whatever this store's site type or this admin's tab permissions say.
     if (features?.[href.slice(1)] === false) return false;

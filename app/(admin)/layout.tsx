@@ -66,6 +66,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/dashboard');
   }
 
+  // Store admins cannot access the storefront design editor; hide it from navigation and
+  // enforce the same restriction for direct URLs.
+  if (!isPlatformRoute && admin.role === 'store' && firstSegment === 'design') {
+    redirect('/dashboard');
+  }
+
   // Same for an area switched off in Platform → Settings → Feature availability: the sidebar
   // hides it, and typing the URL lands on the dashboard instead of a working editor.
   // Route slugs are the feature keys (see FeaturePolicy.Keys in the API).
@@ -77,6 +83,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen bg-stone-50">
       <Sidebar
         isSuper={isSuper}
+        hideDesign={admin.role === 'store'}
         canSettings={can(admin.role, 'settings')}
         allowedTabs={admin.allowedTabs}
         features={features}
