@@ -54,7 +54,10 @@ export default function SettingsClient({
 
   function handleShopCopySave() {
     startShopCopyTransition(async () => {
-      await saveShopCopy({ shopTitle, shopSubtitle, deliveryNote, returnsNote });
+      await Promise.all([
+        saveShopCopy({ shopTitle, shopSubtitle, deliveryNote, returnsNote }),
+        saveCurrency(currency),
+      ]);
       setShopCopySaved(true);
       setTimeout(() => setShopCopySaved(false), 2000);
     });
@@ -78,7 +81,6 @@ export default function SettingsClient({
     { id: "contact", label: "Contact & socials" },
     { id: "shop", label: "Shop & policies" },
     { id: "branding", label: "Branding & SEO" },
-    { id: "currency", label: "Currency" },
   ] as const;
 
   // Branding & SEO
@@ -97,18 +99,7 @@ export default function SettingsClient({
     });
   }
 
-  // Currency
   const [currency, setCurrency] = useState(initialCurrency || 'NPR');
-  const [currencySaved, setCurrencySaved] = useState(false);
-  const [currencyPending, startCurrencyTransition] = useTransition();
-
-  function handleCurrencySave() {
-    startCurrencyTransition(async () => {
-      await saveCurrency(currency);
-      setCurrencySaved(true);
-      setTimeout(() => setCurrencySaved(false), 2000);
-    });
-  }
 
   function handleContactSave() {
     startContactTransition(async () => {
@@ -204,7 +195,7 @@ export default function SettingsClient({
       >
       <SettingCard
         title="Shop page & policies"
-        description="Wording your theme shows on the shop and product pages. Leave blank to use a neutral default — your theme won't make promises for you."
+        description="Set shop and policy copy plus the currency used for your prices. Leave copy blank for neutral defaults."
         onSave={handleShopCopySave}
         isPending={shopCopyPending}
         saved={shopCopySaved}
@@ -220,6 +211,14 @@ export default function SettingsClient({
         <Field label="Returns" value={returnsNote} onChange={setReturnsNote}
           placeholder="e.g. 7-day returns on unworn items."
           hint="Shown by themes that have a returns box. Blank: “Ask us about returns and exchanges before you order.”" />
+        <Field
+          label="Currency symbol"
+          value={currency}
+          onChange={setCurrency}
+          placeholder="NPR"
+          mono
+          hint='e.g. NPR, $, €, £, ₹. Appears before prices across your store.'
+        />
       </SettingCard>
       </section>
 
@@ -259,31 +258,6 @@ export default function SettingsClient({
           <label className="block text-xs text-gray-500 mb-1.5 font-medium">Social share image (Open Graph)</label>
           <ImageUploader value={ogImage} onChange={setOgImage} />
         </div>
-      </SettingCard>
-      </section>
-
-      {/* Currency */}
-      <section
-        id="profile-panel-currency"
-        role="tabpanel"
-        aria-labelledby="profile-tab-currency"
-        hidden={activeProfileTab !== "currency"}
-      >
-      <SettingCard
-        title="Currency"
-        description="Symbol displayed next to all prices on the storefront, order confirmation, emails, and admin pages."
-        onSave={handleCurrencySave}
-        isPending={currencyPending}
-        saved={currencySaved}
-      >
-        <Field
-          label="Currency symbol"
-          value={currency}
-          onChange={setCurrency}
-          placeholder="NPR"
-          mono
-          hint='e.g. NPR, $, €, £, ₹. Just the symbol — it appears before the amount.'
-        />
       </SettingCard>
       </section>
 
