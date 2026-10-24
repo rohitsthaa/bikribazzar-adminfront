@@ -76,6 +76,7 @@ export async function savePageVisibility(
     await assertCanSettings();
     await updateSetting(`${page}_enabled`, enabled ? "true" : "false");
     revalidatePath("/content");
+    if (page === "gallery" || page === "blog") revalidatePath(`/${page}`);
     await revalidateStorefront();
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save." };
