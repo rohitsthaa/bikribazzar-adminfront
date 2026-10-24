@@ -92,9 +92,9 @@ function SectionToggle({
 // A card section header with a small colored icon chip — the "designed"
 // touch the rest of the admin already uses (Sidebar, InventoryPanel) that
 // this form was missing.
-function SectionHeading({ icon, title, subtitle }: { icon: string; title: string; subtitle?: string }) {
+function SectionHeading({ icon, title, subtitle, className = 'mb-4' }: { icon: string; title: string; subtitle?: string; className?: string }) {
   return (
-    <div className="flex items-start gap-3 mb-4">
+    <div className={`flex items-start gap-3 ${className}`}>
       <span className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg bg-[#c96a3a]/10 text-[#c96a3a] flex items-center justify-center">
         <TabIcon d={icon} />
       </span>
@@ -421,11 +421,15 @@ export default function ProductForm({ product, action, categories = [], canSetPr
           full-bleed hack) since ProductForm can be nested next to a sibling
           column, e.g. the InventoryPanel sidebar on the edit page — a
           full-bleed bar would otherwise visually collide with it. */}
-      <div className="sticky top-0 z-10 -mx-1 px-1 py-3.5 bg-stone-50/95 backdrop-blur border-b border-stone-200 flex items-center justify-between gap-4">
-        <Link href="/products" className="text-[13px] font-semibold text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1.5">
-          ← Products
-        </Link>
-        <div className="flex items-center gap-2.5">
+      <div className="sticky top-0 z-10 -mx-1 px-1 py-3 bg-stone-50/95 backdrop-blur border-b border-stone-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link href="/products" className="shrink-0 text-[13px] font-semibold text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1.5">
+            ← Products
+          </Link>
+          <span aria-hidden="true" className="h-4 w-px bg-stone-300" />
+          <h1 className="truncate text-sm font-semibold text-stone-800">{isNew ? 'Add product' : 'Edit product'}</h1>
+        </div>
+        <div className="flex items-center justify-end gap-2.5">
           {isDirty && (
             <span className="text-xs text-amber-600 font-medium mr-0.5">Unsaved changes</span>
           )}
@@ -437,7 +441,6 @@ export default function ProductForm({ product, action, categories = [], canSetPr
       </div>
 
       <div className="pt-6 pb-16">
-        <h1 className="text-[26px] font-bold tracking-tight mb-5">{isNew ? 'Add product' : 'Edit product'}</h1>
 
         {state?.error && (
           <p className="mb-5 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
@@ -937,12 +940,12 @@ export default function ProductForm({ product, action, categories = [], canSetPr
             <div data-tab="variants" className={panel('variants')}>
               <div className="bg-white rounded-xl border border-stone-200 p-6">
                 <input type="hidden" name="variants" value={variantsPayload} />
-                <div className="flex items-center justify-between mb-1">
-                  <SectionHeading icon={TAB_ICONS.variants} title="Variants" subtitle="e.g. sizes or colors — leave empty for a single-option product." />
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <SectionHeading icon={TAB_ICONS.variants} title="Variants" subtitle="e.g. sizes or colors — leave empty for a single-option product." className="mb-0 min-w-0" />
                   <button
                     type="button"
                     onClick={addVariant}
-                    className="text-xs font-medium text-white bg-stone-800 hover:bg-stone-700 rounded-lg px-3 py-1.5 transition-colors shrink-0"
+                    className="shrink-0 self-start rounded-lg bg-stone-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-700"
                   >
                     + Add variant
                   </button>
@@ -984,7 +987,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                     <p className="text-sm text-gray-400">No variants — this product is sold as one option.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 mt-3">
+                  <div className="mt-4 space-y-3">
                     <div className="flex justify-end">
                       <button
                         type="button"
@@ -998,9 +1001,6 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                         Fill empty SKUs
                       </button>
                     </div>
-                    <div className="hidden sm:grid grid-cols-[56px_1fr_110px_100px_120px_28px] gap-2 text-[11px] uppercase tracking-wide text-gray-400 px-1">
-                      <span /><span>Label</span><span>Price</span><span>Cost</span><span>SKU</span><span />
-                    </div>
                     {variants.map((v, idx) => {
                       // Server-side record for this row, if it's been saved before —
                       // the source of truth for stock once restocks/adjustments can
@@ -1009,47 +1009,63 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                       const stockQty = persisted?.stockQty ?? null;
                       const isExpanded = expandedStockId === v.id;
                       return (
-                        <div key={idx} className="rounded-xl border border-gray-200 hover:border-gray-300 transition-colors p-3 space-y-3">
-                          <div className="grid grid-cols-2 sm:grid-cols-[56px_1fr_110px_100px_120px_28px] gap-2 sm:items-center">
+                        <div key={idx} className="rounded-xl border border-stone-200 bg-white p-4 transition-colors hover:border-stone-300 space-y-4">
+                          <div className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)_32px] items-center gap-3">
                             <VariantImageCell value={v.image} onChange={(url) => updateVariant(idx, { image: url })} cardAspect={cardAspect} />
-                            <input
-                              value={v.label}
-                              onChange={(e) => updateVariant(idx, { label: e.target.value })}
-                              placeholder="e.g. Red / L"
-                              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                            />
-                            <input
-                              value={v.priceNpr}
-                              onChange={(e) => updateVariant(idx, { priceNpr: e.target.value })}
-                              placeholder="Optional"
-                              inputMode="numeric"
-                              disabled={!canSetPrice}
-                              title="Blank = use the product's price"
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                            />
-                            <input
-                              value={v.costNpr}
-                              onChange={(e) => updateVariant(idx, { costNpr: e.target.value })}
-                              placeholder="Cost"
-                              inputMode="numeric"
-                              disabled={!canSetPrice}
-                              title="Blank = use the product's unit cost"
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                            />
-                            <input
-                              value={v.sku}
-                              onChange={(e) => updateVariant(idx, { sku: e.target.value })}
-                              placeholder="SKU"
-                              className="border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                            />
+                            <div className="min-w-0">
+                              <label className={fieldLabel}>Option label</label>
+                              <input
+                                value={v.label}
+                                onChange={(e) => updateVariant(idx, { label: e.target.value })}
+                                placeholder="e.g. Red / L"
+                                className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                              />
+                            </div>
                             <button
                               type="button"
                               onClick={() => removeVariant(idx)}
                               title="Remove variant"
-                              className="text-gray-300 hover:text-red-500 text-lg leading-none justify-self-end sm:justify-self-auto"
+                              aria-label={`Remove ${v.label.trim() || 'variant'}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
                             >
                               ×
                             </button>
+                          </div>
+
+                          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div className="min-w-0">
+                              <label className={fieldLabel}>Price (NPR)</label>
+                              <input
+                                value={v.priceNpr}
+                                onChange={(e) => updateVariant(idx, { priceNpr: e.target.value })}
+                                placeholder="Use product price"
+                                inputMode="numeric"
+                                disabled={!canSetPrice}
+                                title="Blank = use the product's price"
+                                className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <label className={fieldLabel}>Unit cost (NPR)</label>
+                              <input
+                                value={v.costNpr}
+                                onChange={(e) => updateVariant(idx, { costNpr: e.target.value })}
+                                placeholder="Use product cost"
+                                inputMode="numeric"
+                                disabled={!canSetPrice}
+                                title="Blank = use the product's unit cost"
+                                className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <label className={fieldLabel}>SKU</label>
+                              <input
+                                value={v.sku}
+                                onChange={(e) => updateVariant(idx, { sku: e.target.value })}
+                                placeholder="Optional SKU"
+                                className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                              />
+                            </div>
                           </div>
 
                           {/* Stock: editable on create (or for a variant added this
@@ -1057,7 +1073,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               with Restock/Adjust — same reasoning as the product-level
                               Stock qty field on the Pricing tab. */}
                           {!persisted ? (
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-3 border-t border-stone-100 pt-3">
                               <input
                                 value={v.untracked ? '' : v.stockQty}
                                 onChange={(e) => updateVariant(idx, { stockQty: e.target.value })}
@@ -1074,7 +1090,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                               </label>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 border-t border-stone-100 pt-3">
                               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                                 stockQty === null ? 'bg-stone-100 text-stone-500' :
                                 stockQty === 0 ? 'bg-red-50 text-red-600' :
