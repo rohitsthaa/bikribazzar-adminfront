@@ -1,16 +1,17 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createProduct, bulkImportProducts, getAllProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, revalidateStorefront, bulkProductAction, duplicateProduct, mergeProductsAsVariants, getProduct, type BulkProductAction } from '@/lib/api';
+import { createProduct, bulkImportProducts, getAllProducts, updateProduct, deleteProduct as apiDeleteProduct, restockProduct, adjustStock, restockVariant, adjustVariantStock, deleteUploadedImage, getCategories, createCategory, revalidateStorefront, bulkProductAction, duplicateProduct, mergeProductsAsVariants, getProduct, type BulkProductAction } from '@/lib/api';
 import { fieldsForVisibility, type Visibility } from '@/lib/visibility';
 import { getAdmin, can } from '@/lib/auth';
 import { friendlyApiError } from '@/lib/errors';
 import type { ExistingProduct, ImportRow } from '@/lib/product-import';
+import { categoryLookupKey } from '@/lib/product-import';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
 
 export type ImportResult =
-  | { ok: true; created: number; updated: number }
+  | { ok: true; created: number; updated: number; categoriesCreated: number }
   | { ok: false; error: string };
 
 /**
@@ -85,18 +86,55 @@ export async function importProductsCsv(rows: ImportRow[]): Promise<ImportResult
   const blank = rows.findIndex((r) => !r.id?.trim());
   if (blank !== -1) return { ok: false, error: `Row ${blank + 1} has no id.` };
 
-  // CSV rows carry a free-text category key (matches what a merchant would export/
-  // edit by hand); resolve it against the store's real categories. No match (or
-  // blank) -> uncategorized, rather than silently inventing a category row.
-  const categories = await getCategories().catch(() => []);
-  const categoryIdByKey = new Map(categories.map((c) => [c.key.toLowerCase(), c.id]));
+  // CSV rows carry a free-text category key or label. Match either form against the
+  // store's categories, then create each distinct missing category once before importing.
+  let categories;
+  try {
+    categories = await getCategories();
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not load categories for this import.') };
+  }
+  const categoryIdByKey = new Map<string, number>();
+  for (const category of categories) {
+    const key = categoryLookupKey(category.key);
+    const label = categoryLookupKey(category.label);
+    if (key) categoryIdByKey.set(key, category.id);
+    if (label) categoryIdByKey.set(label, category.id);
+  }
+
+  const missingCategories = new Map<string, string>();
+  for (const row of rows) {
+    const label = row.category.trim().replace(/\s+/g, ' ');
+    const key = categoryLookupKey(label);
+    if (label && !key) {
+      return { ok: false, error: `Category "${label}" needs at least one letter or number.` };
+    }
+    if (key && !categoryIdByKey.has(key)) missingCategories.set(key, label);
+  }
+  if (missingCategories.size > 0 && !can(admin.role, 'settings')) {
+    return { ok: false, error: 'Your role cannot create categories. Ask a store admin to add the categories, then import again.' };
+  }
+
+  let categoriesCreated = 0;
+  let nextSortOrder = categories.reduce((max, category) => Math.max(max, category.sortOrder), -1) + 1;
+  try {
+    for (const [key, label] of missingCategories) {
+      const category = await createCategory({ key, label, sortOrder: nextSortOrder++, parentId: null });
+      categoryIdByKey.set(key, category.id);
+      categoryIdByKey.set(categoryLookupKey(category.label), category.id);
+      categoriesCreated++;
+    }
+  } catch (err) {
+    return { ok: false, error: friendlyApiError(err, 'Could not create a category from the import. Check the category name and try again.') };
+  }
+  if (categoriesCreated > 0) revalidatePath('/categories');
 
   const payload = rows.map((row, i) => ({
     id: row.id,
     name: row.name,
     description: row.description,
     priceNpr: row.priceNpr,
-    categoryId: categoryIdByKey.get(row.category.toLowerCase()) ?? null,
+    categoryId: categoryIdByKey.get(categoryLookupKey(row.category)) ?? null,
     details: row.details || null,
     tag: row.tag || null,
     image: '',
@@ -118,7 +156,7 @@ export async function importProductsCsv(rows: ImportRow[]): Promise<ImportResult
     const { created, updated } = await bulkImportProducts(payload);
     revalidatePath('/products');
     await revalidateStorefront();
-    return { ok: true, created, updated };
+    return { ok: true, created, updated, categoriesCreated };
   } catch (err) {
     return { ok: false, error: friendlyApiError(err, 'Could not import these products.') };
   }

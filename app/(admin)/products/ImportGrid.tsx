@@ -2,7 +2,7 @@
 
 import { memo, useState } from 'react';
 import {
-  PRIMARY_COLUMNS, SECONDARY_COLUMNS, diffRow, effectiveId, hasError,
+  PRIMARY_COLUMNS, SECONDARY_COLUMNS, categoryLookupKey, diffRow, effectiveId, hasError,
   type DraftRow, type ExistingProduct, type FieldChange, type ImportField, type RowIssues,
 } from '@/lib/product-import';
 
@@ -241,10 +241,12 @@ function Cell({
   let control: React.ReactNode;
 
   if (field === 'category') {
-    const known = categories.some((c) => c.key.toLowerCase() === value.trim().toLowerCase());
+    const matchedCategory = categories.find((c) =>
+      categoryLookupKey(c.key) === categoryLookupKey(value) || categoryLookupKey(c.label) === categoryLookupKey(value));
+    const known = !!matchedCategory;
     control = (
       <select
-        value={known ? value.trim().toLowerCase() : value.trim() === '' ? '' : '__unknown'}
+        value={matchedCategory?.key ?? (value.trim() === '' ? '' : '__unknown')}
         onChange={(e) => onCell(row.key, field, e.target.value === '__unknown' ? value : e.target.value)}
         className={base}
         aria-label={`${label}, row ${row.line}`}
@@ -258,7 +260,7 @@ function Cell({
         {/* The file's own value, kept visible so it's obvious what was in the sheet
             rather than silently snapping to blank. */}
         {!known && value.trim() !== '' && (
-          <option value="__unknown">{value.trim()} — not a category</option>
+          <option value="__unknown">{value.trim()} — create on import</option>
         )}
       </select>
     );
