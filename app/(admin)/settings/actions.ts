@@ -12,13 +12,6 @@ async function assertCanSettings() {
   if (!can(me?.role, 'settings')) throw new Error('Forbidden');
 }
 
-export async function saveAboutImage(url: string) {
-  await assertCanSettings();
-  await updateSetting('about_image', url);
-  revalidatePath('/settings');
-  await revalidateStorefront();
-}
-
 // bankTransferEnabled gates whether "Bank transfer" shows as a checkout payment
 // method on the storefront (CheckoutForm.tsx) — see that file's `availableMethods` filter.
 // revalidateStorefront() below is what makes that show up immediately instead of

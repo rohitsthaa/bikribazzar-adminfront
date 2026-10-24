@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
 import { SettingCard, Field } from '@/components/SettingCard';
-import { saveAboutImage, saveContactInfo, saveCurrency, saveBranding, saveShopCopy } from './actions';
+import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy } from './actions';
 
 export default function SettingsClient({
-  initialAboutImage,
   initialPhone,
   initialInstagram,
   initialFacebook,
@@ -27,7 +25,6 @@ export default function SettingsClient({
   initialDeliveryNote,
   initialReturnsNote,
 }: {
-  initialAboutImage: string;
   initialPhone: string;
   initialInstagram: string;
   initialFacebook: string;
@@ -63,11 +60,6 @@ export default function SettingsClient({
     });
   }
 
-  // About image
-  const [aboutImage, setAboutImage] = useState(initialAboutImage);
-  const [aboutSaved, setAboutSaved] = useState(false);
-  const [aboutPending, startAboutTransition] = useTransition();
-
   // Contact info — no Soul-Thread placeholders; each store sets its own.
   const [phone, setPhone] = useState(initialPhone);
   const [instagram, setInstagram] = useState(initialInstagram);
@@ -87,8 +79,6 @@ export default function SettingsClient({
     { id: "shop", label: "Shop & policies" },
     { id: "branding", label: "Branding & SEO" },
     { id: "currency", label: "Currency" },
-    { id: "categories", label: "Categories" },
-    { id: "story", label: "Story image" },
   ] as const;
 
   // Branding & SEO
@@ -120,14 +110,6 @@ export default function SettingsClient({
     });
   }
 
-  function handleAboutSave() {
-    startAboutTransition(async () => {
-      await saveAboutImage(aboutImage);
-      setAboutSaved(true);
-      setTimeout(() => setAboutSaved(false), 2000);
-    });
-  }
-
   function handleContactSave() {
     startContactTransition(async () => {
       await saveContactInfo({ phone, instagram, facebook, youtube, tiktok, pinterest, x, email: contactEmail, location });
@@ -137,11 +119,12 @@ export default function SettingsClient({
   }
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="grid max-w-5xl gap-6 md:grid-cols-[190px_minmax(0,1fr)]">
       <div
         role="tablist"
+        aria-orientation="vertical"
         aria-label="Store profile settings"
-        className="-mb-2 flex gap-1 overflow-x-auto border-b border-stone-200"
+        className="flex flex-col gap-1 self-start"
       >
         {profileTabs.map((tab) => (
           <button
@@ -152,10 +135,10 @@ export default function SettingsClient({
             aria-selected={activeProfileTab === tab.id}
             aria-controls={`profile-panel-${tab.id}`}
             onClick={() => setActiveProfileTab(tab.id)}
-            className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
+            className={`shrink-0 border-l-2 px-3 py-3 text-left text-sm font-medium transition-colors ${
               activeProfileTab === tab.id
-                ? 'border-[#c96a3a] text-stone-900'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
+                ? 'border-[#c96a3a] bg-[#c96a3a]/[0.06] text-stone-900'
+                : 'border-transparent text-stone-500 hover:bg-stone-50 hover:text-stone-800'
             }`}
           >
             {tab.label}
@@ -163,6 +146,7 @@ export default function SettingsClient({
         ))}
       </div>
 
+      <div className="min-w-0">
       {/* Contact Info */}
       <section
         id="profile-panel-contact"
@@ -303,44 +287,7 @@ export default function SettingsClient({
       </SettingCard>
       </section>
 
-      {/* Categories */}
-      <section
-        id="profile-panel-categories"
-        role="tabpanel"
-        aria-labelledby="profile-tab-categories"
-        hidden={activeProfileTab !== "categories"}
-      >
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 flex items-center justify-between gap-4">
-        <div>
-          <h3 className="font-medium text-gray-900">Product categories</h3>
-          <p className="text-sm text-gray-500 mt-0.5">Categories shown in the shop filter and product form now have their own page.</p>
-        </div>
-        <Link
-          href="/categories"
-          className="shrink-0 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm rounded-xl transition-colors font-medium"
-        >
-          Manage categories →
-        </Link>
       </div>
-      </section>
-
-      {/* About image */}
-      <section
-        id="profile-panel-story"
-        role="tabpanel"
-        aria-labelledby="profile-tab-story"
-        hidden={activeProfileTab !== "story"}
-      >
-      <SettingCard
-        title="About / Story band image"
-        description='Shown on the homepage next to "One thread, one knot, at a time."'
-        onSave={handleAboutSave}
-        isPending={aboutPending}
-        saved={aboutSaved}
-      >
-        <ImageUploader value={aboutImage} onChange={setAboutImage} />
-      </SettingCard>
-      </section>
 
       {/* Payment QR / bank transfer toggle */}
 

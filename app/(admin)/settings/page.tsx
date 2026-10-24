@@ -22,7 +22,6 @@ export default async function SettingsPage() {
           so the client form re-seeds its useState from the new store's values. */}
       <SettingsClient
         key={storeId}
-        initialAboutImage={settings.about_image ?? ''}
         initialPhone={settings.contact_phone ?? ''}
         initialInstagram={settings.contact_instagram ?? ''}
         initialFacebook={settings.contact_facebook ?? ''}
