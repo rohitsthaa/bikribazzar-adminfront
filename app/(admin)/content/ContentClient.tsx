@@ -278,7 +278,7 @@ export default function ContentClient({
           </div>
           <div>
             <p className="text-xs font-medium text-stone-500 mb-1.5">
-              About page image{" "}
+              About and story image{" "}
               <span className="font-normal text-stone-400">(optional)</span>
             </p>
             <ImageUploader
@@ -289,8 +289,8 @@ export default function ContentClient({
               }}
             />
             <p className="mt-1.5 text-xs text-stone-400">
-              Add a photo to make your story more visual. Portrait images work
-              well.
+              Shown on your About page and homepage story section. Portrait
+              images work well.
             </p>
           </div>
           <div className="flex items-center gap-3">
