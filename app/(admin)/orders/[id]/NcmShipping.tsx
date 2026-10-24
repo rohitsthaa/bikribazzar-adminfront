@@ -16,6 +16,10 @@ export default function NcmShipping({
   ncmDestinationBranch,
   ncmTrackingStatus,
   remainingNpr,
+  itemTotalNpr,
+  paidNpr,
+  deliveryFeeNpr,
+  paymentMethod,
   deliveryFeePending = false,
   currentStatus,
 }: {
@@ -24,6 +28,10 @@ export default function NcmShipping({
   ncmDestinationBranch?: string | null;
   ncmTrackingStatus?: string | null;
   remainingNpr: number;
+  itemTotalNpr: number;
+  paidNpr: number;
+  deliveryFeeNpr: number;
+  paymentMethod?: string | null;
   /** The order's delivery fee hasn't been set yet — offer NCM's quote as the fee. */
   deliveryFeePending?: boolean;
   currentStatus?: string;
@@ -105,6 +113,10 @@ export default function NcmShipping({
         <NcmBookingForm
           orderId={orderId}
           remainingNpr={remainingNpr}
+          itemTotalNpr={itemTotalNpr}
+          paidNpr={paidNpr}
+          deliveryFeeNpr={deliveryFeeNpr}
+          paymentMethod={paymentMethod}
           deliveryFeePending={deliveryFeePending}
           onCancel={() => setOpen(false)}
           onBooked={() => setOpen(false)}

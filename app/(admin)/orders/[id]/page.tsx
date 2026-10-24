@@ -349,6 +349,10 @@ export default async function OrderDetailPage({ params }: Props) {
                 currentStatus={order.status}
                 ncmReady={ncmReady && !order.ncmOrderId}
                 remainingNpr={order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr}
+                itemTotalNpr={order.totalNpr}
+                paidNpr={order.paidNpr}
+                deliveryFeeNpr={order.deliveryFee ?? 0}
+                paymentMethod={order.paymentMethod}
                 deliveryFeePending={order.deliveryFeePending}
               />
             </div>
@@ -360,6 +364,10 @@ export default async function OrderDetailPage({ params }: Props) {
               ncmDestinationBranch={order.ncmDestinationBranch}
               ncmTrackingStatus={order.ncmTrackingStatus}
               remainingNpr={order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr}
+              itemTotalNpr={order.totalNpr}
+              paidNpr={order.paidNpr}
+              deliveryFeeNpr={order.deliveryFee ?? 0}
+              paymentMethod={order.paymentMethod}
               deliveryFeePending={order.deliveryFeePending}
               currentStatus={order.status}
             />

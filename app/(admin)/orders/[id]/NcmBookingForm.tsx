@@ -13,6 +13,10 @@ import { recallNcmBranch } from './ncm-branch';
 export default function NcmBookingForm({
   orderId,
   remainingNpr,
+  itemTotalNpr,
+  paidNpr,
+  deliveryFeeNpr,
+  paymentMethod,
   deliveryFeePending,
   onCancel,
   onBooked,
@@ -20,6 +24,10 @@ export default function NcmBookingForm({
 }: {
   orderId: string;
   remainingNpr: number;
+  itemTotalNpr: number;
+  paidNpr: number;
+  deliveryFeeNpr: number;
+  paymentMethod?: string | null;
   /** The order's delivery fee hasn't been set yet — offer NCM's quote as the fee. */
   deliveryFeePending: boolean;
   onCancel: () => void;
@@ -29,7 +37,8 @@ export default function NcmBookingForm({
   const [isPending, startTransition] = useTransition();
   const [branches, setBranches] = useState<NcmBranch[] | null>(null);
   const [toBranch, setToBranch] = useState('');
-  const [cod, setCod] = useState(remainingNpr > 0);
+  const isFonepayOrder = paymentMethod?.toLowerCase() === 'fonepay';
+  const [cod, setCod] = useState(isFonepayOrder || remainingNpr > 0);
   const [instruction, setInstruction] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [charge, setCharge] = useState<number | null>(null);
@@ -39,7 +48,11 @@ export default function NcmBookingForm({
   // is still pending). On by default: that's what "confirm with customer" usually ends up as.
   const [useNcmFee, setUseNcmFee] = useState(true);
   const applyFee = deliveryFeePending && useNcmFee && charge !== null;
-  const codAmount = remainingNpr + (applyFee ? charge! : 0);
+  const effectiveDeliveryFee = applyFee ? charge! : deliveryFeeNpr;
+  const fonepayDeliveryDue = Math.max(0, effectiveDeliveryFee - Math.max(0, paidNpr - itemTotalNpr));
+  const codAmount = isFonepayOrder
+    ? fonepayDeliveryDue
+    : remainingNpr + (applyFee ? charge! : 0);
 
   function handleBranchChange(next: string) {
     setToBranch(next);
@@ -71,10 +84,14 @@ export default function NcmBookingForm({
 
   function handleShip() {
     if (!toBranch) { setError('Pick a destination branch.'); return; }
+    if (isFonepayOrder && deliveryFeePending && !applyFee) {
+      setError("Confirm the delivery fee from NCM's rate before booking this Fonepay order.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const res = await shipViaNcmAction(orderId, {
-        toBranch, cod, instruction: instruction || undefined,
+        toBranch, cod: isFonepayOrder || cod, instruction: instruction || undefined,
         ...(applyFee ? { deliveryFee: charge! } : {}),
       });
       if ('error' in res) setError(res.error);
@@ -125,8 +142,17 @@ export default function NcmBookingForm({
         </label>
       )}
       <label className="flex items-center gap-2 text-sm text-stone-600">
-        <input type="checkbox" checked={cod} onChange={(e) => setCod(e.target.checked)} />
-        Collect on delivery (NPR {codAmount.toLocaleString()})
+        <input
+          type="checkbox"
+          checked={isFonepayOrder || cod}
+          disabled={isFonepayOrder}
+          onChange={(e) => setCod(e.target.checked)}
+        />
+        {isFonepayOrder
+          ? deliveryFeePending && !applyFee
+            ? 'NCM collects the confirmed delivery fee on arrival'
+            : `NCM collects delivery fee on arrival (NPR ${codAmount.toLocaleString()})`
+          : `Collect on delivery (NPR ${codAmount.toLocaleString()})`}
       </label>
       <div>
         <label className="block text-xs font-medium text-stone-500 mb-1.5">Delivery instruction <span className="text-stone-400 font-normal">— optional</span></label>
