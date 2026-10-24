@@ -29,13 +29,11 @@ function storeInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
-// The `isDemo` flag has to be set explicitly per store (Platform → store → Config → "Demo
-// store") and defaults to false at creation, so several template-preview stores never had it
-// flipped even though their slug makes it obvious. Falling back to the "-demo" slug suffix
-// means demo detection works immediately without depending on someone having remembered to
-// flip that toggle. Shared with PlatformOverview.tsx's identical fallback.
+// Demo status is controlled by the explicit super-admin toggle. A store may keep
+// a `-demo` slug after being converted to a live store, so the slug must not
+// override the saved setting.
 function isDemoStore(s: StoreSummary): boolean {
-  return s.isDemo || s.id.endsWith('-demo');
+  return s.isDemo;
 }
 
 // ─── Store row ────────────────────────────────────────────────────────────────
@@ -88,7 +86,7 @@ function StoreRow({ s, platformDomain }: { s: StoreSummary; platformDomain: stri
           {isDemo && (
             <span
               className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-500"
-              title={s.isDemo ? 'Excluded from platform-wide analytics totals' : 'Detected from "-demo" slug — flip "Demo store" in Config to make this official'}
+              title="Excluded from platform-wide analytics totals"
             >
               Demo
             </span>

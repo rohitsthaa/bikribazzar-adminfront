@@ -16,9 +16,9 @@ export default async function PlatformStoresPage() {
   ]);
   const stores = overview?.stores ?? [];
 
-  // Same "isDemo flag OR '-demo' slug" fallback as StoresClient/PlatformOverview — see those
-  // for why the flag alone can't be trusted.
-  const liveStores = stores.filter((s) => !(s.isDemo || s.id.endsWith('-demo')));
+  // Demo status follows the explicit super-admin setting; a `-demo` slug can
+  // remain after a store is converted to a live store.
+  const liveStores = stores.filter((s) => !s.isDemo);
   const demoCount  = stores.length - liveStores.length;
   const active    = liveStores.filter((s) => s.status === 'active').length;
   const suspended = liveStores.filter((s) => s.status !== 'active').length;
