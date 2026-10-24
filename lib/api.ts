@@ -580,7 +580,17 @@ export type NcmPricingRate = { toBranch: string; doorCharge: number; branchCharg
 export function getNcmPricingList() {
   return apiFetch<{ fromBranch: string; rates: NcmPricingRate[] }>('/orders/ncm/pricing-list');
 }
-export function shipOrderViaNcm(orderId: number, data: { toBranch: string; cod: boolean; deliveryType?: string; instruction?: string; weightKg?: number; deliveryFee?: number }) {
+export function shipOrderViaNcm(orderId: number, data: {
+  toBranch: string;
+  cod: boolean;
+  deliveryType?: string;
+  instruction?: string;
+  weightKg?: number;
+  deliveryFee?: number;
+  handling: string;
+  packageType: string;
+  packageDescription: string;
+}) {
   return apiFetch<Order>(`/orders/${orderId}/ship-ncm`, { method: 'POST', body: JSON.stringify(data) });
 }
 export function syncNcmStatus(orderId: number) {
