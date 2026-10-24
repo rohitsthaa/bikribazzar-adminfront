@@ -152,13 +152,9 @@ export default function PlatformOverview({ data }: { data: Data }) {
   const { totals, stores } = data;
   const now = Date.now();
 
-  // Same "isDemo flag OR '-demo' slug" fallback as the Stores list page — the flag has to be
-  // set explicitly per store and defaults to false, so several template-preview stores here
-  // never had it flipped even though they're obviously not real merchants. Needs-attention/
-  // lifecycle/digest/revenue-share are all "what needs my actual attention as a platform
-  // operator" views, so demo stores (which will always look unfinished — no payment config,
-  // no real orders) would otherwise permanently dominate them.
-  const realStores = stores.filter(s => !(s.isDemo || s.id.endsWith('-demo')));
+  // Use the explicit super-admin setting so changing a store with a `-demo`
+  // slug to live status takes effect consistently across platform views.
+  const realStores = stores.filter(s => !s.isDemo);
 
   // Lifecycle segments
   const active  = realStores.filter(s => s.lastOrderAt && now - new Date(s.lastOrderAt).getTime() <= DAYS(7));
