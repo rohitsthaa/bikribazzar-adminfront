@@ -80,6 +80,16 @@ export default function SettingsClient({
   const [location, setLocation] = useState(initialLocation);
   const [contactSaved, setContactSaved] = useState(false);
   const [contactPending, startContactTransition] = useTransition();
+  const [activeProfileTab, setActiveProfileTab] = useState("contact");
+
+  const profileTabs = [
+    { id: "contact", label: "Contact & socials" },
+    { id: "shop", label: "Shop & policies" },
+    { id: "branding", label: "Branding & SEO" },
+    { id: "currency", label: "Currency" },
+    { id: "categories", label: "Categories" },
+    { id: "story", label: "Story image" },
+  ] as const;
 
   // Branding & SEO
   const [tagline, setTagline] = useState(initialTagline);
@@ -128,7 +138,38 @@ export default function SettingsClient({
 
   return (
     <div className="max-w-xl space-y-6">
+      <div
+        role="tablist"
+        aria-label="Store profile settings"
+        className="-mb-2 flex gap-1 overflow-x-auto border-b border-stone-200"
+      >
+        {profileTabs.map((tab) => (
+          <button
+            key={tab.id}
+            id={`profile-tab-${tab.id}`}
+            type="button"
+            role="tab"
+            aria-selected={activeProfileTab === tab.id}
+            aria-controls={`profile-panel-${tab.id}`}
+            onClick={() => setActiveProfileTab(tab.id)}
+            className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
+              activeProfileTab === tab.id
+                ? 'border-[#c96a3a] text-stone-900'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Contact Info */}
+      <section
+        id="profile-panel-contact"
+        role="tabpanel"
+        aria-labelledby="profile-tab-contact"
+        hidden={activeProfileTab !== "contact"}
+      >
       <SettingCard
         title="Contact & social info"
         description="Contact details and social profiles shown in your storefront footer and About page. Leave a social link blank to hide it."
@@ -168,8 +209,15 @@ export default function SettingsClient({
           placeholder="City, Country"
         />
       </SettingCard>
+      </section>
 
       {/* Shop page & policies */}
+      <section
+        id="profile-panel-shop"
+        role="tabpanel"
+        aria-labelledby="profile-tab-shop"
+        hidden={activeProfileTab !== "shop"}
+      >
       <SettingCard
         title="Shop page & policies"
         description="Wording your theme shows on the shop and product pages. Leave blank to use a neutral default — your theme won't make promises for you."
@@ -189,8 +237,15 @@ export default function SettingsClient({
           placeholder="e.g. 7-day returns on unworn items."
           hint="Shown by themes that have a returns box. Blank: “Ask us about returns and exchanges before you order.”" />
       </SettingCard>
+      </section>
 
       {/* Branding & SEO */}
+      <section
+        id="profile-panel-branding"
+        role="tabpanel"
+        aria-labelledby="profile-tab-branding"
+        hidden={activeProfileTab !== "branding"}
+      >
       <SettingCard
         title="Branding & SEO"
         description="Your store's tagline, search/social description and logo. Shown in the browser tab, Google results, and social shares. Fonts are on the Design page."
@@ -221,8 +276,15 @@ export default function SettingsClient({
           <ImageUploader value={ogImage} onChange={setOgImage} />
         </div>
       </SettingCard>
+      </section>
 
       {/* Currency */}
+      <section
+        id="profile-panel-currency"
+        role="tabpanel"
+        aria-labelledby="profile-tab-currency"
+        hidden={activeProfileTab !== "currency"}
+      >
       <SettingCard
         title="Currency"
         description="Symbol displayed next to all prices on the storefront, order confirmation, emails, and admin pages."
@@ -239,8 +301,15 @@ export default function SettingsClient({
           hint='e.g. NPR, $, €, £, ₹. Just the symbol — it appears before the amount.'
         />
       </SettingCard>
+      </section>
 
       {/* Categories */}
+      <section
+        id="profile-panel-categories"
+        role="tabpanel"
+        aria-labelledby="profile-tab-categories"
+        hidden={activeProfileTab !== "categories"}
+      >
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex items-center justify-between gap-4">
         <div>
           <h3 className="font-medium text-gray-900">Product categories</h3>
@@ -253,8 +322,15 @@ export default function SettingsClient({
           Manage categories →
         </Link>
       </div>
+      </section>
 
       {/* About image */}
+      <section
+        id="profile-panel-story"
+        role="tabpanel"
+        aria-labelledby="profile-tab-story"
+        hidden={activeProfileTab !== "story"}
+      >
       <SettingCard
         title="About / Story band image"
         description='Shown on the homepage next to "One thread, one knot, at a time."'
@@ -264,6 +340,7 @@ export default function SettingsClient({
       >
         <ImageUploader value={aboutImage} onChange={setAboutImage} />
       </SettingCard>
+      </section>
 
       {/* Payment QR / bank transfer toggle */}
 
