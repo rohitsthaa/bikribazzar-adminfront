@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import CustomPageEditor from "./CustomPageEditor";
+import ImageUploader from "@/components/ImageUploader";
 import type { CustomPageConfig } from "@/lib/custom-page-config";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import {
@@ -122,6 +123,7 @@ export default function ContentClient({
   // About
   const [aboutTitle, setAboutTitle] = useState(initialAboutTitle);
   const [aboutBody, setAboutBody] = useState(initialAboutBody);
+  const [aboutImage, setAboutImage] = useState(initialAboutImage);
   const [aboutSaved, setAboutSaved] = useState(false);
   const [aboutError, setAboutError] = useState<string | null>(null);
   const [isPendingAbout, startAbout] = useTransition();
@@ -185,7 +187,7 @@ export default function ContentClient({
     const fd = new FormData(e.currentTarget);
     const body = (fd.get("aboutBody") as string) ?? aboutBody;
     startAbout(async () => {
-      const res = await saveAboutContent(aboutTitle, body);
+      const res = await saveAboutContent(aboutTitle, body, aboutImage);
       if (res.error) {
         setAboutError(res.error);
         return;
@@ -289,25 +291,23 @@ export default function ContentClient({
               {aboutBody.length} / 3000
             </p>
           </div>
-          {initialAboutImage && (
-            <div>
-              <p className="text-xs font-medium text-stone-500 mb-1.5">
-                About image
-              </p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={initialAboutImage}
-                alt="About"
-                className="h-20 w-auto rounded-lg object-cover border border-stone-100"
-              />
-              <p className="text-xs text-stone-400 mt-1">
-                Change image in{" "}
-                <a href="/settings" className="underline hover:text-stone-700">
-                  Settings → About image
-                </a>
-              </p>
-            </div>
-          )}
+          <div>
+            <p className="text-xs font-medium text-stone-500 mb-1.5">
+              About page image{" "}
+              <span className="font-normal text-stone-400">(optional)</span>
+            </p>
+            <ImageUploader
+              value={aboutImage}
+              onChange={(url) => {
+                setAboutImage(url);
+                setAboutSaved(false);
+              }}
+            />
+            <p className="mt-1.5 text-xs text-stone-400">
+              Add a photo to make your story more visual. Portrait images work
+              well.
+            </p>
+          </div>
           <div className="flex items-center gap-3">
             <button type="submit" disabled={isPendingAbout} className={btnCls}>
               {isPendingAbout ? "Saving…" : "Save"}
