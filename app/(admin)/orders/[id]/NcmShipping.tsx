@@ -16,12 +16,15 @@ export default function NcmShipping({
   ncmDestinationBranch,
   ncmTrackingStatus,
   remainingNpr,
+  deliveryFeePending = false,
 }: {
   orderId: string;
   ncmOrderId?: number | null;
   ncmDestinationBranch?: string | null;
   ncmTrackingStatus?: string | null;
   remainingNpr: number;
+  /** The order's delivery fee hasn't been set yet — offer NCM's quote as the fee. */
+  deliveryFeePending?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -33,6 +36,11 @@ export default function NcmShipping({
   const [charge, setCharge] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
+  // Charge the customer NCM's quoted rate as the delivery fee (only offered while the fee
+  // is still pending). On by default: that's what "confirm with customer" usually ends up as.
+  const [useNcmFee, setUseNcmFee] = useState(true);
+  const applyFee = deliveryFeePending && useNcmFee && charge !== null;
+  const codAmount = remainingNpr + (applyFee ? charge! : 0);
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
 
@@ -68,7 +76,10 @@ export default function NcmShipping({
     if (!toBranch) { setError('Pick a destination branch.'); return; }
     setError(null);
     startTransition(async () => {
-      const res = await shipViaNcmAction(orderId, { toBranch, cod, instruction: instruction || undefined });
+      const res = await shipViaNcmAction(orderId, {
+        toBranch, cod, instruction: instruction || undefined,
+        ...(applyFee ? { deliveryFee: charge! } : {}),
+      });
       if ('error' in res) setError(res.error);
       else setOpen(false);
     });
@@ -173,9 +184,15 @@ export default function NcmShipping({
               );
             })()}
           </div>
+          {deliveryFeePending && charge !== null && (
+            <label className="flex items-center gap-2 text-sm text-stone-600">
+              <input type="checkbox" checked={useNcmFee} onChange={(e) => setUseNcmFee(e.target.checked)} />
+              Set the delivery fee to NCM&apos;s rate (NPR {charge.toLocaleString()})
+            </label>
+          )}
           <label className="flex items-center gap-2 text-sm text-stone-600">
             <input type="checkbox" checked={cod} onChange={(e) => setCod(e.target.checked)} />
-            Collect on delivery (NPR {remainingNpr})
+            Collect on delivery (NPR {codAmount.toLocaleString()})
           </label>
           <div>
             <label className="block text-xs font-medium text-stone-500 mb-1.5">Delivery instruction <span className="text-stone-400 font-normal">— optional</span></label>
