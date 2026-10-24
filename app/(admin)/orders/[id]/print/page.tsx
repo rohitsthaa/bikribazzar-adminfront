@@ -11,14 +11,17 @@ export default async function PrintPackSlip({ params }: Props) {
   try { order = await getOrder(id); } catch { notFound(); }
   if (!order) notFound();
 
+  const storeId = await currentStoreId();
   const [products, settings, store] = await Promise.all([
     getAllProducts().catch(() => []),
     getSettings().catch(() => ({} as Record<string, string>)),
-    // The invoice header used to be hardcoded to Soul Thread (tenant #1) — every store's
-    // printed invoices carried Soul Thread's name and Budanilkantha address.
-    currentStoreId().then((id) => getStore(id)).catch(() => null),
+    storeId ? getStore(storeId).catch(() => null) : Promise.resolve(null),
   ]);
   const currency = settings.currency_symbol || 'NPR';
+  const platformDomain =
+    process.env.NEXT_PUBLIC_PLATFORM_DOMAIN || process.env.PLATFORM_DOMAIN || 'bikribazaar.com';
+  const storeDomain = store?.customDomain || (storeId ? `${storeId}.${platformDomain}` : '');
+  const storeContact = [storeDomain, settings.contact_email].filter(Boolean).join(' · ');
   const productMap = new Map(products.map((p) => [p.id, p]));
 
   const TZ = 'Asia/Kathmandu';
@@ -155,7 +158,10 @@ export default async function PrintPackSlip({ params }: Props) {
 
         {/* Footer */}
         <div className="pt-6 border-t border-stone-200 text-center text-xs text-stone-400">
-          <p>Thank you for your order! · soulthreadktm.com · hello@soulthreadktm.com</p>
+          <p>
+            Thank you for your order!
+            {storeContact && <> · {storeContact}</>}
+          </p>
         </div>
       </div>
 
