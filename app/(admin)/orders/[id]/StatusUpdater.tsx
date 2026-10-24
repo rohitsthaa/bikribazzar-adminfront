@@ -111,6 +111,10 @@ function NcmRatePicker({ orderId, onRate }: { orderId: string; onRate: (charge: 
  */
 function ShipDialog({
   orderId,
+  initialName,
+  initialPhone,
+  initialAddress,
+  initialFromBranch,
   remainingNpr,
   itemTotalNpr,
   paidNpr,
@@ -123,6 +127,10 @@ function ShipDialog({
   isPending,
 }: {
   orderId: string;
+  initialName: string;
+  initialPhone: string;
+  initialAddress: string;
+  initialFromBranch: string;
   remainingNpr: number;
   itemTotalNpr: number;
   paidNpr: number;
@@ -169,6 +177,10 @@ function ShipDialog({
               <div className="pt-4 border-t border-stone-100">
                 <NcmBookingForm
                   orderId={orderId}
+                  initialName={initialName}
+                  initialPhone={initialPhone}
+                  initialAddress={initialAddress}
+                  initialFromBranch={initialFromBranch}
                   remainingNpr={remainingNpr}
                   itemTotalNpr={itemTotalNpr}
                   paidNpr={paidNpr}
@@ -328,6 +340,10 @@ function ConfirmDialog({
 
 export default function StatusUpdater({
   orderId,
+  initialName,
+  initialPhone,
+  initialAddress,
+  initialFromBranch,
   currentStatus,
   ncmReady = false,
   remainingNpr = 0,
@@ -338,6 +354,10 @@ export default function StatusUpdater({
   deliveryFeePending = false,
 }: {
   orderId: string;
+  initialName: string;
+  initialPhone: string;
+  initialAddress: string;
+  initialFromBranch: string;
   currentStatus: Order['status'];
   /** NCM is set up for this store and the order hasn't shipped with it yet. */
   ncmReady?: boolean;
@@ -399,6 +419,10 @@ export default function StatusUpdater({
       {pendingStatus === 'shipped' && ncmReady && (
         <ShipDialog
           orderId={orderId}
+          initialName={initialName}
+          initialPhone={initialPhone}
+          initialAddress={initialAddress}
+          initialFromBranch={initialFromBranch}
           remainingNpr={remainingNpr}
           itemTotalNpr={itemTotalNpr}
           paidNpr={paidNpr}
