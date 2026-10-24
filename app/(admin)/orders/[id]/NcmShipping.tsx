@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { getNcmBranchesAction, getNcmShippingRateAction, shipViaNcmAction, syncNcmStatusAction } from '../actions';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { getNcmBranchesAction, getNcmShippingRateAction, shipViaNcmAction, syncNcmStatusAction, updateStatusAction } from '../actions';
 import type { NcmBranch } from '@/lib/api';
-import { recallNcmBranch } from './ncm-branch';
+import { OPEN_NCM_BOOKING, recallNcmBranch } from './ncm-branch';
 
 // Matches NcmService.ResolveBaseUrl's own default on the API side — every store currently
 // resolves to NCM's demo/UAT host (NCM_BASE_URL is unset everywhere so far). If a real store
@@ -18,6 +18,7 @@ export default function NcmShipping({
   ncmTrackingStatus,
   remainingNpr,
   deliveryFeePending = false,
+  currentStatus,
 }: {
   orderId: string;
   ncmOrderId?: number | null;
@@ -26,7 +27,10 @@ export default function NcmShipping({
   remainingNpr: number;
   /** The order's delivery fee hasn't been set yet — offer NCM's quote as the fee. */
   deliveryFeePending?: boolean;
+  currentStatus?: string;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const alreadyShipped = currentStatus === 'shipped' || currentStatus === 'delivered';
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [branches, setBranches] = useState<NcmBranch[] | null>(null);
@@ -74,6 +78,24 @@ export default function NcmShipping({
         else setBranches(res.branches);
       });
     }
+  }
+
+  // "Shipped" in the status list opens this form (see StatusUpdater).
+  useEffect(() => {
+    const onOpen = () => {
+      openForm();
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    window.addEventListener(OPEN_NCM_BOOKING, onOpen);
+    return () => window.removeEventListener(OPEN_NCM_BOOKING, onOpen);
+  });
+
+  function markShippedWithoutNcm() {
+    setError(null);
+    startTransition(async () => {
+      await updateStatusAction(orderId, 'shipped');
+      setOpen(false);
+    });
   }
 
   function handleShip() {
@@ -142,14 +164,19 @@ export default function NcmShipping({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5">
+    <div ref={cardRef} className="bg-white rounded-2xl border border-stone-200 p-5">
       <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Courier — NCM</h2>
+      {alreadyShipped && (
+        <p className="text-xs text-amber-700 mb-3">
+          Marked {currentStatus}, but no NCM pickup is booked for this order.
+        </p>
+      )}
       {!open ? (
         <button
           onClick={openForm}
           className="w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-900 text-white hover:bg-stone-700 transition-colors"
         >
-          Ship via NCM
+          Book NCM pickup
         </button>
       ) : (
         <div className="space-y-3">
@@ -221,9 +248,19 @@ export default function NcmShipping({
               disabled={isPending}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-stone-900 text-white hover:bg-stone-700 transition-colors disabled:opacity-60"
             >
-              {isPending ? 'Shipping…' : 'Confirm'}
+              {isPending ? 'Booking…' : 'Book pickup'}
             </button>
           </div>
+          {!alreadyShipped && (
+            <button
+              type="button"
+              onClick={markShippedWithoutNcm}
+              disabled={isPending}
+              className="w-full text-xs text-stone-400 hover:text-stone-700 underline underline-offset-2 disabled:opacity-50"
+            >
+              Not using NCM for this one? Mark shipped without a pickup
+            </button>
+          )}
         </div>
       )}
     </div>

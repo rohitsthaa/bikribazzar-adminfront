@@ -11,3 +11,7 @@ export function rememberNcmBranch(orderId: string, branch: string) {
 export function recallNcmBranch(orderId: string): string {
   try { return sessionStorage.getItem(key(orderId)) ?? ''; } catch { return ''; }
 }
+
+/** Fired by the status buttons when "Shipped" is clicked on a store with NCM: the courier card
+ *  opens its booking form instead of the order being marked shipped without a pickup. */
+export const OPEN_NCM_BOOKING = 'ncm:open-booking';
