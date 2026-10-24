@@ -346,6 +346,10 @@ export default async function OrderDetailPage({ params }: Props) {
               <h2 className="font-semibold text-stone-900 mb-3 text-sm uppercase tracking-wide">Update Status</h2>
               <StatusUpdater
                 orderId={id}
+                initialName={order.recipientName ?? order.customerName}
+                initialPhone={order.recipientPhone ?? order.phone}
+                initialAddress={order.address ?? ''}
+                initialFromBranch={courier?.ncm.fromBranch ?? ''}
                 currentStatus={order.status}
                 ncmReady={ncmReady && !order.ncmOrderId}
                 remainingNpr={order.totalNpr + (order.deliveryFee ?? 0) - order.paidNpr}
@@ -360,6 +364,10 @@ export default async function OrderDetailPage({ params }: Props) {
             {/* Courier — NCM */}
             <NcmShipping
               orderId={id}
+              initialName={order.recipientName ?? order.customerName}
+              initialPhone={order.recipientPhone ?? order.phone}
+              initialAddress={order.address ?? ''}
+              initialFromBranch={courier?.ncm.fromBranch ?? ''}
               ncmOrderId={order.ncmOrderId}
               ncmDestinationBranch={order.ncmDestinationBranch}
               ncmTrackingStatus={order.ncmTrackingStatus}
