@@ -100,12 +100,10 @@ interface Props {
   initialAboutBody: string;
   initialAboutImage: string;
   initialAboutEnabled: boolean;
-  initialGalleryEnabled: boolean;
   initialCustomTitle: string;
   initialCustomBody: string;
   initialCustomEnabled: boolean;
   initialCustomConfig: CustomPageConfig;
-  initialBlogEnabled: boolean;
 }
 
 export default function ContentClient({
@@ -113,12 +111,10 @@ export default function ContentClient({
   initialAboutBody,
   initialAboutImage,
   initialAboutEnabled,
-  initialGalleryEnabled,
   initialCustomTitle,
   initialCustomBody,
   initialCustomEnabled,
   initialCustomConfig,
-  initialBlogEnabled,
 }: Props) {
   // About
   const [aboutTitle, setAboutTitle] = useState(initialAboutTitle);
@@ -131,11 +127,6 @@ export default function ContentClient({
   const [isPendingAboutToggle, startAboutToggle] = useTransition();
   const [aboutToggleSaved, setAboutToggleSaved] = useState(false);
 
-  // Gallery
-  const [galleryEnabled, setGalleryEnabled] = useState(initialGalleryEnabled);
-  const [isPendingGalleryToggle, startGalleryToggle] = useTransition();
-  const [galleryToggleSaved, setGalleryToggleSaved] = useState(false);
-
   // Custom
   const [customConfig, setCustomConfig] = useState(initialCustomConfig);
   const [customTitle, setCustomTitle] = useState(initialCustomTitle);
@@ -147,21 +138,15 @@ export default function ContentClient({
   const [isPendingCustomToggle, startCustomToggle] = useTransition();
   const [customToggleSaved, setCustomToggleSaved] = useState(false);
 
-  // Blog
-  const [blogEnabled, setBlogEnabled] = useState(initialBlogEnabled);
-  const [isPendingBlogToggle, startBlogToggle] = useTransition();
-  const [blogToggleSaved, setBlogToggleSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<"about" | "gallery" | "custom" | "blog">("about");
+  const [activeTab, setActiveTab] = useState<"about" | "custom">("about");
 
   const tabs = [
     { id: "about", label: "About" },
-    { id: "gallery", label: "Gallery" },
     { id: "custom", label: "Custom orders" },
-    { id: "blog", label: "Blog" },
   ] as const;
 
   function toggle(
-    page: "about" | "gallery" | "custom" | "blog",
+    page: "about" | "custom",
     setEnabled: (v: boolean) => void,
     startTransition: (fn: () => Promise<void> | void) => void,
     setSaved: (v: boolean) => void,
@@ -323,40 +308,6 @@ export default function ContentClient({
       </Section>
       </section>
 
-      {/* Gallery */}
-      <section
-        id="content-panel-gallery"
-        role="tabpanel"
-        aria-labelledby="content-tab-gallery"
-        hidden={activeTab !== "gallery"}
-      >
-      <Section
-        title="Gallery page"
-        hint="Shown at /gallery — images managed in the Gallery section"
-        enabled={galleryEnabled}
-        onToggle={(next) =>
-          toggle(
-            "gallery",
-            setGalleryEnabled,
-            startGalleryToggle,
-            setGalleryToggleSaved,
-            next,
-          )
-        }
-        togglePending={isPendingGalleryToggle}
-        toggleSaved={galleryToggleSaved}
-      >
-        <p className="text-sm text-stone-500">
-          Gallery images are managed in the{" "}
-          <a href="/gallery" className="text-[#c96a3a] hover:underline">
-            Gallery
-          </a>{" "}
-          section. Upload or reorder images there — they appear automatically on
-          the gallery page.
-        </p>
-      </Section>
-      </section>
-
       {/* Custom orders page */}
       <section
         id="content-panel-custom"
@@ -437,39 +388,6 @@ export default function ContentClient({
       </Section>
       </section>
 
-      {/* Blog */}
-      <section
-        id="content-panel-blog"
-        role="tabpanel"
-        aria-labelledby="content-tab-blog"
-        hidden={activeTab !== "blog"}
-      >
-      <Section
-        title="Blog"
-        hint="Shown at /blog — posts managed in the Blog section"
-        enabled={blogEnabled}
-        onToggle={(next) =>
-          toggle(
-            "blog",
-            setBlogEnabled,
-            startBlogToggle,
-            setBlogToggleSaved,
-            next,
-          )
-        }
-        togglePending={isPendingBlogToggle}
-        toggleSaved={blogToggleSaved}
-      >
-        <p className="text-sm text-stone-500">
-          Blog posts are managed in the{" "}
-          <a href="/blog" className="text-[#c96a3a] hover:underline">
-            Blog
-          </a>{" "}
-          section. Write and publish posts there — they appear automatically on
-          the blog page.
-        </p>
-      </Section>
-      </section>
     </div>
   );
 }

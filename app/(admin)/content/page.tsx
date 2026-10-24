@@ -30,12 +30,10 @@ export default async function ContentPage() {
         initialAboutBody={settings.about_body ?? ""}
         initialAboutImage={settings.about_image ?? ""}
         initialAboutEnabled={settings.about_enabled !== "false"}
-        initialGalleryEnabled={settings.gallery_enabled !== "false"}
         initialCustomTitle={settings.custom_title ?? ""}
         initialCustomBody={settings.custom_body ?? ""}
         initialCustomEnabled={settings.custom_enabled !== "false"}
         initialCustomConfig={parseCustomPageConfig(settings.custom_page_config)}
-        initialBlogEnabled={settings.blog_enabled !== "false"}
       />
     </main>
   );

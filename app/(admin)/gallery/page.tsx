@@ -3,11 +3,16 @@ import { addGalleryImage, removeGalleryImage } from './actions';
 import AddGalleryForm from './AddGalleryForm';
 import GalleryImage from './GalleryImage';
 import EmptyState from '@/components/EmptyState';
+import PageVisibilityCard from '@/components/PageVisibilityCard';
+import { getSettings } from '@/lib/api';
 
 export const metadata = { title: 'Gallery — Bikri Bazaar' };
 
 export default async function GalleryPage() {
-  const images = await getGalleryImages();
+  const [images, settings] = await Promise.all([
+    getGalleryImages(),
+    getSettings().catch(() => ({} as Record<string, string>)),
+  ]);
   const isEmpty = images.length === 0;
 
   return (
@@ -26,6 +31,13 @@ export default async function GalleryPage() {
             </p>
           </div>
         </div>
+
+        <PageVisibilityCard
+          page="gallery"
+          initialEnabled={settings.gallery_enabled !== 'false'}
+          title="Gallery page visibility"
+          description="Choose whether visitors can open the gallery page on your storefront. Your gallery images are managed below."
+        />
 
         {/* Add image — permanently visible, matching Testimonials (the other
             page with a short, single-item add-form). Adding photos is a
