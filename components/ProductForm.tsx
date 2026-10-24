@@ -639,32 +639,27 @@ export default function ProductForm({ product, action, categories = [], canSetPr
 
                 <div>
                   <label className={fieldLabel}>Shared product gallery</label>
-                  <p className="text-xs text-gray-400 mt-1 mb-3">These photos are available for every option. A visual variant’s own photo appears first, followed by the cover and these shared photos.</p>
+                  <p className="text-xs text-gray-400 mt-1 mb-3">Available to every option. Visual variant photos appear first, followed by the cover and these photos.</p>
                   <input type="hidden" name="images" value={JSON.stringify(galleryImages)} />
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
                     {galleryImages.map((url, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        {/* min-w-0 overrides the flex item's default min-width:auto — without it, the
-                            uploaded photo's real (large) intrinsic size wins the flex sizing calculation
-                            before object-cover/aspect-ratio ever get a chance to constrain it, so the
-                            thumbnail renders at near-native size and bleeds out of the card. */}
-                        <div className="flex-1 min-w-0">
-                          <ImageUploader
-                            value={url}
-                            onChange={(newUrl) => {
-                              const next = [...galleryImages];
-                              next[i] = newUrl;
-                              setGalleryImages(next);
-                            }}
-                            enableCrop
-                            cardAspect={cardAspect}
-                          />
-                        </div>
+                      <div key={i} className="relative min-w-0">
+                        <ImageUploader
+                          value={url}
+                          onChange={(newUrl) => {
+                            const next = [...galleryImages];
+                            next[i] = newUrl;
+                            setGalleryImages(next);
+                          }}
+                          enableCrop
+                          cardAspect={cardAspect}
+                        />
                         <button
                           type="button"
                           onClick={() => setGalleryImages(galleryImages.filter((_, j) => j !== i))}
-                          className="shrink-0 p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                          className="absolute right-2 top-2 z-10 rounded-full bg-white/95 p-1.5 text-gray-500 shadow-sm ring-1 ring-black/10 hover:text-red-600 transition-colors"
                           title="Remove"
+                          aria-label={`Remove gallery image ${i + 1}`}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M18 6L6 18M6 6l12 12"/>
@@ -675,9 +670,10 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                     <button
                       type="button"
                       onClick={() => setGalleryImages([...galleryImages, ''])}
-                      className="w-full py-2.5 border-[1.5px] border-dashed border-stone-300 rounded-lg text-[13px] font-semibold text-stone-500 hover:border-[#c96a3a]/50 hover:text-[#c96a3a] transition-colors"
+                      className="min-h-24 sm:aspect-[4/5] flex flex-col items-center justify-center gap-2 border-[1.5px] border-dashed border-stone-300 rounded-xl text-[13px] font-semibold text-stone-500 hover:border-[#c96a3a]/50 hover:text-[#c96a3a] hover:bg-[#c96a3a]/[0.02] transition-colors"
                     >
-                      + Add image
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-100 text-lg leading-none">+</span>
+                      Add photo
                     </button>
                   </div>
                 </div>
