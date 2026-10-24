@@ -10,6 +10,7 @@ import { TOKEN_COOKIE } from './auth';
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3001';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 const STOREFRONT_URL = process.env.STOREFRONT_URL ?? '';
+const PLATFORM_DOMAIN = process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ?? '';
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? '';
 
 // Bridges to the (separately deployed) storefront's POST /api/revalidate.
@@ -17,19 +18,26 @@ const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? '';
 // see its lib/api.ts) with no automatic invalidation, so without this call a
 // setting saved here (e.g. "Enable bank transfer") only shows up on the live
 // site once that cache naturally expires. Call this after any save that
-// changes storefront-visible data. Best-effort: STOREFRONT_URL/REVALIDATE_SECRET
-// may not be configured in every environment, and a flush failure must never
-// block (or roll back) the save that triggered it.
+// changes storefront-visible data. Local setups can override the storefront
+// URL; otherwise target the current store's platform subdomain. Production
+// does not configure STOREFRONT_URL, so relying on it alone silently skipped
+// every invalidation there. Best-effort: a missing config or flush failure must
+// never block (or roll back) the save that triggered it.
 export async function revalidateStorefront(): Promise<void> {
-  if (!STOREFRONT_URL || !REVALIDATE_SECRET) return;
+  if (!REVALIDATE_SECRET) return;
   try {
+    const storefrontUrl = STOREFRONT_URL || (
+      PLATFORM_DOMAIN ? `https://${await currentStoreId()}.${PLATFORM_DOMAIN}` : ''
+    );
+    if (!storefrontUrl) return;
+
     // A hung storefront (up but not responding — stalled TLS/DNS/backed-up
     // server) previously had no timeout, so this await could block
     // indefinitely. Every caller awaits this inline, so an admin save would
     // then hang until the platform's own request timeout killed it —
     // defeating the "must never block a legitimate save" goal. AbortSignal.timeout
     // rejects into the catch below like any other fetch failure.
-    const res = await fetch(`${STOREFRONT_URL}/api/revalidate`, {
+    const res = await fetch(`${storefrontUrl.replace(/\/$/, '')}/api/revalidate`, {
       method: 'POST',
       headers: { 'x-revalidate-secret': REVALIDATE_SECRET },
       cache: 'no-store',
