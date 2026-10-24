@@ -37,8 +37,8 @@ export default function NcmBookingForm({
   const [isPending, startTransition] = useTransition();
   const [branches, setBranches] = useState<NcmBranch[] | null>(null);
   const [toBranch, setToBranch] = useState('');
-  const isFonepayOrder = paymentMethod?.toLowerCase() === 'fonepay';
-  const [cod, setCod] = useState(isFonepayOrder || remainingNpr > 0);
+  const isOnlineItemsOnlyOrder = ['esewa', 'khalti', 'fonepay'].includes(paymentMethod?.toLowerCase() ?? '');
+  const [cod, setCod] = useState(isOnlineItemsOnlyOrder || remainingNpr > 0);
   const [instruction, setInstruction] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [charge, setCharge] = useState<number | null>(null);
@@ -49,9 +49,9 @@ export default function NcmBookingForm({
   const [useNcmFee, setUseNcmFee] = useState(true);
   const applyFee = deliveryFeePending && useNcmFee && charge !== null;
   const effectiveDeliveryFee = applyFee ? charge! : deliveryFeeNpr;
-  const fonepayDeliveryDue = Math.max(0, effectiveDeliveryFee - Math.max(0, paidNpr - itemTotalNpr));
-  const codAmount = isFonepayOrder
-    ? fonepayDeliveryDue
+  const onlineDeliveryDue = Math.max(0, effectiveDeliveryFee - Math.max(0, paidNpr - itemTotalNpr));
+  const codAmount = isOnlineItemsOnlyOrder
+    ? onlineDeliveryDue
     : remainingNpr + (applyFee ? charge! : 0);
 
   function handleBranchChange(next: string) {
@@ -84,14 +84,14 @@ export default function NcmBookingForm({
 
   function handleShip() {
     if (!toBranch) { setError('Pick a destination branch.'); return; }
-    if (isFonepayOrder && deliveryFeePending && !applyFee) {
-      setError("Confirm the delivery fee from NCM's rate before booking this Fonepay order.");
+    if (isOnlineItemsOnlyOrder && deliveryFeePending && !applyFee) {
+      setError("Confirm the delivery fee from NCM's rate before booking this order.");
       return;
     }
     setError(null);
     startTransition(async () => {
       const res = await shipViaNcmAction(orderId, {
-        toBranch, cod: isFonepayOrder || cod, instruction: instruction || undefined,
+        toBranch, cod: isOnlineItemsOnlyOrder || cod, instruction: instruction || undefined,
         ...(applyFee ? { deliveryFee: charge! } : {}),
       });
       if ('error' in res) setError(res.error);
@@ -144,11 +144,11 @@ export default function NcmBookingForm({
       <label className="flex items-center gap-2 text-sm text-stone-600">
         <input
           type="checkbox"
-          checked={isFonepayOrder || cod}
-          disabled={isFonepayOrder}
+          checked={isOnlineItemsOnlyOrder || cod}
+          disabled={isOnlineItemsOnlyOrder}
           onChange={(e) => setCod(e.target.checked)}
         />
-        {isFonepayOrder
+        {isOnlineItemsOnlyOrder
           ? deliveryFeePending && !applyFee
             ? 'NCM collects the confirmed delivery fee on arrival'
             : `NCM collects delivery fee on arrival (NPR ${codAmount.toLocaleString()})`
