@@ -33,13 +33,21 @@ export async function savePaymentQr(url: string, bankTransferEnabled: boolean) {
   await revalidateStorefront();
 }
 
-export async function saveContactInfo(phone: string, instagram: string, email: string, location: string) {
+export async function saveContactInfo(data: {
+  phone: string; instagram: string; facebook: string; youtube: string;
+  tiktok: string; pinterest: string; x: string; email: string; location: string;
+}) {
   await assertCanSettings();
   await Promise.all([
-    updateSetting('contact_phone', phone),
-    updateSetting('contact_instagram', instagram),
-    updateSetting('contact_email', email),
-    updateSetting('contact_location', location),
+    updateSetting('contact_phone', data.phone.trim()),
+    updateSetting('contact_instagram', data.instagram.trim()),
+    updateSetting('contact_facebook', data.facebook.trim()),
+    updateSetting('contact_youtube', data.youtube.trim()),
+    updateSetting('contact_tiktok', data.tiktok.trim()),
+    updateSetting('contact_pinterest', data.pinterest.trim()),
+    updateSetting('contact_x', data.x.trim()),
+    updateSetting('contact_email', data.email.trim()),
+    updateSetting('contact_location', data.location.trim()),
   ]);
   revalidatePath('/settings');
   await revalidateStorefront();

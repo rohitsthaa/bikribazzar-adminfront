@@ -25,6 +25,11 @@ export default async function SettingsPage() {
         initialAboutImage={settings.about_image ?? ''}
         initialPhone={settings.contact_phone ?? ''}
         initialInstagram={settings.contact_instagram ?? ''}
+        initialFacebook={settings.contact_facebook ?? ''}
+        initialYoutube={settings.contact_youtube ?? ''}
+        initialTiktok={settings.contact_tiktok ?? ''}
+        initialPinterest={settings.contact_pinterest ?? ''}
+        initialX={settings.contact_x ?? ''}
         initialContactEmail={settings.contact_email ?? ''}
         initialLocation={settings.contact_location ?? ''}
         initialCurrency={settings.currency_symbol ?? 'NPR'}
