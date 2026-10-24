@@ -1,7 +1,9 @@
 'use client';
 
-import { useTransition, useState } from 'react';
-import { updateStatusAction } from '../actions';
+import { useEffect, useTransition, useState } from 'react';
+import { getNcmBranchesAction, getNcmShippingRateAction, updateStatusAction } from '../actions';
+import type { NcmBranch } from '@/lib/api';
+import { rememberNcmBranch } from './ncm-branch';
 import type { Order } from '@/lib/api';
 
 const PIPELINE: Array<{
@@ -42,13 +44,77 @@ const STATUS_META: Partial<Record<Order['status'], { icon: string; description: 
   },
 };
 
+/**
+ * Fills the delivery fee from NCM's own rate for a destination branch, so confirming an order
+ * that will ship with NCM doesn't mean looking the rate up separately. The branch is remembered
+ * for this order, and "Ship via NCM" opens with it already selected.
+ */
+function NcmRatePicker({ orderId, onRate }: { orderId: string; onRate: (charge: number) => void }) {
+  const [branches, setBranches] = useState<NcmBranch[] | null>(null);
+  const [branch, setBranch] = useState('');
+  const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    getNcmBranchesAction().then((res) => {
+      if (cancelled) return;
+      if ('error' in res) { setState('error'); setMessage(res.error); }
+      else setBranches(res.branches);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  function pick(next: string) {
+    setBranch(next);
+    setMessage('');
+    if (!next) return;
+    rememberNcmBranch(orderId, next);
+    setState('loading');
+    getNcmShippingRateAction(next).then((res) => {
+      if ('error' in res) { setState('error'); setMessage(res.error); return; }
+      setState('idle');
+      setMessage(`NCM to ${next}: NPR ${res.charge.toLocaleString()}`);
+      onRate(res.charge);
+    });
+  }
+
+  return (
+    <div className="mt-3 rounded-xl bg-stone-50 border border-stone-100 p-3">
+      <label className="block text-xs font-medium text-stone-500 mb-1.5">Shipping with NCM? Use their rate</label>
+      <select
+        value={branch}
+        onChange={(e) => pick(e.target.value)}
+        disabled={!branches}
+        className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30 disabled:opacity-60"
+      >
+        <option value="">{branches ? 'Destination branch…' : 'Loading branches…'}</option>
+        {branches?.map((b) => (
+          <option key={b.pk} value={b.name}>
+            {[b.name, [b.district, b.province].filter(Boolean).join(', ')].filter(Boolean).join(' — ')}
+          </option>
+        ))}
+      </select>
+      {(state === 'loading' || message) && (
+        <p className={`text-[11px] mt-1.5 ${state === 'error' ? 'text-red-600' : 'text-stone-500'}`}>
+          {state === 'loading' ? 'Fetching NCM rate…' : message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ConfirmDialog({
+  orderId,
   status,
+  ncmReady,
   onConfirm,
   onCancel,
   isPending,
 }: {
+  orderId: string;
   status: Order['status'];
+  ncmReady: boolean;
   onConfirm: (deliveryFee?: number) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -127,6 +193,7 @@ function ConfirmDialog({
                 <p className="text-[11px] text-stone-400 mt-1">
                   This will be shown to the customer in their confirmation email.
                 </p>
+                {ncmReady && <NcmRatePicker orderId={orderId} onRate={(c) => setFeeInput(String(c))} />}
               </div>
             )}
           </div>
@@ -161,9 +228,12 @@ function ConfirmDialog({
 export default function StatusUpdater({
   orderId,
   currentStatus,
+  ncmReady = false,
 }: {
   orderId: string;
   currentStatus: Order['status'];
+  /** NCM is set up for this store and the order hasn't shipped with it yet. */
+  ncmReady?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingStatus, setPendingStatus] = useState<Order['status'] | null>(null);
@@ -214,7 +284,9 @@ export default function StatusUpdater({
 
       {pendingStatus && (
         <ConfirmDialog
+          orderId={orderId}
           status={pendingStatus}
+          ncmReady={ncmReady}
           onConfirm={handleConfirm}
           onCancel={() => setPendingStatus(null)}
           isPending={isPending}
