@@ -52,13 +52,14 @@ export default function NcmBookingForm({
   const [handling, setHandling] = useState('');
   const [packageType, setPackageType] = useState('');
   const [packageDescription, setPackageDescription] = useState('');
-  const [vendorRefId, setVendorRefId] = useState(orderId);
   const [deliveryType, setDeliveryType] = useState('Door2Door');
   const [weightKg, setWeightKg] = useState('1');
   const isOnlineItemsOnlyOrder = ['esewa', 'khalti', 'fonepay'].includes(paymentMethod?.toLowerCase() ?? '');
   const [cod, setCod] = useState(isOnlineItemsOnlyOrder || remainingNpr > 0);
   const [instruction, setInstruction] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [codVerificationPending, setCodVerificationPending] = useState(false);
+  const [verifiedCodCharge, setVerifiedCodCharge] = useState<number | null>(null);
   const [charge, setCharge] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
@@ -74,7 +75,10 @@ export default function NcmBookingForm({
   const shouldCollect = isOnlineItemsOnlyOrder || cod;
   const [codCharge, setCodCharge] = useState(String(codAmount));
 
-  useEffect(() => setCodCharge(String(codAmount)), [codAmount]);
+  useEffect(() => {
+    setCodCharge(String(codAmount));
+    setVerifiedCodCharge(null);
+  }, [codAmount]);
 
   const rateTypeByDeliveryType: Record<string, string> = {
     Door2Door: 'Pickup/Collect',
@@ -111,6 +115,22 @@ export default function NcmBookingForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
+  function submitBooking(codChargeNpr: number) {
+    setError(null);
+    startTransition(async () => {
+      const res = await shipViaNcmAction(orderId, {
+        toBranch, cod: shouldCollect, instruction: instruction.trim() || undefined,
+        handling, packageType: packageType.trim(), packageDescription: packageDescription.trim(),
+        name: name.trim(), phone: phone.trim(), address: address.trim(), fromBranch: fromBranch.trim(),
+        codChargeNpr, vendorRefId: orderId,
+        deliveryType, weightKg: Number(weightKg),
+        ...(applyFee ? { deliveryFee: charge! } : {}),
+      });
+      if ('error' in res) setError(res.error);
+      else onBooked();
+    });
+  }
+
   function handleShip() {
     if (!toBranch) { setError('Pick a destination branch.'); return; }
     if (!name.trim() || !phone.trim() || !address.trim() || !fromBranch.trim()) {
@@ -135,18 +155,12 @@ export default function NcmBookingForm({
       return;
     }
     setError(null);
-    startTransition(async () => {
-      const res = await shipViaNcmAction(orderId, {
-        toBranch, cod: shouldCollect, instruction: instruction.trim() || undefined,
-        handling, packageType: packageType.trim(), packageDescription: packageDescription.trim(),
-        name: name.trim(), phone: phone.trim(), address: address.trim(), fromBranch: fromBranch.trim(),
-        codChargeNpr: shouldCollect ? Number(codCharge) : 0, vendorRefId: vendorRefId.trim(),
-        deliveryType, weightKg: Number(weightKg),
-        ...(applyFee ? { deliveryFee: charge! } : {}),
-      });
-      if ('error' in res) setError(res.error);
-      else onBooked();
-    });
+    const amountToSend = shouldCollect ? Number(codCharge) : 0;
+    if (shouldCollect && amountToSend !== Math.round(codAmount) && verifiedCodCharge !== amountToSend) {
+      setCodVerificationPending(true);
+      return;
+    }
+    submitBooking(amountToSend);
   }
 
   const selected = branches?.find((b) => b.name === toBranch);
@@ -160,7 +174,7 @@ export default function NcmBookingForm({
     branch: toBranch,
     package: packageType.trim() && packageDescription.trim() ? `${packageType.trim()}: ${packageDescription.trim()}` : '',
     handling,
-    vref_id: vendorRefId.trim(),
+    vref_id: orderId,
     instruction: [handling ? `Handling: ${handling}` : '', instruction.trim()].filter(Boolean).join('\n'),
     delivery_type: deliveryType,
     weight: String(Number(weightKg) || 0),
@@ -242,7 +256,7 @@ export default function NcmBookingForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-stone-500 mb-1.5">COD amount sent to NCM (NPR)</label>
-          <input type="number" min="0" step="1" value={shouldCollect ? codCharge : '0'} disabled={!shouldCollect} onChange={(e) => setCodCharge(e.target.value)} className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm disabled:bg-stone-50 disabled:text-stone-400" />
+          <input type="number" min="0" step="1" value={shouldCollect ? codCharge : '0'} disabled={!shouldCollect} onChange={(e) => { setCodCharge(e.target.value); setCodVerificationPending(false); setVerifiedCodCharge(null); }} className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm disabled:bg-stone-50 disabled:text-stone-400" />
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-500 mb-1.5">Package weight (kg)</label>
@@ -288,7 +302,8 @@ export default function NcmBookingForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-stone-500 mb-1.5">Vendor reference ID</label>
-          <input value={vendorRefId} onChange={(e) => setVendorRefId(e.target.value)} className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm" />
+          <input value={orderId} readOnly aria-readonly="true" className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm bg-stone-50 text-stone-500 cursor-not-allowed" />
+          <p className="text-[11px] text-stone-400 mt-1">Fixed to this order number.</p>
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-500 mb-1.5">Delivery type</label>
@@ -314,6 +329,30 @@ export default function NcmBookingForm({
         <pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-all text-[11px] leading-relaxed text-stone-600">{JSON.stringify(payloadPreview, null, 2)}</pre>
       </details>
       {error && <p className="text-xs text-red-600">{error}</p>}
+      {codVerificationPending && (
+        <div role="alertdialog" aria-labelledby="ncm-cod-verification-title" className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+          <p id="ncm-cod-verification-title" className="text-sm font-semibold text-amber-900">Reverify the COD amount</p>
+          <p className="text-xs leading-relaxed text-amber-800">
+            You changed the calculated amount from NPR {Math.round(codAmount).toLocaleString()} to NPR {Number(codCharge).toLocaleString()}. Confirm this amount with the customer before sending it to NCM.
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setCodVerificationPending(false)} className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200">Review amount</button>
+            <button
+              type="button"
+              onClick={() => {
+                const amount = Number(codCharge);
+                setVerifiedCodCharge(amount);
+                setCodVerificationPending(false);
+                submitBooking(amount);
+              }}
+              disabled={isPending}
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-amber-700 text-white disabled:opacity-50"
+            >
+              I reverified — book pickup
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex gap-2">
         <button
           type="button"
