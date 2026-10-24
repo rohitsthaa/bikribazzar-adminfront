@@ -37,6 +37,9 @@ export default function NcmBookingForm({
   const [isPending, startTransition] = useTransition();
   const [branches, setBranches] = useState<NcmBranch[] | null>(null);
   const [toBranch, setToBranch] = useState('');
+  const [handling, setHandling] = useState('');
+  const [packageType, setPackageType] = useState('');
+  const [packageDescription, setPackageDescription] = useState('');
   const isOnlineItemsOnlyOrder = ['esewa', 'khalti', 'fonepay'].includes(paymentMethod?.toLowerCase() ?? '');
   const [cod, setCod] = useState(isOnlineItemsOnlyOrder || remainingNpr > 0);
   const [instruction, setInstruction] = useState('');
@@ -84,6 +87,11 @@ export default function NcmBookingForm({
 
   function handleShip() {
     if (!toBranch) { setError('Pick a destination branch.'); return; }
+    if (!handling) { setError('Choose how NCM should handle this package.'); return; }
+    if (!packageType.trim() || !packageDescription.trim()) {
+      setError('Enter the package type and description.');
+      return;
+    }
     if (isOnlineItemsOnlyOrder && deliveryFeePending && !applyFee) {
       setError("Confirm the delivery fee from NCM's rate before booking this order.");
       return;
@@ -92,6 +100,7 @@ export default function NcmBookingForm({
     startTransition(async () => {
       const res = await shipViaNcmAction(orderId, {
         toBranch, cod: isOnlineItemsOnlyOrder || cod, instruction: instruction || undefined,
+        handling, packageType: packageType.trim(), packageDescription: packageDescription.trim(),
         ...(applyFee ? { deliveryFee: charge! } : {}),
       });
       if ('error' in res) setError(res.error);
@@ -154,6 +163,42 @@ export default function NcmBookingForm({
             : `NCM collects delivery fee on arrival (NPR ${codAmount.toLocaleString()})`
           : `Collect on delivery (NPR ${codAmount.toLocaleString()})`}
       </label>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Handling</label>
+        <select
+          required
+          value={handling}
+          onChange={(e) => setHandling(e.target.value)}
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+        >
+          <option value="">Choose handling…</option>
+          <option value="Fragile">Fragile</option>
+          <option value="Fragile and Valuable">Fragile and Valuable</option>
+          <option value="Valuable">Valuable</option>
+          <option value="Non-Fragile">Non-Fragile</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Package type</label>
+        <input
+          required
+          value={packageType}
+          onChange={(e) => setPackageType(e.target.value)}
+          placeholder="e.g. Clothing, pottery, electronics"
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-500 mb-1.5">Package description</label>
+        <textarea
+          required
+          value={packageDescription}
+          onChange={(e) => setPackageDescription(e.target.value)}
+          rows={2}
+          placeholder="Describe the contents of the package"
+          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+        />
+      </div>
       <div>
         <label className="block text-xs font-medium text-stone-500 mb-1.5">Delivery instruction <span className="text-stone-400 font-normal">— optional</span></label>
         <textarea

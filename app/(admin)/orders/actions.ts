@@ -82,7 +82,15 @@ export async function getNcmShippingRateAction(
 
 export async function shipViaNcmAction(
   orderId: string,
-  data: { toBranch: string; cod: boolean; instruction?: string; deliveryFee?: number }
+  data: {
+    toBranch: string;
+    cod: boolean;
+    handling: string;
+    packageType: string;
+    packageDescription: string;
+    instruction?: string;
+    deliveryFee?: number;
+  }
 ): Promise<{ ok: true } | { error: string }> {
   try {
     await shipOrderViaNcm(Number(orderId), data);
