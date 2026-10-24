@@ -70,10 +70,10 @@ export async function getNcmBranchesAction(): Promise<{ ok: true; branches: Awai
 }
 
 export async function getNcmShippingRateAction(
-  toBranch: string, deliveryType?: string
+  toBranch: string, deliveryType?: string, fromBranch?: string
 ): Promise<{ ok: true; charge: number } | { error: string }> {
   try {
-    const { charge } = await getNcmShippingRate(toBranch, deliveryType);
+    const { charge } = await getNcmShippingRate(toBranch, deliveryType, fromBranch);
     return { ok: true, charge };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not fetch delivery charge' };
@@ -88,6 +88,14 @@ export async function shipViaNcmAction(
     handling: string;
     packageType: string;
     packageDescription: string;
+    name: string;
+    phone: string;
+    address: string;
+    fromBranch: string;
+    codChargeNpr: number;
+    vendorRefId: string;
+    deliveryType: string;
+    weightKg: number;
     instruction?: string;
     deliveryFee?: number;
   }

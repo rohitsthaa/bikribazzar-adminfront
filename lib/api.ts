@@ -572,8 +572,8 @@ export type NcmBranch = { pk: number; name: string; district: string | null; pro
 export function getNcmBranches() {
   return apiFetch<NcmBranch[]>('/orders/ncm/branches');
 }
-export function getNcmShippingRate(toBranch: string, deliveryType?: string) {
-  const params = new URLSearchParams({ toBranch, ...(deliveryType ? { deliveryType } : {}) });
+export function getNcmShippingRate(toBranch: string, deliveryType?: string, fromBranch?: string) {
+  const params = new URLSearchParams({ toBranch, ...(deliveryType ? { deliveryType } : {}), ...(fromBranch ? { fromBranch } : {}) });
   return apiFetch<{ charge: number }>(`/orders/ncm/shipping-rate?${params.toString()}`);
 }
 export type NcmPricingRate = { toBranch: string; doorCharge: number; branchCharge: number };
@@ -583,13 +583,19 @@ export function getNcmPricingList() {
 export function shipOrderViaNcm(orderId: number, data: {
   toBranch: string;
   cod: boolean;
-  deliveryType?: string;
   instruction?: string;
-  weightKg?: number;
   deliveryFee?: number;
   handling: string;
   packageType: string;
   packageDescription: string;
+  name: string;
+  phone: string;
+  address: string;
+  fromBranch: string;
+  codChargeNpr: number;
+  vendorRefId: string;
+  deliveryType: string;
+  weightKg: number;
 }) {
   return apiFetch<Order>(`/orders/${orderId}/ship-ncm`, { method: 'POST', body: JSON.stringify(data) });
 }

@@ -19,6 +19,10 @@ export default function NcmShipping({
   itemTotalNpr,
   paidNpr,
   deliveryFeeNpr,
+  initialName,
+  initialPhone,
+  initialAddress,
+  initialFromBranch,
   paymentMethod,
   deliveryFeePending = false,
   currentStatus,
@@ -31,6 +35,10 @@ export default function NcmShipping({
   itemTotalNpr: number;
   paidNpr: number;
   deliveryFeeNpr: number;
+  initialName: string;
+  initialPhone: string;
+  initialAddress: string;
+  initialFromBranch: string;
   paymentMethod?: string | null;
   /** The order's delivery fee hasn't been set yet — offer NCM's quote as the fee. */
   deliveryFeePending?: boolean;
@@ -116,6 +124,10 @@ export default function NcmShipping({
           itemTotalNpr={itemTotalNpr}
           paidNpr={paidNpr}
           deliveryFeeNpr={deliveryFeeNpr}
+          initialName={initialName}
+          initialPhone={initialPhone}
+          initialAddress={initialAddress}
+          initialFromBranch={initialFromBranch}
           paymentMethod={paymentMethod}
           deliveryFeePending={deliveryFeePending}
           onCancel={() => setOpen(false)}
