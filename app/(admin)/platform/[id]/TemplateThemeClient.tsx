@@ -141,6 +141,13 @@ export default function TemplateThemeClient({
   const [isPending, startTransition] = useTransition();
 
   const templates = [...allTemplates].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const selectedTemplate = templates.find((template) => template.id === templateId);
+  const resolvePreviewColor = (value: string, fallback: string) =>
+    /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim()) ? value.trim() : fallback;
+  const previewPrimary = resolvePreviewColor(primary, selectedTemplate?.palette[0] ?? '#c96a3a');
+  const previewAccent = resolvePreviewColor(accent, selectedTemplate?.palette[2] ?? '#e7e5e4');
+  const previewBackground = resolvePreviewColor(bg, selectedTemplate?.palette[3] ?? '#fafaf9');
+  const previewText = selectedTemplate?.palette[1] ?? '#292524';
 
   function selectTemplate(id: string) {
     setTemplateId(id);
@@ -212,6 +219,29 @@ export default function TemplateThemeClient({
           <ColorInput name="accent"  label="Accent colour"  value={accent}  onChange={setAccent}  placeholder="#3d2c1e" />
           <ColorInput name="bg"      label="Background"     value={bg}      onChange={setBg}      placeholder="#faf8f5" />
         </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-medium text-stone-600 mb-2">Live storefront preview</p>
+        <div
+          className="overflow-hidden rounded-xl border border-stone-200 p-4 transition-colors"
+          style={{ backgroundColor: previewBackground, color: previewText }}
+        >
+          <div className="flex items-center justify-between gap-3 border-b pb-3" style={{ borderColor: `${previewText}20` }}>
+            <span className="rounded-full px-3 py-1 text-xs font-semibold text-white" style={{ backgroundColor: previewPrimary }}>
+              {storeName}
+            </span>
+            <span className="text-[11px] font-medium" style={{ color: previewText }}>Shop　 About　 Contact</span>
+          </div>
+          <div className="mt-4 rounded-lg p-4 transition-colors" style={{ backgroundColor: previewAccent }}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: previewPrimary }}>New collection</p>
+            <p className="mt-1 text-lg font-semibold">A storefront that feels like you.</p>
+            <button type="button" className="mt-3 rounded-lg px-4 py-2 text-xs font-semibold text-white" style={{ backgroundColor: previewPrimary }}>
+              Explore the store
+            </button>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-stone-400">Preview updates as you edit. Save changes to apply the colors to the storefront.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">

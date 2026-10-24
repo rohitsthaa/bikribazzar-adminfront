@@ -129,6 +129,7 @@ export async function updateStoreTemplateThemeAction(
       customDomain: data.customDomain,
       theme: data.theme,
     });
+    await revalidateStorefront(storeId);
     revalidatePath(`/platform/${storeId}`);
     return { ok: true };
   } catch (e) {
