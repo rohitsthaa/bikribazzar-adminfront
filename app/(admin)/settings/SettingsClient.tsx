@@ -110,7 +110,6 @@ export default function SettingsClient({
   const [testEmailType, setTestEmailType] = useState<'confirmation' | 'update'>('confirmation');
   const [testEmailStatus, setTestEmailStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [testEmailPending, startTestEmailTransition] = useTransition();
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   const profileTabs = [
     { id: "contact", label: "Contact & socials" },
@@ -202,7 +201,7 @@ export default function SettingsClient({
   const previewButton = previewText(isConfirmationPreview ? emailOrderButton : emailUpdateButton);
 
   return (
-    <div className="grid max-w-5xl gap-6 md:grid-cols-[190px_minmax(0,1fr)]">
+    <div className="grid max-w-none gap-6 md:grid-cols-[190px_minmax(0,1fr)]">
       <div
         role="tablist"
         aria-orientation="vertical"
@@ -367,6 +366,8 @@ export default function SettingsClient({
           isPending={emailCopyPending}
           saved={emailCopySaved}
         >
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+          <div className="min-w-0 space-y-4">
           <div className="border-b border-gray-100 pb-4">
             <h3 className="text-sm font-semibold text-gray-800">Order confirmation</h3>
             <p className="mt-1 text-xs text-gray-400">Sent after a customer places an order.</p>
@@ -433,15 +434,6 @@ export default function SettingsClient({
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => setShowEmailPreview((visible) => !visible)}
-                aria-expanded={showEmailPreview}
-                aria-controls="customer-email-preview"
-                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-              >
-                {showEmailPreview ? 'Hide preview' : 'Preview email'}
-              </button>
-              <button
-                type="button"
                 onClick={handleTestEmail}
                 disabled={testEmailPending || !testRecipient.trim()}
                 className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
@@ -454,8 +446,9 @@ export default function SettingsClient({
                 </p>
               )}
             </div>
-            {showEmailPreview && (
-              <div id="customer-email-preview" className="overflow-hidden rounded-xl border border-gray-200 bg-[#f6f3f0] p-4 sm:p-6">
+          </div>
+          </div>
+              <div id="customer-email-preview" className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-[#f6f3f0] p-4 sm:p-6 xl:sticky xl:top-6">
                 <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Email preview</p>
                   <p className="mt-1 truncate text-sm font-medium text-gray-800" title={previewSubject}>
@@ -500,7 +493,6 @@ export default function SettingsClient({
                 </div>
                 <p className="px-1 pt-3 text-xs text-gray-500">Sample order details are shown. Your saved store logo, tagline and contact details appear here when configured.</p>
               </div>
-            )}
           </div>
         </SettingCard>
       </section>
