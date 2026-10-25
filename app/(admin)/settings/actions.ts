@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection, updateStoreCourierConfig, sendTestEmail } from '@/lib/api';
-import type { EmailCopyDraft, FonepayTestResult, TestEmailTemplate } from '@/lib/api';
+import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection, testEsewaConnection, testKhaltiConnection, testNcmConnection, updateStoreCourierConfig, sendTestEmail } from '@/lib/api';
+import type { ConnectionTestResult, EmailCopyDraft, FonepayTestResult, TestEmailTemplate } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
 
@@ -135,6 +135,33 @@ export async function testFonepay(data: {
   } catch (err) {
     return { ok: false, steps: [{ name: 'key', ok: false,
       detail: err instanceof Error ? err.message : 'Could not reach the server to run the test.' }] };
+  }
+}
+
+export async function testEsewa(data: { mode: string; productCode: string; secret: string }): Promise<ConnectionTestResult> {
+  await assertCanSettings();
+  try {
+    return await testEsewaConnection({ mode: data.mode, productCode: data.productCode || null, secret: data.secret || null });
+  } catch (err) {
+    return { ok: false, steps: [{ name: 'server', ok: false, detail: err instanceof Error ? err.message : 'Could not reach eSewa to run the test.' }] };
+  }
+}
+
+export async function testKhalti(data: { mode: string; secret: string }): Promise<ConnectionTestResult> {
+  await assertCanSettings();
+  try {
+    return await testKhaltiConnection({ mode: data.mode, secret: data.secret || null });
+  } catch (err) {
+    return { ok: false, steps: [{ name: 'server', ok: false, detail: err instanceof Error ? err.message : 'Could not reach Khalti to run the test.' }] };
+  }
+}
+
+export async function testNcm(data: { mode: 'test' | 'production'; fromBranch: string; token: string }): Promise<ConnectionTestResult> {
+  await assertCanSettings();
+  try {
+    return await testNcmConnection({ mode: data.mode, fromBranch: data.fromBranch, token: data.token || null });
+  } catch (err) {
+    return { ok: false, steps: [{ name: 'server', ok: false, detail: err instanceof Error ? err.message : 'Could not reach NCM to run the test.' }] };
   }
 }
 

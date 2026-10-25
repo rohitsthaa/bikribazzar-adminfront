@@ -3,15 +3,34 @@
 import { useState, useTransition } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 import { SettingCard, Field } from '@/components/SettingCard';
-import { savePaymentQr, savePaymentGateways, testFonepay } from '../actions';
-import type { PaymentGatewayConfigView } from '@/lib/api';
+import { savePaymentQr, savePaymentGateways, testFonepay, testEsewa, testKhalti } from '../actions';
+import type { ConnectionTestResult, PaymentGatewayConfigView } from '@/lib/api';
 
 // Maps the API's step ids onto something a store owner can act on.
 const LABELS: Record<string, string> = {
   key: 'Private key',
   login: 'Sign in',
   qr: 'QR generation',
+  signing: 'Signing secret',
+  product: 'Product code',
+  token: 'Vendor token',
+  branch: 'Pickup branch',
+  server: 'Connection',
 };
+
+function ConnectionTestNotice({ result, successMessage = 'Connection check passed.' }: { result: ConnectionTestResult; successMessage?: string }) {
+  return (
+    <div aria-live="polite" className={`rounded-lg border px-3 py-2 text-xs space-y-1 ${result.ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+      {result.steps.map((step) => (
+        <div key={step.name} className="flex gap-2">
+          <span className={step.ok ? 'text-green-600' : 'text-red-600'}>{step.ok ? '✓' : '✗'}</span>
+          <span className="text-stone-700"><span className="font-medium">{LABELS[step.name] ?? step.name}</span>{' — '}{step.detail}</span>
+        </div>
+      ))}
+      {result.ok && <p className="pt-0.5 font-medium text-green-700">{successMessage}</p>}
+    </div>
+  );
+}
 
 /**
  * Everything about taking money, on one page of its own.
@@ -58,14 +77,38 @@ export default function PaymentsClient({
   const [fonepayUsername, setFonepayUsername] = useState('');
   const [fonepayPassword, setFonepayPassword] = useState('');
   const [fonepayPrivateKey, setFonepayPrivateKey] = useState('');
+  const [esewaTesting, setEsewaTesting] = useState(false);
+  const [esewaTestResult, setEsewaTestResult] = useState<ConnectionTestResult | null>(null);
+  const [khaltiTesting, setKhaltiTesting] = useState(false);
+  const [khaltiTestResult, setKhaltiTestResult] = useState<ConnectionTestResult | null>(null);
   const [gatewaysSaved, setGatewaysSaved] = useState(false);
   const [gatewaysError, setGatewaysError] = useState('');
   const [gatewaysPending, startGatewaysTransition] = useTransition();
 
-  // Connection test: runs against the live gateway without saving, so a bad key is caught here
-  // rather than by a customer at checkout. Fields left blank fall back to what's already saved.
+  // Connection checks run against the selected gateway mode without saving. Fields left blank
+  // fall back to what's already saved.
   const [fpTesting, setFpTesting] = useState(false);
-  const [fpResult, setFpResult] = useState<{ ok: boolean; steps: { name: string; ok: boolean; detail: string }[] } | null>(null);
+  const [fpResult, setFpResult] = useState<ConnectionTestResult | null>(null);
+
+  async function handleEsewaTest() {
+    setEsewaTesting(true);
+    setEsewaTestResult(null);
+    try {
+      setEsewaTestResult(await testEsewa({ mode: esewaGwMode, productCode: esewaProductCodeGw, secret: esewaSecretGw }));
+    } finally {
+      setEsewaTesting(false);
+    }
+  }
+
+  async function handleKhaltiTest() {
+    setKhaltiTesting(true);
+    setKhaltiTestResult(null);
+    try {
+      setKhaltiTestResult(await testKhalti({ mode: khaltiModeGw, secret: khaltiSecretGw }));
+    } finally {
+      setKhaltiTesting(false);
+    }
+  }
 
   async function handleFonepayTest() {
     setFpTesting(true);
@@ -219,6 +262,18 @@ export default function PaymentsClient({
                 placeholder={initialPaymentGateways.esewa.hasSecret ? 'Already saved — enter to replace' : 'Enter your eSewa secret key'}
                 mono
               />
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleEsewaTest}
+                  disabled={esewaTesting}
+                  className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                >
+                  {esewaTesting ? 'Testing…' : 'Test connection'}
+                </button>
+                <span className="text-xs text-stone-400">Checks eSewa’s status service and product code. The secret can’t be validated without starting a payment.</span>
+              </div>
+              {esewaTestResult && <ConnectionTestNotice result={esewaTestResult} />}
             </>
           )}
         </div>
@@ -263,6 +318,18 @@ export default function PaymentsClient({
                 placeholder={initialPaymentGateways.khalti.hasSecret ? 'Already saved — enter to replace' : 'Enter your Khalti secret key'}
                 mono
               />
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleKhaltiTest}
+                  disabled={khaltiTesting}
+                  className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                >
+                  {khaltiTesting ? 'Testing…' : 'Test connection'}
+                </button>
+                <span className="text-xs text-stone-400">Checks this key with Khalti’s read-only payment lookup. No payment is created.</span>
+              </div>
+              {khaltiTestResult && <ConnectionTestNotice result={khaltiTestResult} />}
             </>
           )}
         </div>
@@ -338,28 +405,7 @@ export default function PaymentsClient({
                 </span>
               </div>
 
-              {fpResult && (
-                <div
-                  className={`rounded-lg border px-3 py-2 text-xs space-y-1 ${
-                    fpResult.ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                  }`}
-                >
-                  {fpResult.steps.map((st) => (
-                    <div key={st.name} className="flex gap-2">
-                      <span className={st.ok ? 'text-green-600' : 'text-red-600'}>{st.ok ? '✓' : '✗'}</span>
-                      <span className="text-stone-700">
-                        <span className="font-medium capitalize">{LABELS[st.name] ?? st.name}</span>
-                        {' — '}{st.detail}
-                      </span>
-                    </div>
-                  ))}
-                  {fpResult.ok && (
-                    <p className="text-green-700 font-medium pt-0.5">
-                      Fonepay is working. Customers can pay with it at checkout.
-                    </p>
-                  )}
-                </div>
-              )}
+              {fpResult && <ConnectionTestNotice result={fpResult} successMessage="Fonepay is working. Customers can pay with it at checkout." />}
             </>
           )}
         </div>

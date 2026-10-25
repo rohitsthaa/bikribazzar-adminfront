@@ -2,7 +2,8 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import type { StoreCourierConfigView } from '@/lib/api';
-import { saveCourierConfig } from '../actions';
+import type { ConnectionTestResult } from '@/lib/api';
+import { saveCourierConfig, testNcm } from '../actions';
 
 const inputClass = 'mt-1 w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30';
 
@@ -21,6 +22,22 @@ export default function CourierSettingsClient({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [pending, startTransition] = useTransition();
+  const [testPending, setTestPending] = useState(false);
+  const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
+
+  async function handleTestConnection() {
+    setTestPending(true);
+    setTestResult(null);
+    try {
+      setTestResult(await testNcm({
+        mode: forcedTestMode ? 'test' : mode,
+        fromBranch,
+        token,
+      }));
+    } finally {
+      setTestPending(false);
+    }
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,6 +139,29 @@ export default function CourierSettingsClient({
 
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         {saved && <p role="status" className="text-sm text-emerald-700">Courier settings saved.</p>}
+
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 p-4">
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={testPending}
+            className="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
+          >
+            {testPending ? 'Testing…' : 'Test connection'}
+          </button>
+          <span className="text-xs text-stone-500">Checks the token and pickup branch using NCM’s read-only rate list. No shipment is created.</span>
+          {testResult && (
+            <div aria-live="polite" className={`basis-full rounded-lg border px-3 py-2 text-xs space-y-1 ${testResult.ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+              {testResult.steps.map((step) => (
+                <div key={step.name} className="flex gap-2">
+                  <span className={step.ok ? 'text-green-600' : 'text-red-600'}>{step.ok ? '✓' : '✗'}</span>
+                  <span className="text-stone-700"><span className="font-medium capitalize">{step.name}</span>{' — '}{step.detail}</span>
+                </div>
+              ))}
+              {testResult.ok && <p className="pt-0.5 font-medium text-green-700">NCM connection check passed.</p>}
+            </div>
+          )}
+        </div>
 
         <button
           type="submit"
