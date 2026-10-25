@@ -29,6 +29,7 @@ export default function PaymentsClient({
   initialBankTransferEnabled: boolean;
   initialPaymentGateways: PaymentGatewayConfigView;
 }) {
+  const [activePaymentMethod, setActivePaymentMethod] = useState<'bank' | 'esewa' | 'khalti' | 'fonepay'>('bank');
   // Payment QR
   const [paymentQr, setPaymentQr] = useState(initialPaymentQr);
   const [bankTransferEnabled, setBankTransferEnabled] = useState(initialBankTransferEnabled);
@@ -102,7 +103,31 @@ export default function PaymentsClient({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-6xl space-y-5">
+      <div className="border-b border-gray-200">
+        <div role="tablist" aria-label="Payment methods" className="flex gap-2 overflow-x-auto">
+          {[
+            { id: 'bank', label: 'Bank transfer' },
+            { id: 'esewa', label: 'eSewa' },
+            { id: 'khalti', label: 'Khalti' },
+            { id: 'fonepay', label: 'Fonepay' },
+          ].map((method) => (
+            <button
+              key={method.id}
+              id={`payment-tab-${method.id}`}
+              type="button"
+              role="tab"
+              aria-selected={activePaymentMethod === method.id}
+              aria-controls={method.id === 'bank' ? 'payment-panel-bank' : 'payment-panel-online'}
+              onClick={() => setActivePaymentMethod(method.id as typeof activePaymentMethod)}
+              className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${activePaymentMethod === method.id ? 'border-[#c96a3a] text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
+            >
+              {method.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <section id="payment-panel-bank" role="tabpanel" aria-labelledby="payment-tab-bank" hidden={activePaymentMethod !== 'bank'}>
       <SettingCard
         title="Payment QR code"
         description="Scan-to-pay QR shown on the order confirmation page. Enable below to also offer &ldquo;Bank transfer&rdquo; as a payment option at checkout."
@@ -143,7 +168,9 @@ export default function PaymentsClient({
           </div>
         )}
       </SettingCard>
+      </section>
 
+      <section id="payment-panel-online" role="tabpanel" aria-labelledby={`payment-tab-${activePaymentMethod}`} hidden={activePaymentMethod === 'bank'}>
       <SettingCard
         title="Payment gateways"
         description="Connect your own eSewa, Khalti, and Fonepay merchant accounts so customers can pay online at checkout."
@@ -152,7 +179,7 @@ export default function PaymentsClient({
         saved={gatewaysSaved}
       >
         {/* eSewa */}
-        <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+        <div hidden={activePaymentMethod !== 'esewa'} className="border border-gray-100 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm font-medium text-gray-800">eSewa</p>
             <button
@@ -197,7 +224,7 @@ export default function PaymentsClient({
         </div>
 
         {/* Khalti */}
-        <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+        <div hidden={activePaymentMethod !== 'khalti'} className="border border-gray-100 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm font-medium text-gray-800">Khalti</p>
             <button
@@ -241,7 +268,7 @@ export default function PaymentsClient({
         </div>
 
         {/* Fonepay */}
-        <div className="border border-gray-100 rounded-xl p-4 space-y-3">
+        <div hidden={activePaymentMethod !== 'fonepay'} className="border border-gray-100 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm font-medium text-gray-800">Fonepay</p>
             <button
@@ -339,8 +366,8 @@ export default function PaymentsClient({
 
         {gatewaysError && <p className="text-xs text-red-600">{gatewaysError}</p>}
       </SettingCard>
+      </section>
 
-      {gatewaysError && <p className="text-xs text-red-600">{gatewaysError}</p>}
     </div>
   );
 }
