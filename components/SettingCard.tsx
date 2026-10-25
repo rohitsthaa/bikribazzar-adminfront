@@ -76,3 +76,26 @@ export function Field({ label, value, onChange, placeholder, mono, hint }: {
     </div>
   );
 }
+
+export function TextAreaField({ label, value, onChange, placeholder, hint, rows = 3 }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1.5 font-medium">{label}</label>
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full resize-y border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
+      />
+      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+    </div>
+  );
+}

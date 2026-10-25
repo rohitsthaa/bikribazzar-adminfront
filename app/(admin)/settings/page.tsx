@@ -40,6 +40,14 @@ export default async function SettingsPage() {
         initialShopSubtitle={settings.shop_subtitle ?? ''}
         initialDeliveryNote={settings.delivery_note ?? ''}
         initialReturnsNote={settings.returns_note ?? ''}
+        initialEmailOrderSubject={settings.email_order_subject ?? 'Order Confirmed — {storeName}'}
+        initialEmailOrderHeading={settings.email_order_heading ?? 'Order confirmed'}
+        initialEmailOrderMessage={settings.email_order_message ?? 'Hi {customerName}, thank you for your order!'}
+        initialEmailOrderButton={settings.email_order_button ?? 'Track your order'}
+        initialEmailUpdateSubject={settings.email_update_subject ?? 'Order update — {storeName}'}
+        initialEmailUpdateHeading={settings.email_update_heading ?? 'An update on your order'}
+        initialEmailUpdateMessage={settings.email_update_message ?? 'Hi {customerName}, {status}.'}
+        initialEmailUpdateButton={settings.email_update_button ?? 'Track your order'}
       />
     </main>
   );

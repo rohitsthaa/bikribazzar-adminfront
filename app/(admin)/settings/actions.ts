@@ -83,6 +83,25 @@ export async function saveBranding(data: {
   await revalidateStorefront();
 }
 
+export async function saveEmailCopy(data: {
+  orderSubject: string; orderHeading: string; orderMessage: string; orderButton: string;
+  updateSubject: string; updateHeading: string; updateMessage: string; updateButton: string;
+}) {
+  await assertCanSettings();
+  const fields: Record<string, string> = {
+    email_order_subject: data.orderSubject,
+    email_order_heading: data.orderHeading,
+    email_order_message: data.orderMessage,
+    email_order_button: data.orderButton,
+    email_update_subject: data.updateSubject,
+    email_update_heading: data.updateHeading,
+    email_update_message: data.updateMessage,
+    email_update_button: data.updateButton,
+  };
+  await Promise.all(Object.entries(fields).map(([key, value]) => updateSetting(key, value.trim())));
+  revalidatePath('/settings');
+}
+
 // Returns a plain result object instead of throwing on a rejected request (e.g. the API's
 // 402 plan-gate response) — Next.js redacts a Server Action's thrown error message in
 // production builds the same way it redacts a render error, so a thrown Error here would
