@@ -499,8 +499,6 @@ export default function SettingsClient({
 
       </div>
 
-      {/* Payment QR / bank transfer toggle */}
-
       {/* Payment gateways (self-serve merchant credentials) */}
     </div>
   );
