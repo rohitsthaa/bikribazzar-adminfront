@@ -23,6 +23,7 @@
     "react-easy-crop": "^6.2.3",
     "react-is": "^19.2.7",
     "recharts": "^3.8.1",
+    "sharp": "^0.34.5",
     "tiptap-markdown": "^0.9.0"
   },
   "devDependencies": {
