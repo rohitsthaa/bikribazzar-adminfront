@@ -160,7 +160,9 @@ const STORE_NAV_DROPDOWNS = [
     // specifically inventory (Products/Categories).
     key: 'content', label: 'Content', Icon: Icons.Content,
     items: [
-      { href: '/content',   label: 'Content',   Icon: Icons.Content },
+      { href: '/content',   label: 'Overview', Icon: Icons.Content },
+      { href: '/content/about', label: 'About', Icon: Icons.Content },
+      { href: '/content/custom-orders', label: 'Custom orders', Icon: Icons.Content },
       { href: '/blog',      label: 'Blog',      Icon: Icons.Blog },
       { href: '/portfolio', label: 'Portfolio', Icon: Icons.Portfolio },
       { href: '/services',  label: 'Services',  Icon: Icons.Services },
@@ -336,7 +338,9 @@ export default function Sidebar({
   }, [pathname]);
 
   const isActiveHref = (href: string) =>
-    href === '/settings' ? pathname === '/settings' : pathname === href || pathname.startsWith(href + '/');
+    href === '/settings' || href === '/content'
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + '/');
 
   // Per-admin tab restriction / site-type gating shared by flat items, dropdown
   // items, and the bottom-pinned items.
@@ -344,7 +348,8 @@ export default function Sidebar({
     if (hideDesign && href === '/design') return false;
     // Platform-wide kill switch first: an area turned off by a super admin is hidden for
     // everyone, whatever this store's site type or this admin's tab permissions say.
-    if (features?.[href.slice(1)] === false) return false;
+    const featureKey = href.startsWith('/content/') ? 'content' : href.slice(1);
+    if (features?.[featureKey] === false) return false;
     if ((href === '/settings' || href === '/settings/team' || href === '/billing') && !canSettings) return false;
     if (href === '/portfolio' && siteType !== 'portfolio') return false;
     if (href === '/services' && siteType !== 'business') return false;
@@ -354,7 +359,7 @@ export default function Sidebar({
       href !== '/settings' &&
       href !== '/settings/team' &&
       href !== '/billing' &&
-      !allowedTabs.includes(href.slice(1))
+      !allowedTabs.includes(href.startsWith('/content/') ? 'content' : href.slice(1))
     ) return false;
     return true;
   };
