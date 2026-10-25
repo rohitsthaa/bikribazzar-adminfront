@@ -455,40 +455,50 @@ export default function SettingsClient({
               )}
             </div>
             {showEmailPreview && (
-              <div id="customer-email-preview" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div id="customer-email-preview" className="overflow-hidden rounded-xl border border-gray-200 bg-[#f6f3f0] p-4 sm:p-6">
                 <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Email preview</p>
                   <p className="mt-1 truncate text-sm font-medium text-gray-800" title={previewSubject}>
                     Subject: {previewSubject || 'No subject'}
                   </p>
                 </div>
-                <div className="bg-white px-5 py-7 sm:px-8">
-                  <div className="mx-auto max-w-[560px] font-sans text-gray-900">
-                    <h2 className="text-xl font-semibold">{previewHeading || 'Your heading'}</h2>
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">{previewMessage || 'Your message will appear here.'}</p>
+                <div className="mx-auto mt-4 max-w-[600px] overflow-hidden rounded-2xl border border-[#ece6e0] bg-white font-sans text-[#322a2c] shadow-sm">
+                  <div className="border-b border-[#f0ebe6] px-6 py-5">
+                    {logoUrl.trim()
+                      ? <img src={logoUrl.trim()} alt="Store logo" className="block max-h-[52px] max-w-[190px] object-contain object-left" />
+                      : <p className="text-lg font-bold tracking-tight">Your store</p>}
+                    {tagline.trim() && <p className="mt-1 text-xs text-[#81777a]">{tagline}</p>}
+                  </div>
+                  <div className="px-6 py-7 sm:px-8">
+                    <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] ${isConfirmationPreview ? 'bg-[#edf6f1] text-[#276548]' : 'bg-[#eef3f4] text-[#385d62]'}`}>
+                      {isConfirmationPreview ? 'Order received' : 'Order update'}
+                    </span>
+                    <h2 className="mt-4 text-2xl font-semibold tracking-tight">{previewHeading || 'Your heading'}</h2>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#6f6669]">{previewMessage || 'Your message will appear here.'}</p>
                     {isConfirmationPreview && (
                       <>
-                        <div className="my-5 border-t border-gray-200" />
-                        <div className="flex justify-between gap-4 py-2 text-sm text-gray-700">
-                          <span>Sample product × 1</span>
+                        <div className="my-5 rounded-xl bg-[#faf8f6] p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#81777a]">Order summary</p>
+                          <p className="mt-1 text-sm font-semibold">Order #1042</p>
+                        </div>
+                        <div className="flex justify-between gap-4 border-b border-[#eee9e4] py-3 text-sm">
+                          <span><strong>Sample product</strong><br /><span className="text-xs text-[#81777a]">Qty 1</span></span>
                           <span className="shrink-0">NPR 1,200</span>
                         </div>
-                        <p className="mt-3 text-sm font-semibold">Total: NPR 1,200</p>
+                        <div className="flex justify-between py-4 text-sm font-bold"><span>Total</span><span>NPR 1,200</span></div>
                       </>
                     )}
-                    {previewButton && (
-                      <div className="mt-6">
-                        <span className="inline-block rounded-md bg-[#1a1a1a] px-5 py-3 text-sm font-medium text-white">
-                          {previewButton}
-                        </span>
-                      </div>
-                    )}
-                    {isConfirmationPreview && <p className="mt-5 text-xs text-gray-500">Order #1042</p>}
+                    {testEmailType === 'update' && <div className="mb-5 rounded-xl bg-[#faf8f6] px-4 py-3 text-sm text-[#6f6669]">Order reference <strong className="text-[#322a2c">#1042</strong></div>}
+                    {previewButton && <div className="pt-2 text-center"><span className="inline-block rounded-lg bg-[#322a2c] px-6 py-3.5 text-sm font-bold text-white">{previewButton}</span></div>}
+                    <p className="mt-4 text-center text-xs leading-5 text-[#81777a]">{isConfirmationPreview ? 'Use the button above to view your order status and delivery updates.' : 'View the latest status and details for your order at any time.'}</p>
+                  </div>
+                  <div className="border-t border-[#f0ebe6] bg-[#faf8f6] px-6 py-5 text-center text-xs leading-5 text-[#81777a]">
+                    <p className="font-bold text-[#51474a]">Your store</p>
+                    {(contactEmail || location) && <p className="mt-1">{[contactEmail, location].filter(Boolean).join(' · ')}</p>}
+                    <p className="mt-3 text-[11px] text-[#aaa1a0]">Thank you for shopping with us.</p>
                   </div>
                 </div>
-                <p className="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
-                  Sample details are shown here. The email layout matches the message customers receive.
-                </p>
+                <p className="px-1 pt-3 text-xs text-gray-500">Sample order details are shown. Your saved store logo, tagline and contact details appear here when configured.</p>
               </div>
             )}
           </div>
