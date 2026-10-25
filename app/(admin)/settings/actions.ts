@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection, updateStoreCourierConfig } from '@/lib/api';
-import type { FonepayTestResult } from '@/lib/api';
+import { updateSetting, revalidateStorefront, updatePaymentGatewayConfig, testFonepayConnection, updateStoreCourierConfig, sendTestEmail } from '@/lib/api';
+import type { EmailCopyDraft, FonepayTestResult, TestEmailTemplate } from '@/lib/api';
 import { getAdmin, can } from '@/lib/auth';
 import { currentStoreId } from '@/lib/store-context';
 
@@ -100,6 +100,20 @@ export async function saveEmailCopy(data: {
   };
   await Promise.all(Object.entries(fields).map(([key, value]) => updateSetting(key, value.trim())));
   revalidatePath('/settings');
+}
+
+export async function sendEmailTemplateTest(data: {
+  to: string;
+  type: TestEmailTemplate;
+  copy: EmailCopyDraft;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await assertCanSettings();
+  try {
+    await sendTestEmail({ to: data.to.trim(), type: data.type, copy: data.copy });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Could not send the test email.' };
+  }
 }
 
 // Returns a plain result object instead of throwing on a rejected request (e.g. the API's

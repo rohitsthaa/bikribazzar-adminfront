@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 import { SettingCard, Field, TextAreaField } from '@/components/SettingCard';
-import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy, saveEmailCopy } from './actions';
+import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy, saveEmailCopy, sendEmailTemplateTest } from './actions';
 
 export default function SettingsClient({
   initialPhone,
@@ -32,6 +32,7 @@ export default function SettingsClient({
   initialEmailUpdateHeading,
   initialEmailUpdateMessage,
   initialEmailUpdateButton,
+  initialAdminEmail,
 }: {
   initialPhone: string;
   initialInstagram: string;
@@ -59,6 +60,7 @@ export default function SettingsClient({
   initialEmailUpdateHeading: string;
   initialEmailUpdateMessage: string;
   initialEmailUpdateButton: string;
+  initialAdminEmail: string;
 }) {
   // Shop page & policies
   const [shopTitle, setShopTitle] = useState(initialShopTitle);
@@ -104,6 +106,10 @@ export default function SettingsClient({
   const [emailUpdateButton, setEmailUpdateButton] = useState(initialEmailUpdateButton);
   const [emailCopySaved, setEmailCopySaved] = useState(false);
   const [emailCopyPending, startEmailCopyTransition] = useTransition();
+  const [testRecipient, setTestRecipient] = useState(initialAdminEmail);
+  const [testEmailType, setTestEmailType] = useState<'confirmation' | 'update'>('confirmation');
+  const [testEmailStatus, setTestEmailStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testEmailPending, startTestEmailTransition] = useTransition();
 
   const profileTabs = [
     { id: "contact", label: "Contact & socials" },
@@ -152,6 +158,29 @@ export default function SettingsClient({
       });
       setEmailCopySaved(true);
       setTimeout(() => setEmailCopySaved(false), 2000);
+    });
+  }
+
+  function handleTestEmail() {
+    startTestEmailTransition(async () => {
+      setTestEmailStatus(null);
+      const result = await sendEmailTemplateTest({
+        to: testRecipient,
+        type: testEmailType,
+        copy: {
+          email_order_subject: emailOrderSubject,
+          email_order_heading: emailOrderHeading,
+          email_order_message: emailOrderMessage,
+          email_order_button: emailOrderButton,
+          email_update_subject: emailUpdateSubject,
+          email_update_heading: emailUpdateHeading,
+          email_update_message: emailUpdateMessage,
+          email_update_button: emailUpdateButton,
+        },
+      });
+      setTestEmailStatus(result.ok
+        ? { ok: true, message: 'Test email sent. Check your inbox.' }
+        : { ok: false, message: result.error });
     });
   }
 
@@ -352,6 +381,54 @@ export default function SettingsClient({
             hint="Available placeholders: {storeName}, {customerName}, {status}. The status is filled in automatically." />
           <Field label="Tracking button text" value={emailUpdateButton} onChange={setEmailUpdateButton}
             placeholder="Track your order" />
+
+          <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Send a test email</h3>
+              <p className="mt-1 text-xs text-gray-500">Sends a sample using the text currently in these fields, even if you haven’t saved it yet.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5 font-medium" htmlFor="test-email-template">Template</label>
+                <select
+                  id="test-email-template"
+                  value={testEmailType}
+                  onChange={(e) => setTestEmailType(e.target.value as 'confirmation' | 'update')}
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-stone-300"
+                >
+                  <option value="confirmation">Order confirmation</option>
+                  <option value="update">Order status update</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5 font-medium" htmlFor="test-email-recipient">Send to</label>
+                <input
+                  id="test-email-recipient"
+                  type="email"
+                  required
+                  value={testRecipient}
+                  onChange={(e) => setTestRecipient(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleTestEmail}
+                disabled={testEmailPending || !testRecipient.trim()}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {testEmailPending ? 'Sending…' : 'Send test email'}
+              </button>
+              {testEmailStatus && (
+                <p role={testEmailStatus.ok ? 'status' : 'alert'} className={`text-xs ${testEmailStatus.ok ? 'text-green-700' : 'text-red-600'}`}>
+                  {testEmailStatus.message}
+                </p>
+              )}
+            </div>
+          </div>
         </SettingCard>
       </section>
 
