@@ -499,13 +499,16 @@ export type StoreDeletionImpact = { productCount: number; orderCount: number };
 
 export type StorePaymentConfigView = {
   usingDefaults: boolean; // true when the store has no saved override (inheriting platform defaults)
-  esewaEnabled: boolean;
-  esewaMode: 'test' | 'production';
-  esewaProductCode: string;
-  hasEsewaSecret: boolean;
-  khaltiEnabled: boolean;
-  khaltiMode: 'test' | 'production';
-  hasKhaltiSecret: boolean;
+  esewa: { enabled: boolean; mode: 'test' | 'production'; productCode: string; hasSecret: boolean };
+  khalti: { enabled: boolean; mode: 'test' | 'production'; hasSecret: boolean };
+  fonepay?: {
+    enabled: boolean;
+    mode: 'test' | 'production';
+    terminalId: string;
+    hasUsername: boolean;
+    hasPassword: boolean;
+    hasPrivateKey: boolean;
+  };
 };
 
 export function getStores() { return apiFetch<StoreSummary[]>('/stores'); }
@@ -576,7 +579,7 @@ export function updatePlatformFeatures(data: PlatformFeatures) {
 }
 
 export type StoreCourierConfigView = {
-  ncm: { enabled: boolean; fromBranch: string; hasToken: boolean; webhookRegistered: boolean; forceRealHost: boolean };
+  ncm: { enabled: boolean; mode: 'test' | 'production'; fromBranch: string; hasToken: boolean; webhookRegistered: boolean; forceRealHost: boolean };
 };
 export function getStoreCourierConfig(id: string) {
   return apiFetch<StoreCourierConfigView>(`/stores/${encodeURIComponent(id)}/courier-config`);

@@ -169,6 +169,7 @@ export async function savePaymentGateways(data: {
  */
 export async function saveCourierConfig(data: {
   ncmEnabled: boolean;
+  ncmMode: 'test' | 'production';
   ncmFromBranch: string;
   ncmToken: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -177,6 +178,7 @@ export async function saveCourierConfig(data: {
     const storeId = await currentStoreId();
     await updateStoreCourierConfig(storeId, {
       ncmEnabled: data.ncmEnabled,
+      ncmMode: data.ncmMode,
       ncmFromBranch: data.ncmFromBranch.trim(),
       ncmToken: data.ncmToken.trim() || null,
     });

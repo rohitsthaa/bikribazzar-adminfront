@@ -14,6 +14,8 @@ export default function CourierSettingsClient({
   isDemo: boolean;
 }) {
   const [enabled, setEnabled] = useState(initialConfig.enabled);
+  const [mode, setMode] = useState<'test' | 'production'>(initialConfig.mode);
+  const forcedTestMode = isDemo && !initialConfig.forceRealHost;
   const [fromBranch, setFromBranch] = useState(initialConfig.fromBranch);
   const [token, setToken] = useState('');
   const [saved, setSaved] = useState(false);
@@ -25,7 +27,7 @@ export default function CourierSettingsClient({
     setError('');
     setSaved(false);
     startTransition(async () => {
-      const result = await saveCourierConfig({ ncmEnabled: enabled, ncmFromBranch: fromBranch, ncmToken: token });
+      const result = await saveCourierConfig({ ncmEnabled: enabled, ncmMode: forcedTestMode ? 'test' : mode, ncmFromBranch: fromBranch, ncmToken: token });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -46,7 +48,7 @@ export default function CourierSettingsClient({
       <form onSubmit={handleSubmit} className="space-y-5 p-6">
         {isDemo && (
           <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
-            This is a demo store. Shipments use NCM&apos;s demo/UAT server by default. The real-host testing override is managed by the platform administrator.
+            This is a demo store. NCM always uses its demo/UAT server unless the platform administrator enables the real-host override.
           </div>
         )}
 
@@ -61,6 +63,24 @@ export default function CourierSettingsClient({
             <span>
               <span className="block text-sm font-medium text-stone-900">Enable NCM shipping</span>
               <span className="mt-0.5 block text-sm text-stone-500">Ship orders via NCM from the order detail page.</span>
+            </span>
+          </label>
+
+          <label className="mt-5 block max-w-sm text-sm font-medium text-stone-700">
+            Mode
+            <select
+              value={forcedTestMode ? 'test' : mode}
+              onChange={(event) => setMode(event.target.value as 'test' | 'production')}
+              disabled={forcedTestMode}
+              className={inputClass}
+            >
+              <option value="test">Test (NCM demo/UAT)</option>
+              <option value="production">Production</option>
+            </select>
+            <span className="mt-1 block text-xs font-normal text-stone-500">
+              {forcedTestMode
+                ? "Demo stores use NCM's demo server. Only a platform administrator can enable live-host access."
+                : 'Test mode sends courier requests to NCM&apos;s demo server. Live bookings require Production mode and your live NCM account.'}
             </span>
           </label>
 
