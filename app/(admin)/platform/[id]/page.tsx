@@ -416,31 +416,31 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               name="esewaEnabled"
               label="eSewa"
               description="Accept payments via eSewa ePay v2."
-              defaultChecked={pay?.esewaEnabled}
+              defaultChecked={pay?.esewa.enabled}
             />
             <div className="grid sm:grid-cols-2 gap-4 pt-1">
               <div>
                 <Label>Mode</Label>
-                <Select name="esewaMode" defaultValue={pay?.esewaMode ?? 'test'}>
+                <Select name="esewaMode" defaultValue={pay?.esewa.mode ?? 'test'}>
                   <option value="test">Test</option>
                   <option value="production">Production</option>
                 </Select>
               </div>
               <div>
                 <Label>Merchant / product code</Label>
-                <Input name="esewaProductCode" defaultValue={pay?.esewaProductCode ?? ''} placeholder="EPAYTEST" />
+                <Input name="esewaProductCode" defaultValue={pay?.esewa.productCode ?? ''} placeholder="EPAYTEST" />
               </div>
               <div className="sm:col-span-2">
                 <Label>
                   Secret key
-                  {pay?.hasEsewaSecret && (
+                  {pay?.esewa.hasSecret && (
                     <span className="ml-1.5 text-emerald-600 font-normal">· set</span>
                   )}
                 </Label>
                 <Input
                   name="esewaSecret"
                   type="password"
-                  placeholder={pay?.hasEsewaSecret ? '•••••• (leave blank to keep current)' : 'Paste secret key'}
+                  placeholder={pay?.esewa.hasSecret ? '•••••• (leave blank to keep current)' : 'Paste secret key'}
                 />
               </div>
             </div>
@@ -452,12 +452,12 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               name="khaltiEnabled"
               label="Khalti"
               description="Accept payments via Khalti."
-              defaultChecked={pay?.khaltiEnabled}
+              defaultChecked={pay?.khalti.enabled}
             />
             <div className="grid sm:grid-cols-2 gap-4 pt-1">
               <div>
                 <Label>Mode</Label>
-                <Select name="khaltiMode" defaultValue={pay?.khaltiMode ?? 'test'}>
+                <Select name="khaltiMode" defaultValue={pay?.khalti.mode ?? 'test'}>
                   <option value="test">Test</option>
                   <option value="production">Production</option>
                 </Select>
@@ -465,15 +465,60 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               <div>
                 <Label>
                   Secret key
-                  {pay?.hasKhaltiSecret && (
+                  {pay?.khalti.hasSecret && (
                     <span className="ml-1.5 text-emerald-600 font-normal">· set</span>
                   )}
                 </Label>
                 <Input
                   name="khaltiSecret"
                   type="password"
-                  placeholder={pay?.hasKhaltiSecret ? '•••••• (leave blank to keep current)' : 'Paste live_secret_key'}
+                  placeholder={pay?.khalti.hasSecret ? '•••••• (leave blank to keep current)' : 'Paste live_secret_key'}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Fonepay */}
+          <div className="rounded-xl border border-stone-100 p-5 space-y-4">
+            <ToggleField
+              name="fonepayEnabled"
+              label="Fonepay"
+              description="Accept QR payments through this store's Fonepay merchant account."
+              defaultChecked={pay?.fonepay?.enabled}
+            />
+            <div className="grid gap-4 pt-1 sm:grid-cols-2">
+              <div>
+                <Label>Mode</Label>
+                <Select name="fonepayMode" defaultValue={pay?.fonepay?.mode ?? 'test'}>
+                  <option value="test">Test</option>
+                  <option value="production">Production</option>
+                </Select>
+              </div>
+              <div>
+                <Label>Terminal ID</Label>
+                <Input name="fonepayTerminalId" defaultValue={pay?.fonepay?.terminalId ?? ''} placeholder="Fonepay terminal ID" />
+              </div>
+              <div>
+                <Label>
+                  Username
+                  {pay?.fonepay?.hasUsername && <span className="ml-1.5 font-normal text-emerald-600">· set</span>}
+                </Label>
+                <Input name="fonepayUsername" type="password" placeholder={pay?.fonepay?.hasUsername ? '•••••• (leave blank to keep current)' : 'Fonepay merchant username'} autoComplete="new-password" />
+              </div>
+              <div>
+                <Label>
+                  Password
+                  {pay?.fonepay?.hasPassword && <span className="ml-1.5 font-normal text-emerald-600">· set</span>}
+                </Label>
+                <Input name="fonepayPassword" type="password" placeholder={pay?.fonepay?.hasPassword ? '•••••• (leave blank to keep current)' : 'Fonepay merchant password'} autoComplete="new-password" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>
+                  Private key
+                  {pay?.fonepay?.hasPrivateKey && <span className="ml-1.5 font-normal text-emerald-600">· set</span>}
+                </Label>
+                <Input name="fonepayPrivateKey" type="password" placeholder={pay?.fonepay?.hasPrivateKey ? '•••••• (leave blank to keep current)' : 'Fonepay PKCS8 private key'} autoComplete="new-password" />
+                <p className="mt-1 text-xs text-stone-400">Credential values are encrypted before they are stored. Leave secret fields blank to keep their current values.</p>
               </div>
             </div>
           </div>
@@ -556,6 +601,14 @@ export default async function StoreManagePage({ params, searchParams }: Props) {
               description="Ship orders via NCM directly from the order detail page."
               defaultChecked={courier?.ncm.enabled}
             />
+            <div className="max-w-sm">
+              <Label>NCM mode</Label>
+              <Select name="ncmMode" defaultValue={courier?.ncm.mode ?? 'production'}>
+                <option value="test">Test (NCM demo/UAT)</option>
+                <option value="production">Production</option>
+              </Select>
+              <p className="mt-1 text-xs text-stone-500">Test mode routes NCM requests to its demo server. Production uses the NCM host configured for this environment.</p>
+            </div>
             {store.isDemo && (
               <ToggleField
                 name="ncmForceRealHost"

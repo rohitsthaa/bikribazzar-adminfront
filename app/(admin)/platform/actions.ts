@@ -146,11 +146,18 @@ export async function updatePaymentConfigAction(fd: FormData) {
     esewaProductCode: str(fd, 'esewaProductCode'),
     khaltiEnabled: fd.get('khaltiEnabled') === 'on',
     khaltiMode: str(fd, 'khaltiMode') || 'test',
+    fonepayEnabled: fd.get('fonepayEnabled') === 'on',
+    fonepayMode: str(fd, 'fonepayMode') || 'test',
+    fonepayTerminalId: str(fd, 'fonepayTerminalId'),
   };
   const esewaSecret = str(fd, 'esewaSecret');
   if (esewaSecret) data.esewaSecret = esewaSecret;
   const khaltiSecret = str(fd, 'khaltiSecret');
   if (khaltiSecret) data.khaltiSecret = khaltiSecret;
+  for (const field of ['fonepayUsername', 'fonepayPassword', 'fonepayPrivateKey']) {
+    const value = str(fd, field);
+    if (value) data[field] = value;
+  }
 
   try {
     await updateStorePaymentConfig(id, data);
@@ -168,6 +175,7 @@ export async function updateCourierConfigAction(fd: FormData) {
   const id = str(fd, 'id');
   const data: Record<string, unknown> = {
     ncmEnabled: fd.get('ncmEnabled') === 'on',
+    ncmMode: str(fd, 'ncmMode') || 'production',
     ncmFromBranch: str(fd, 'ncmFromBranch'),
     ncmForceRealHost: fd.get('ncmForceRealHost') === 'on',
   };
