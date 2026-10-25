@@ -565,6 +565,23 @@ export function testFonepayConnection(data: {
   });
 }
 
+export type ConnectionTestResult = {
+  ok: boolean;
+  steps: { name: string; ok: boolean; detail: string }[];
+};
+
+export function testEsewaConnection(data: { mode: string; productCode?: string | null; secret?: string | null }) {
+  return apiFetch<ConnectionTestResult>('/settings/payments/esewa/test', {
+    method: 'POST', body: JSON.stringify(data),
+  });
+}
+
+export function testKhaltiConnection(data: { mode: string; secret?: string | null }) {
+  return apiFetch<ConnectionTestResult>('/settings/payments/khalti/test', {
+    method: 'POST', body: JSON.stringify(data),
+  });
+}
+
 /** Platform-wide feature switches, keyed by admin route slug. Absent key = enabled. */
 export type PlatformFeatures = Record<string, boolean>;
 
@@ -586,6 +603,11 @@ export function getStoreCourierConfig(id: string) {
 }
 export function updateStoreCourierConfig(id: string, data: Record<string, unknown>) {
   return apiFetch<{ ok: boolean }>(`/stores/${encodeURIComponent(id)}/courier-config`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function testNcmConnection(data: { mode: string; fromBranch: string; token?: string | null }) {
+  return apiFetch<ConnectionTestResult>('/settings/courier/ncm/test', {
+    method: 'POST', body: JSON.stringify(data),
+  });
 }
 
 export type NcmBranch = { pk: number; name: string; district: string | null; province: string | null; phone: string | null };
