@@ -41,23 +41,20 @@ function ConnectionTestNotice({ result, successMessage = 'Connection check passe
  */
 export default function PaymentsClient({
   initialPaymentQr,
-  initialBankTransferEnabled,
   initialPaymentGateways,
 }: {
   initialPaymentQr: string;
-  initialBankTransferEnabled: boolean;
   initialPaymentGateways: PaymentGatewayConfigView;
 }) {
-  const [activePaymentMethod, setActivePaymentMethod] = useState<'bank' | 'esewa' | 'khalti' | 'fonepay'>('bank');
+  const [activePaymentMethod, setActivePaymentMethod] = useState<'qr' | 'esewa' | 'khalti' | 'fonepay'>('qr');
   // Payment QR
   const [paymentQr, setPaymentQr] = useState(initialPaymentQr);
-  const [bankTransferEnabled, setBankTransferEnabled] = useState(initialBankTransferEnabled);
   const [qrSaved, setQrSaved] = useState(false);
   const [qrPending, startQrTransition] = useTransition();
 
   function handleQrSave() {
     startQrTransition(async () => {
-      await savePaymentQr(paymentQr, bankTransferEnabled);
+      await savePaymentQr(paymentQr);
       setQrSaved(true);
       setTimeout(() => setQrSaved(false), 2000);
     });
@@ -150,7 +147,7 @@ export default function PaymentsClient({
       <div className="border-b border-gray-200">
         <div role="tablist" aria-label="Payment methods" className="flex gap-2 overflow-x-auto">
           {[
-            { id: 'bank', label: 'Bank transfer' },
+            { id: 'qr', label: 'Advance QR' },
             { id: 'esewa', label: 'eSewa' },
             { id: 'khalti', label: 'Khalti' },
             { id: 'fonepay', label: 'Fonepay' },
@@ -161,7 +158,7 @@ export default function PaymentsClient({
               type="button"
               role="tab"
               aria-selected={activePaymentMethod === method.id}
-              aria-controls={method.id === 'bank' ? 'payment-panel-bank' : 'payment-panel-online'}
+              aria-controls={method.id === 'qr' ? 'payment-panel-qr' : 'payment-panel-online'}
               onClick={() => setActivePaymentMethod(method.id as typeof activePaymentMethod)}
               className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${activePaymentMethod === method.id ? 'border-[#c96a3a] text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
             >
@@ -170,35 +167,14 @@ export default function PaymentsClient({
           ))}
         </div>
       </div>
-      <section id="payment-panel-bank" role="tabpanel" aria-labelledby="payment-tab-bank" hidden={activePaymentMethod !== 'bank'}>
+      <section id="payment-panel-qr" role="tabpanel" aria-labelledby="payment-tab-qr" hidden={activePaymentMethod !== 'qr'}>
       <SettingCard
-        title="Payment QR code"
-        description="Scan-to-pay QR shown on the order confirmation page. Enable below to also offer &ldquo;Bank transfer&rdquo; as a payment option at checkout."
+        title="Advance payment QR"
+        description="Shown on the order confirmation page when an order requires an advance and no online gateway is used."
         onSave={handleQrSave}
         isPending={qrPending}
         saved={qrSaved}
       >
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-gray-800">Enable bank transfer</p>
-            <p className="text-xs text-gray-400 mt-0.5">Shows &ldquo;Bank transfer&rdquo; as a payment method at checkout.</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={bankTransferEnabled}
-            onClick={() => setBankTransferEnabled((v) => !v)}
-            className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/40 ${
-              bankTransferEnabled ? 'bg-stone-800' : 'bg-stone-200'
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                bankTransferEnabled ? 'translate-x-4' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        </div>
         <ImageUploader value={paymentQr} onChange={setPaymentQr} />
         {paymentQr && (
           <div className="mt-3 flex justify-center">
@@ -213,7 +189,7 @@ export default function PaymentsClient({
       </SettingCard>
       </section>
 
-      <section id="payment-panel-online" role="tabpanel" aria-labelledby={`payment-tab-${activePaymentMethod}`} hidden={activePaymentMethod === 'bank'}>
+      <section id="payment-panel-online" role="tabpanel" aria-labelledby={`payment-tab-${activePaymentMethod}`} hidden={activePaymentMethod === 'qr'}>
       <SettingCard
         title="Payment gateways"
         description="Connect your own eSewa, Khalti, and Fonepay merchant accounts so customers can pay online at checkout."

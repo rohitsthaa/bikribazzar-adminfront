@@ -12,16 +12,11 @@ async function assertCanSettings() {
   if (!can(me?.role, 'settings')) throw new Error('Forbidden');
 }
 
-// bankTransferEnabled gates whether "Bank transfer" shows as a checkout payment
-// method on the storefront (CheckoutForm.tsx) — see that file's `availableMethods` filter.
-// revalidateStorefront() below is what makes that show up immediately instead of
-// after the storefront's ~5min settings cache TTL — see lib/api.ts for why.
-export async function savePaymentQr(url: string, bankTransferEnabled: boolean) {
+// The manual bank QR is used for product advances and existing orders. It is not
+// exposed as a standalone checkout payment method.
+export async function savePaymentQr(url: string) {
   await assertCanSettings();
-  await Promise.all([
-    updateSetting('payment_qr', url),
-    updateSetting('payment_bank_transfer_enabled', bankTransferEnabled ? 'true' : 'false'),
-  ]);
+  await updateSetting('payment_qr', url);
   revalidatePath('/settings');
   await revalidateStorefront();
 }
