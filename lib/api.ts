@@ -444,6 +444,15 @@ export function updateSetting(key: string, value: string) {
   });
 }
 
+export type TestEmailTemplate = 'confirmation' | 'update';
+export type EmailCopyDraft = Record<string, string>;
+export function sendTestEmail(data: { to: string; type: TestEmailTemplate; copy: EmailCopyDraft }) {
+  return apiFetch<{ ok: true }>('/settings/email/test', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // ---- Orders ----
 
 // ---- Stores (platform) ----

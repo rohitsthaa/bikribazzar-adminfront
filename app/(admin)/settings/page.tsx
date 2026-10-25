@@ -48,6 +48,7 @@ export default async function SettingsPage() {
         initialEmailUpdateHeading={settings.email_update_heading ?? 'An update on your order'}
         initialEmailUpdateMessage={settings.email_update_message ?? 'Hi {customerName}, {status}.'}
         initialEmailUpdateButton={settings.email_update_button ?? 'Track your order'}
+        initialAdminEmail={admin?.email ?? ''}
       />
     </main>
   );

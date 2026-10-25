@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 import { SettingCard, Field, TextAreaField } from '@/components/SettingCard';
-import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy, saveEmailCopy } from './actions';
+import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy, saveEmailCopy, sendEmailTemplateTest } from './actions';
 
 export default function SettingsClient({
   initialPhone,
@@ -32,6 +32,7 @@ export default function SettingsClient({
   initialEmailUpdateHeading,
   initialEmailUpdateMessage,
   initialEmailUpdateButton,
+  initialAdminEmail,
 }: {
   initialPhone: string;
   initialInstagram: string;
@@ -59,6 +60,7 @@ export default function SettingsClient({
   initialEmailUpdateHeading: string;
   initialEmailUpdateMessage: string;
   initialEmailUpdateButton: string;
+  initialAdminEmail: string;
 }) {
   // Shop page & policies
   const [shopTitle, setShopTitle] = useState(initialShopTitle);
@@ -104,6 +106,11 @@ export default function SettingsClient({
   const [emailUpdateButton, setEmailUpdateButton] = useState(initialEmailUpdateButton);
   const [emailCopySaved, setEmailCopySaved] = useState(false);
   const [emailCopyPending, startEmailCopyTransition] = useTransition();
+  const [testRecipient, setTestRecipient] = useState(initialAdminEmail);
+  const [testEmailType, setTestEmailType] = useState<'confirmation' | 'update'>('confirmation');
+  const [testEmailStatus, setTestEmailStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testEmailPending, startTestEmailTransition] = useTransition();
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   const profileTabs = [
     { id: "contact", label: "Contact & socials" },
@@ -154,6 +161,45 @@ export default function SettingsClient({
       setTimeout(() => setEmailCopySaved(false), 2000);
     });
   }
+
+  function handleTestEmail() {
+    startTestEmailTransition(async () => {
+      setTestEmailStatus(null);
+      const result = await sendEmailTemplateTest({
+        to: testRecipient,
+        type: testEmailType,
+        copy: {
+          email_order_subject: emailOrderSubject,
+          email_order_heading: emailOrderHeading,
+          email_order_message: emailOrderMessage,
+          email_order_button: emailOrderButton,
+          email_update_subject: emailUpdateSubject,
+          email_update_heading: emailUpdateHeading,
+          email_update_message: emailUpdateMessage,
+          email_update_button: emailUpdateButton,
+        },
+      });
+      setTestEmailStatus(result.ok
+        ? { ok: true, message: 'Test email sent. Check your inbox.' }
+        : { ok: false, message: result.error });
+    });
+  }
+
+  const previewTokens: Record<string, string> = {
+    storeName: 'Your store',
+    customerName: 'Jamie Example',
+    orderId: '1042',
+    status: 'Your order has been confirmed',
+  };
+  const previewText = (value: string) => value.replace(/\{(storeName|customerName|orderId|status)\}/gi, (token) => {
+    const key = token.slice(1, -1);
+    return previewTokens[key.charAt(0).toLowerCase() + key.slice(1)] ?? token;
+  });
+  const isConfirmationPreview = testEmailType === 'confirmation';
+  const previewSubject = previewText(isConfirmationPreview ? emailOrderSubject : emailUpdateSubject);
+  const previewHeading = previewText(isConfirmationPreview ? emailOrderHeading : emailUpdateHeading);
+  const previewMessage = previewText(isConfirmationPreview ? emailOrderMessage : emailUpdateMessage);
+  const previewButton = previewText(isConfirmationPreview ? emailOrderButton : emailUpdateButton);
 
   return (
     <div className="grid max-w-5xl gap-6 md:grid-cols-[190px_minmax(0,1fr)]">
@@ -352,6 +398,100 @@ export default function SettingsClient({
             hint="Available placeholders: {storeName}, {customerName}, {status}. The status is filled in automatically." />
           <Field label="Tracking button text" value={emailUpdateButton} onChange={setEmailUpdateButton}
             placeholder="Track your order" />
+
+          <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Send a test email</h3>
+              <p className="mt-1 text-xs text-gray-500">Sends a sample using the text currently in these fields, even if you haven’t saved it yet.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5 font-medium" htmlFor="test-email-template">Template</label>
+                <select
+                  id="test-email-template"
+                  value={testEmailType}
+                  onChange={(e) => setTestEmailType(e.target.value as 'confirmation' | 'update')}
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-stone-300"
+                >
+                  <option value="confirmation">Order confirmation</option>
+                  <option value="update">Order status update</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5 font-medium" htmlFor="test-email-recipient">Send to</label>
+                <input
+                  id="test-email-recipient"
+                  type="email"
+                  required
+                  value={testRecipient}
+                  onChange={(e) => setTestRecipient(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEmailPreview((visible) => !visible)}
+                aria-expanded={showEmailPreview}
+                aria-controls="customer-email-preview"
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                {showEmailPreview ? 'Hide preview' : 'Preview email'}
+              </button>
+              <button
+                type="button"
+                onClick={handleTestEmail}
+                disabled={testEmailPending || !testRecipient.trim()}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {testEmailPending ? 'Sending…' : 'Send test email'}
+              </button>
+              {testEmailStatus && (
+                <p role={testEmailStatus.ok ? 'status' : 'alert'} className={`text-xs ${testEmailStatus.ok ? 'text-green-700' : 'text-red-600'}`}>
+                  {testEmailStatus.message}
+                </p>
+              )}
+            </div>
+            {showEmailPreview && (
+              <div id="customer-email-preview" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Email preview</p>
+                  <p className="mt-1 truncate text-sm font-medium text-gray-800" title={previewSubject}>
+                    Subject: {previewSubject || 'No subject'}
+                  </p>
+                </div>
+                <div className="bg-white px-5 py-7 sm:px-8">
+                  <div className="mx-auto max-w-[560px] font-sans text-gray-900">
+                    <h2 className="text-xl font-semibold">{previewHeading || 'Your heading'}</h2>
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">{previewMessage || 'Your message will appear here.'}</p>
+                    {isConfirmationPreview && (
+                      <>
+                        <div className="my-5 border-t border-gray-200" />
+                        <div className="flex justify-between gap-4 py-2 text-sm text-gray-700">
+                          <span>Sample product × 1</span>
+                          <span className="shrink-0">NPR 1,200</span>
+                        </div>
+                        <p className="mt-3 text-sm font-semibold">Total: NPR 1,200</p>
+                      </>
+                    )}
+                    {previewButton && (
+                      <div className="mt-6">
+                        <span className="inline-block rounded-md bg-[#1a1a1a] px-5 py-3 text-sm font-medium text-white">
+                          {previewButton}
+                        </span>
+                      </div>
+                    )}
+                    {isConfirmationPreview && <p className="mt-5 text-xs text-gray-500">Order #1042</p>}
+                  </div>
+                </div>
+                <p className="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
+                  Sample details are shown here. The email layout matches the message customers receive.
+                </p>
+              </div>
+            )}
+          </div>
         </SettingCard>
       </section>
 
