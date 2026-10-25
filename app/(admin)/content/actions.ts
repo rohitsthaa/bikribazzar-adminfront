@@ -33,6 +33,7 @@ export async function saveAboutContent(
       updateSetting("about_image", image.trim()),
     ]);
     revalidatePath("/content");
+    revalidatePath("/content/about");
     await revalidateStorefront();
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save." };
@@ -61,6 +62,7 @@ export async function saveCustomContent(
       updateSetting("custom_page_config", JSON.stringify(customization)),
     ]);
     revalidatePath("/content");
+    revalidatePath("/content/custom-orders");
     await revalidateStorefront();
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save." };
@@ -76,6 +78,8 @@ export async function savePageVisibility(
     await assertCanSettings();
     await updateSetting(`${page}_enabled`, enabled ? "true" : "false");
     revalidatePath("/content");
+    if (page === "about") revalidatePath("/content/about");
+    if (page === "custom") revalidatePath("/content/custom-orders");
     if (page === "gallery" || page === "blog") revalidatePath(`/${page}`);
     await revalidateStorefront();
   } catch (err) {
