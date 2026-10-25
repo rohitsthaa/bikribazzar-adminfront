@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import ImageUploader from '@/components/ImageUploader';
-import { SettingCard, Field } from '@/components/SettingCard';
-import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy } from './actions';
+import { SettingCard, Field, TextAreaField } from '@/components/SettingCard';
+import { saveContactInfo, saveCurrency, saveBranding, saveShopCopy, saveEmailCopy } from './actions';
 
 export default function SettingsClient({
   initialPhone,
@@ -24,6 +24,14 @@ export default function SettingsClient({
   initialShopSubtitle,
   initialDeliveryNote,
   initialReturnsNote,
+  initialEmailOrderSubject,
+  initialEmailOrderHeading,
+  initialEmailOrderMessage,
+  initialEmailOrderButton,
+  initialEmailUpdateSubject,
+  initialEmailUpdateHeading,
+  initialEmailUpdateMessage,
+  initialEmailUpdateButton,
 }: {
   initialPhone: string;
   initialInstagram: string;
@@ -43,6 +51,14 @@ export default function SettingsClient({
   initialShopSubtitle: string;
   initialDeliveryNote: string;
   initialReturnsNote: string;
+  initialEmailOrderSubject: string;
+  initialEmailOrderHeading: string;
+  initialEmailOrderMessage: string;
+  initialEmailOrderButton: string;
+  initialEmailUpdateSubject: string;
+  initialEmailUpdateHeading: string;
+  initialEmailUpdateMessage: string;
+  initialEmailUpdateButton: string;
 }) {
   // Shop page & policies
   const [shopTitle, setShopTitle] = useState(initialShopTitle);
@@ -77,10 +93,23 @@ export default function SettingsClient({
   const [contactPending, startContactTransition] = useTransition();
   const [activeProfileTab, setActiveProfileTab] = useState("contact");
 
+  // Store-owned wording for customer order emails. The HTML layout remains fixed.
+  const [emailOrderSubject, setEmailOrderSubject] = useState(initialEmailOrderSubject);
+  const [emailOrderHeading, setEmailOrderHeading] = useState(initialEmailOrderHeading);
+  const [emailOrderMessage, setEmailOrderMessage] = useState(initialEmailOrderMessage);
+  const [emailOrderButton, setEmailOrderButton] = useState(initialEmailOrderButton);
+  const [emailUpdateSubject, setEmailUpdateSubject] = useState(initialEmailUpdateSubject);
+  const [emailUpdateHeading, setEmailUpdateHeading] = useState(initialEmailUpdateHeading);
+  const [emailUpdateMessage, setEmailUpdateMessage] = useState(initialEmailUpdateMessage);
+  const [emailUpdateButton, setEmailUpdateButton] = useState(initialEmailUpdateButton);
+  const [emailCopySaved, setEmailCopySaved] = useState(false);
+  const [emailCopyPending, startEmailCopyTransition] = useTransition();
+
   const profileTabs = [
     { id: "contact", label: "Contact & socials" },
     { id: "shop", label: "Shop & policies" },
     { id: "branding", label: "Branding & SEO" },
+    { id: "emails", label: "Email wording" },
   ] as const;
 
   // Branding & SEO
@@ -106,6 +135,23 @@ export default function SettingsClient({
       await saveContactInfo({ phone, instagram, facebook, youtube, tiktok, pinterest, x, email: contactEmail, location });
       setContactSaved(true);
       setTimeout(() => setContactSaved(false), 2000);
+    });
+  }
+
+  function handleEmailCopySave() {
+    startEmailCopyTransition(async () => {
+      await saveEmailCopy({
+        orderSubject: emailOrderSubject,
+        orderHeading: emailOrderHeading,
+        orderMessage: emailOrderMessage,
+        orderButton: emailOrderButton,
+        updateSubject: emailUpdateSubject,
+        updateHeading: emailUpdateHeading,
+        updateMessage: emailUpdateMessage,
+        updateButton: emailUpdateButton,
+      });
+      setEmailCopySaved(true);
+      setTimeout(() => setEmailCopySaved(false), 2000);
     });
   }
 
@@ -259,6 +305,54 @@ export default function SettingsClient({
           <ImageUploader value={ogImage} onChange={setOgImage} />
         </div>
       </SettingCard>
+      </section>
+
+      {/* Customer email wording */}
+      <section
+        id="profile-panel-emails"
+        role="tabpanel"
+        aria-labelledby="profile-tab-emails"
+        hidden={activeProfileTab !== "emails"}
+      >
+        <SettingCard
+          title="Customer email wording"
+          description="Edit the text in order confirmation and order update emails. The email layout and styling stay the same. Leave a field blank to use its default wording."
+          onSave={handleEmailCopySave}
+          isPending={emailCopyPending}
+          saved={emailCopySaved}
+        >
+          <div className="border-b border-gray-100 pb-4">
+            <h3 className="text-sm font-semibold text-gray-800">Order confirmation</h3>
+            <p className="mt-1 text-xs text-gray-400">Sent after a customer places an order.</p>
+          </div>
+          <Field label="Email subject" value={emailOrderSubject} onChange={setEmailOrderSubject}
+            placeholder="Order Confirmed — {storeName}"
+            hint="Available placeholders: {storeName}, {orderId}." />
+          <Field label="Heading" value={emailOrderHeading} onChange={setEmailOrderHeading}
+            placeholder="Order confirmed"
+            hint="Available placeholders: {storeName}, {customerName}, {orderId}." />
+          <TextAreaField label="Message" value={emailOrderMessage} onChange={setEmailOrderMessage}
+            placeholder="Hi {customerName}, thank you for your order!"
+            hint="Available placeholders: {storeName}, {customerName}, {orderId}." />
+          <Field label="Tracking button text" value={emailOrderButton} onChange={setEmailOrderButton}
+            placeholder="Track your order" />
+
+          <div className="border-b border-gray-100 pb-4 pt-3">
+            <h3 className="text-sm font-semibold text-gray-800">Order status update</h3>
+            <p className="mt-1 text-xs text-gray-400">Sent when you change an order’s status.</p>
+          </div>
+          <Field label="Email subject" value={emailUpdateSubject} onChange={setEmailUpdateSubject}
+            placeholder="Order update — {storeName}"
+            hint="Available placeholders: {storeName}, {orderId}." />
+          <Field label="Heading" value={emailUpdateHeading} onChange={setEmailUpdateHeading}
+            placeholder="An update on your order"
+            hint="Available placeholders: {storeName}, {customerName}, {status}." />
+          <TextAreaField label="Message" value={emailUpdateMessage} onChange={setEmailUpdateMessage}
+            placeholder="Hi {customerName}, {status}."
+            hint="Available placeholders: {storeName}, {customerName}, {status}. The status is filled in automatically." />
+          <Field label="Tracking button text" value={emailUpdateButton} onChange={setEmailUpdateButton}
+            placeholder="Track your order" />
+        </SettingCard>
       </section>
 
       </div>
