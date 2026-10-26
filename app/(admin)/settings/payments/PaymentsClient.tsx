@@ -148,9 +148,9 @@ export default function PaymentsClient({
         <div role="tablist" aria-label="Payment methods" className="flex gap-2 overflow-x-auto">
           {[
             { id: 'qr', label: 'Advance QR' },
-            { id: 'esewa', label: 'eSewa' },
-            { id: 'khalti', label: 'Khalti' },
-            { id: 'fonepay', label: 'Fonepay' },
+            ...(initialPaymentGateways.esewa.available ? [{ id: 'esewa', label: 'eSewa' }] : []),
+            ...(initialPaymentGateways.khalti.available ? [{ id: 'khalti', label: 'Khalti' }] : []),
+            ...(initialPaymentGateways.fonepay.available ? [{ id: 'fonepay', label: 'Fonepay' }] : []),
           ].map((method) => (
             <button
               key={method.id}
@@ -167,6 +167,9 @@ export default function PaymentsClient({
           ))}
         </div>
       </div>
+      {!initialPaymentGateways.esewa.available && !initialPaymentGateways.khalti.available && !initialPaymentGateways.fonepay.available && (
+        <p className="text-sm text-gray-500">Online payment gateways are currently disabled by your platform administrator.</p>
+      )}
       <section id="payment-panel-qr" role="tabpanel" aria-labelledby="payment-tab-qr" hidden={activePaymentMethod !== 'qr'}>
       <SettingCard
         title="Advance payment QR"
