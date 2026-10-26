@@ -527,10 +527,10 @@ export function updateStorePaymentConfig(id: string, data: Record<string, unknow
 }
 
 export type PaymentGatewayConfigView = {
-  esewa: { enabled: boolean; mode: 'test' | 'production'; productCode: string; hasSecret: boolean };
-  khalti: { enabled: boolean; mode: 'test' | 'production'; hasSecret: boolean };
+  esewa: { enabled: boolean; available: boolean; mode: 'test' | 'production'; productCode: string; hasSecret: boolean };
+  khalti: { enabled: boolean; available: boolean; mode: 'test' | 'production'; hasSecret: boolean };
   fonepay: {
-    enabled: boolean; mode: 'test' | 'production'; terminalId: string;
+    enabled: boolean; available: boolean; mode: 'test' | 'production'; terminalId: string;
     hasUsername: boolean; hasPassword: boolean; hasPrivateKey: boolean;
   };
 };
