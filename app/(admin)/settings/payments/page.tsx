@@ -26,7 +26,6 @@ export default async function SettingsPaymentsPage() {
       <PaymentsClient
         key={storeId}
         initialPaymentQr={settings.payment_qr ?? ''}
-        initialBankTransferEnabled={settings.payment_bank_transfer_enabled === 'true'}
         initialPaymentGateways={paymentGateways}
       />
     </main>

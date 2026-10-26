@@ -16,7 +16,7 @@ const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? '';
 // Bridges to the (separately deployed) storefront's POST /api/revalidate.
 // The storefront caches reads like GET /settings for up to TTL_SLOW (5 min —
 // see its lib/api.ts) with no automatic invalidation, so without this call a
-// setting saved here (e.g. "Enable bank transfer") only shows up on the live
+// setting saved here (e.g. the payment QR image) only shows up on the live
 // site once that cache naturally expires. Call this after any save that
 // changes storefront-visible data. Local setups can override the storefront
 // URL; otherwise target the current store's platform subdomain. Production
@@ -1178,7 +1178,7 @@ export type PlanConfigView = {
   maxProducts: number | null; // null = unlimited
   allowPremiumTemplates: boolean;
   allowCustomDomain: boolean;
-  /** Master switch for all three gateways below — off means COD/bank transfer only. */
+  /** Master switch for all three gateways below — off leaves cash on delivery available. */
   allowOnlinePayments: boolean;
   allowEsewa: boolean;
   allowKhalti: boolean;
