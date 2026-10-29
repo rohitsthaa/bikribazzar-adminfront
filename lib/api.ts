@@ -86,7 +86,9 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export type ProductVariant = {
   id?: string;
-  label: string;
+  label: string;             // "Red / M" for colour × size rows (the API derives it)
+  color?: string | null;     // set only when the product's variantAxis is 'color_size'
+  size?: string | null;
   priceNpr: number | null;   // null = inherit product price
   stockQty: number | null;   // null = unlimited
   sku: string | null;
@@ -132,7 +134,8 @@ export type Product = {
   // What distinguishes the variants, if any — "color"/"style" means variants look
   // different (storefront may show photo swatches from ProductVariant.image);
   // "size" or null means no visual difference (storefront shows text pills only).
-  variantAxis?: 'size' | 'color' | 'style' | null;
+  // "color_size" = two axes: every variant carries `color` + `size`.
+  variantAxis?: 'size' | 'color' | 'style' | 'color_size' | null;
   variants?: ProductVariant[];
 };
 

@@ -276,13 +276,16 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   const [advanceOpen, setAdvanceOpen] = useState(prepaymentType !== 'none');
   const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
   const [variantAxis, setVariantAxis] = useState<string>(product?.variantAxis ?? '');
-  const hasVisualVariants = variantAxis === 'color' || variantAxis === 'style';
+  const isColorSize = variantAxis === 'color_size';
+  const hasVisualVariants = variantAxis === 'color' || variantAxis === 'style' || isColorSize;
   const [digitalAssetUrl, setDigitalAssetUrl] = useState(product?.digitalAssetUrl ?? '');
-  type VariantRow = { id?: string; label: string; priceNpr: string; costNpr: string; stockQty: string; untracked: boolean; sku: string; image: string };
+  type VariantRow = { id?: string; label: string; color: string; size: string; priceNpr: string; costNpr: string; stockQty: string; untracked: boolean; sku: string; image: string };
   const [variants, setVariants] = useState<VariantRow[]>(
     (product?.variants ?? []).map((v) => ({
       id: v.id,
       label: v.label,
+      color: v.color ?? '',
+      size: v.size ?? '',
       priceNpr: v.priceNpr == null ? '' : String(v.priceNpr),
       costNpr: v.costNpr == null ? '' : String(v.costNpr),
       stockQty: v.stockQty == null ? '' : String(v.stockQty),
@@ -291,10 +294,77 @@ export default function ProductForm({ product, action, categories = [], canSetPr
       image: v.image ?? '',
     })),
   );
-  function addVariant() { setVariants([...variants, { label: '', priceNpr: '', costNpr: '', stockQty: '', untracked: false, sku: '', image: '' }]); }
+  const blankVariant: VariantRow = { label: '', color: '', size: '', priceNpr: '', costNpr: '', stockQty: '', untracked: false, sku: '', image: '' };
+  function addVariant() { setVariants([...variants, { ...blankVariant }]); }
   function removeVariant(idx: number) { setVariants(variants.filter((_, i) => i !== idx)); }
   function updateVariant(idx: number, patch: Partial<VariantRow>) {
-    setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
+    const target = variants[idx];
+    setVariants(variants.map((v, i) => {
+      if (i === idx) {
+        const next = { ...v, ...patch };
+        // Colour × size rows: the label is always "Colour / Size" (the API derives it too).
+        if (isColorSize && ('color' in patch || 'size' in patch)) next.label = comboLabel(next.color, next.size);
+        return next;
+      }
+      // A colour's photo is the same for every size — set it once, apply to all its sizes.
+      if (isColorSize && 'image' in patch && target.color.trim() && v.color.trim().toLowerCase() === target.color.trim().toLowerCase()) {
+        return { ...v, image: patch.image ?? '' };
+      }
+      return v;
+    }));
+  }
+
+  // ── Colour × size builder ──
+  // The merchant types the colours and sizes once; "Create combinations" makes one option
+  // per pair. Existing rows (and their ids, stock, prices, SKUs) are kept by matching on
+  // colour + size, so rebuilding after adding "XL" never resets the stock of "Red / M".
+  const comboLabel = (color: string, size: string) => [color.trim(), size.trim()].filter(Boolean).join(' / ');
+  const splitList = (raw: string) => [...new Map(raw.split(',').map((x) => x.trim()).filter(Boolean).map((x) => [x.toLowerCase(), x])).values()];
+  const uniqueOf = (key: 'color' | 'size') => [...new Map(variants.map((v) => v[key].trim()).filter(Boolean).map((x) => [x.toLowerCase(), x])).values()];
+  const [colorList, setColorList] = useState(() => uniqueOf('color').join(', '));
+  const [sizeList, setSizeList] = useState(() => uniqueOf('size').join(', '));
+  function changeAxis(next: string) {
+    setVariantAxis(next);
+    if (next !== 'color_size') return;
+    // Switching an existing "Red / M"-style list over: split the labels into colour + size.
+    const split = variants.map((v) => {
+      if (v.color.trim() && v.size.trim()) return v;
+      const [c, sz, ...rest] = v.label.split('/').map((x) => x.trim());
+      return c && sz && rest.length === 0 ? { ...v, color: c, size: sz } : v;
+    });
+    setVariants(split);
+    const uniq = (key: 'color' | 'size') => [...new Map(split.map((v) => v[key].trim()).filter(Boolean).map((x) => [x.toLowerCase(), x])).values()];
+    if (!colorList.trim()) setColorList(uniq('color').join(', '));
+    if (!sizeList.trim()) setSizeList(uniq('size').join(', '));
+  }
+  function buildCombinations() {
+    const colors = splitList(colorList);
+    const sizes = splitList(sizeList);
+    if (colors.length === 0 || sizes.length === 0) return;
+    const key = (c: string, sz: string) => `${c.trim().toLowerCase()}|${sz.trim().toLowerCase()}`;
+    const existing = new Map(variants.filter((v) => v.color.trim() && v.size.trim()).map((v) => [key(v.color, v.size), v]));
+    const photoOf = (c: string) => variants.find((v) => v.color.trim().toLowerCase() === c.toLowerCase() && v.image.trim())?.image ?? '';
+    const next: VariantRow[] = [];
+    for (const c of colors) {
+      for (const sz of sizes) {
+        const keep = existing.get(key(c, sz));
+        next.push(keep
+          ? { ...keep, color: c, size: sz, label: comboLabel(c, sz) }
+          : { ...blankVariant, color: c, size: sz, label: comboLabel(c, sz), image: photoOf(c) });
+      }
+    }
+    // Anything not in the new grid is dropped — warn if that throws away counted stock.
+    const kept = new Set(next);
+    const dropped = variants.filter((v) => !kept.has(v));
+    const droppedWithStock = dropped.filter((v) => {
+      const saved = v.id ? (product?.variants ?? []).find((pv) => pv.id === v.id) : undefined;
+      return (saved?.stockQty ?? 0) > 0;
+    });
+    if (droppedWithStock.length > 0 && !window.confirm(
+      `${droppedWithStock.map((v) => v.label || 'An option').join(', ')} still ${droppedWithStock.length === 1 ? 'has' : 'have'} stock and will be removed. Continue?`,
+    )) return;
+    setVariants(next);
+    setIsDirty(true);
   }
   const isNew = !product;
   // Auto-fill the ID (URL slug) field from the Name field as the merchant types,
@@ -335,12 +405,16 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   // same reasoning as the top-level Stock qty field above.
   const variantsPayload = JSON.stringify(
     variants
-      .filter((v) => v.label.trim())
+      .filter((v) => v.label.trim() || (isColorSize && v.color.trim() && v.size.trim()))
       .map((v, i) => {
         const persisted = !isNew && v.id ? (product?.variants ?? []).find((pv) => pv.id === v.id) : undefined;
+        const both = isColorSize && v.color.trim() && v.size.trim();
         return {
           id: v.id,
-          label: v.label.trim(),
+          label: both ? comboLabel(v.color, v.size) : v.label.trim(),
+          // Only meaningful for colour × size; switching the axis away clears them server-side.
+          color: both ? v.color.trim() : null,
+          size: both ? v.size.trim() : null,
           priceNpr: v.priceNpr.trim() === '' ? null : Number(v.priceNpr),
           costNpr: v.costNpr.trim() === '' ? null : Number(v.costNpr),
           // New rows: "Not tracked" → null (unlimited); otherwise blank counts as 0, never unlimited.
@@ -938,31 +1012,33 @@ export default function ProductForm({ product, action, categories = [], canSetPr
               <div className="bg-white rounded-xl border border-stone-200 p-6">
                 <input type="hidden" name="variants" value={variantsPayload} />
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <SectionHeading icon={TAB_ICONS.variants} title="Variants" subtitle="e.g. sizes or colors — leave empty for a single-option product." className="mb-0 min-w-0" />
-                  <button
+                  <SectionHeading icon={TAB_ICONS.variants} title="Variants" subtitle="e.g. sizes, colors, or both — leave empty for a single-option product." className="mb-0 min-w-0" />
+                  {!isColorSize && <button
                     type="button"
                     onClick={addVariant}
                     className="shrink-0 self-start rounded-lg bg-stone-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-700"
                   >
                     + Add variant
-                  </button>
+                  </button>}
                 </div>
 
-                {variants.length > 0 && (
-                  <div className="mb-4">
+                <div className="mb-4">
                     <label className={fieldLabel}>What do these options change?</label>
                     <select
                       name="variantAxis"
                       value={variantAxis}
-                      onChange={(e) => setVariantAxis(e.target.value)}
+                      onChange={(e) => changeAxis(e.target.value)}
                       className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
                     >
                       <option value="">Size / non-visual — same photos</option>
                       <option value="color">Color / pattern — variants look different</option>
                       <option value="style">Style / material — variants look different</option>
+                      <option value="color_size">Color + Size — e.g. a shirt in 3 colors × 4 sizes</option>
                     </select>
                     <p className="text-xs text-gray-400 mt-1">
-                      Choose Color or Style when options look different. Their optional photos appear first in the storefront gallery; options without a photo use the shared gallery. Sizes keep the same shared photos.
+                      {isColorSize
+                        ? 'Shoppers pick a color, then a size. Each color × size pair has its own stock, price and SKU; one photo per color is shared by all its sizes.'
+                        : 'Choose Color or Style when options look different. Their optional photos appear first in the storefront gallery; options without a photo use the shared gallery. Sizes keep the same shared photos.'}
                     </p>
                     {!variantAxis && variants.some((v) => v.image.trim()) && (
                       <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -973,12 +1049,54 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                         </span>
                       </div>
                     )}
+                </div>
+
+                {isColorSize && (
+                  <div className="mb-4 rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="min-w-0">
+                        <label className={fieldLabel}>Colors</label>
+                        <input
+                          value={colorList}
+                          onChange={(e) => setColorList(e.target.value)}
+                          placeholder="e.g. Red, Navy, Black"
+                          className="w-full min-w-0 border border-gray-200 rounded-lg bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <label className={fieldLabel}>Sizes</label>
+                        <input
+                          value={sizeList}
+                          onChange={(e) => setSizeList(e.target.value)}
+                          placeholder="e.g. S, M, L, XL"
+                          className="w-full min-w-0 border border-gray-200 rounded-lg bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={buildCombinations}
+                        disabled={splitList(colorList).length === 0 || splitList(sizeList).length === 0}
+                        className="rounded-lg bg-stone-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-700 disabled:opacity-40"
+                      >
+                        {variants.length ? 'Update combinations' : 'Create combinations'}
+                        {splitList(colorList).length > 0 && splitList(sizeList).length > 0 && ` (${splitList(colorList).length * splitList(sizeList).length})`}
+                      </button>
+                      <span className="text-[11px] text-stone-500">Comma-separated. Existing options keep their stock, prices and SKUs.</span>
+                    </div>
+                    {variants.some((v) => !v.color.trim() || !v.size.trim()) && (
+                      <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        <span className="mt-px">⚠</span>
+                        <span>Some options are missing a color or size. Fill both on every option (or remove it) — until then the shop shows a single list.</span>
+                      </p>
+                    )}
                   </div>
                 )}
 
                 {variants.length === 0 ? (
                   <div className="rounded-xl border-2 border-dashed border-gray-200 py-10 text-center">
-                    <p className="text-sm text-gray-400">No variants — this product is sold as one option.</p>
+                    <p className="text-sm text-gray-400">{isColorSize ? 'Enter colors and sizes above, then Create combinations.' : 'No variants — this product is sold as one option.'}</p>
                   </div>
                 ) : (
                   <div className="mt-4 space-y-3">
@@ -1021,15 +1139,38 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                                 Shared gallery
                               </span>
                             )}
-                            <div className="min-w-0">
-                              <label className={fieldLabel}>Option label</label>
-                              <input
-                                value={v.label}
-                                onChange={(e) => updateVariant(idx, { label: e.target.value })}
-                                placeholder="e.g. Red / L"
-                                className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                              />
-                            </div>
+                            {isColorSize ? (
+                              <div className="grid min-w-0 grid-cols-2 gap-2">
+                                <div className="min-w-0">
+                                  <label className={fieldLabel}>Color</label>
+                                  <input
+                                    value={v.color}
+                                    onChange={(e) => updateVariant(idx, { color: e.target.value })}
+                                    placeholder="e.g. Red"
+                                    className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <label className={fieldLabel}>Size</label>
+                                  <input
+                                    value={v.size}
+                                    onChange={(e) => updateVariant(idx, { size: e.target.value })}
+                                    placeholder="e.g. M"
+                                    className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="min-w-0">
+                                <label className={fieldLabel}>Option label</label>
+                                <input
+                                  value={v.label}
+                                  onChange={(e) => updateVariant(idx, { label: e.target.value })}
+                                  placeholder="e.g. Red / L"
+                                  className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
+                                />
+                              </div>
+                            )}
                             <button
                               type="button"
                               onClick={() => removeVariant(idx)}
@@ -1044,7 +1185,7 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                           {hasVisualVariants && (
                             <div className="flex flex-col gap-2 rounded-lg bg-stone-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="min-w-0">
-                                <p className="text-xs font-medium text-stone-700">Photo for this look <span className="font-normal text-stone-400">(optional)</span></p>
+                                <p className="text-xs font-medium text-stone-700">{isColorSize ? `Photo for ${v.color.trim() || 'this color'}` : 'Photo for this look'} <span className="font-normal text-stone-400">(optional{isColorSize ? ' — shared by all its sizes' : ''})</span></p>
                                 <p className="mt-0.5 text-[11px] text-stone-500">Click the thumbnail to upload, or reuse a photo from the shared gallery.</p>
                               </div>
                               <select
