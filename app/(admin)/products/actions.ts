@@ -297,13 +297,13 @@ export async function saveProduct(_: unknown, formData: FormData) {
     tags: parseTags(formData.get('tags') as string),
     status: vis.status,
     costNpr: parseOptionalNumberWithClearSentinel(formData.get('costNpr') as string, isNew),
-    variantAxis: parseOptionalStringWithClearSentinel(formData.get('variantAxis') as string, isNew) as 'size' | 'color' | 'style' | null | undefined,
+    variantAxis: parseOptionalStringWithClearSentinel(formData.get('variantAxis') as string, isNew) as 'size' | 'color' | 'style' | 'color_size' | null | undefined,
   };
 
   // Variants (optional). Parsed from the hidden JSON field. Staff can't set prices or costs,
   // so theirs come from the saved product — the API replaces the whole variant list, and
   // nulling them (as this used to) wiped every per-option price whenever staff saved.
-  let variants: Array<{ id?: string; label: string; priceNpr: number | null; costNpr?: number | null; stockQty: number | null; sku: string | null; image?: string | null; sortOrder: number }> | undefined;
+  let variants: Array<{ id?: string; label: string; color?: string | null; size?: string | null; priceNpr: number | null; costNpr?: number | null; stockQty: number | null; sku: string | null; image?: string | null; sortOrder: number }> | undefined;
   const variantsRaw = formData.get('variants') as string | null;
   if (variantsRaw != null) {
     try {
