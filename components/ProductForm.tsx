@@ -116,6 +116,54 @@ function SectionHeading({ icon, title, subtitle, className = 'mb-4' }: { icon: s
 // crop tool was built to prevent for the primary image. Still small at this
 // size, though, so a filled thumbnail opens a larger preview on click rather
 // than jumping straight to the file picker — Replace/Crop/Remove live there.
+// Tag-style list input for the colour × size builder: type a value and press Enter (or a
+// comma) to add it as a chip; Backspace on an empty box removes the last one. Pasting
+// "S, M, L" adds all three. A half-typed value is committed on blur, so clicking
+// "Create combinations" straight after typing still includes it.
+function ChipListInput({ values, onChange, placeholder, ariaLabel }: {
+  values: string[]; onChange: (next: string[]) => void; placeholder: string; ariaLabel: string;
+}) {
+  const [draft, setDraft] = useState('');
+  const commit = (raw: string) => {
+    const seen = new Set(values.map((v) => v.toLowerCase()));
+    const added = raw.split(',').map((x) => x.trim()).filter((x) => x && !seen.has(x.toLowerCase()) && (seen.add(x.toLowerCase()), true));
+    if (added.length) onChange([...values, ...added]);
+    setDraft('');
+  };
+  return (
+    <div className="flex min-h-[42px] w-full min-w-0 flex-wrap items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 focus-within:ring-2 focus-within:ring-[#c96a3a]/30">
+      {values.map((v) => (
+        <span key={v} className="inline-flex items-center gap-1 rounded-full bg-stone-100 py-0.5 pl-2.5 pr-1 text-xs font-medium text-stone-700">
+          {v}
+          <button
+            type="button"
+            onClick={() => onChange(values.filter((x) => x !== v))}
+            aria-label={`Remove ${v}`}
+            className="flex h-4 w-4 items-center justify-center rounded-full text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        value={draft}
+        aria-label={ariaLabel}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v.includes(',')) commit(v); else setDraft(v);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(draft); }
+          else if (e.key === 'Backspace' && !draft && values.length) onChange(values.slice(0, -1));
+        }}
+        onBlur={() => draft.trim() && commit(draft)}
+        placeholder={values.length ? 'Add another…' : placeholder}
+        className="min-w-[90px] flex-1 border-0 bg-transparent px-1 py-0.5 text-sm focus:outline-none"
+      />
+    </div>
+  );
+}
+
 function VariantImageCell({ value, onChange, cardAspect }: { value: string; onChange: (url: string) => void; cardAspect?: string }) {
   const [uploading, setUploading] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -319,10 +367,9 @@ export default function ProductForm({ product, action, categories = [], canSetPr
   // per pair. Existing rows (and their ids, stock, prices, SKUs) are kept by matching on
   // colour + size, so rebuilding after adding "XL" never resets the stock of "Red / M".
   const comboLabel = (color: string, size: string) => [color.trim(), size.trim()].filter(Boolean).join(' / ');
-  const splitList = (raw: string) => [...new Map(raw.split(',').map((x) => x.trim()).filter(Boolean).map((x) => [x.toLowerCase(), x])).values()];
   const uniqueOf = (key: 'color' | 'size') => [...new Map(variants.map((v) => v[key].trim()).filter(Boolean).map((x) => [x.toLowerCase(), x])).values()];
-  const [colorList, setColorList] = useState(() => uniqueOf('color').join(', '));
-  const [sizeList, setSizeList] = useState(() => uniqueOf('size').join(', '));
+  const [colorList, setColorList] = useState<string[]>(() => uniqueOf('color'));
+  const [sizeList, setSizeList] = useState<string[]>(() => uniqueOf('size'));
   function changeAxis(next: string) {
     setVariantAxis(next);
     if (next !== 'color_size') return;
@@ -334,12 +381,12 @@ export default function ProductForm({ product, action, categories = [], canSetPr
     });
     setVariants(split);
     const uniq = (key: 'color' | 'size') => [...new Map(split.map((v) => v[key].trim()).filter(Boolean).map((x) => [x.toLowerCase(), x])).values()];
-    if (!colorList.trim()) setColorList(uniq('color').join(', '));
-    if (!sizeList.trim()) setSizeList(uniq('size').join(', '));
+    if (colorList.length === 0) setColorList(uniq('color'));
+    if (sizeList.length === 0) setSizeList(uniq('size'));
   }
   function buildCombinations() {
-    const colors = splitList(colorList);
-    const sizes = splitList(sizeList);
+    const colors = colorList;
+    const sizes = sizeList;
     if (colors.length === 0 || sizes.length === 0) return;
     const key = (c: string, sz: string) => `${c.trim().toLowerCase()}|${sz.trim().toLowerCase()}`;
     const existing = new Map(variants.filter((v) => v.color.trim() && v.size.trim()).map((v) => [key(v.color, v.size), v]));
@@ -1056,34 +1103,24 @@ export default function ProductForm({ product, action, categories = [], canSetPr
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="min-w-0">
                         <label className={fieldLabel}>Colors</label>
-                        <input
-                          value={colorList}
-                          onChange={(e) => setColorList(e.target.value)}
-                          placeholder="e.g. Red, Navy, Black"
-                          className="w-full min-w-0 border border-gray-200 rounded-lg bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                        />
+                        <ChipListInput values={colorList} onChange={setColorList} placeholder="Type a color, press Enter" ariaLabel="Add a color" />
                       </div>
                       <div className="min-w-0">
                         <label className={fieldLabel}>Sizes</label>
-                        <input
-                          value={sizeList}
-                          onChange={(e) => setSizeList(e.target.value)}
-                          placeholder="e.g. S, M, L, XL"
-                          className="w-full min-w-0 border border-gray-200 rounded-lg bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c96a3a]/30"
-                        />
+                        <ChipListInput values={sizeList} onChange={setSizeList} placeholder="Type a size, press Enter" ariaLabel="Add a size" />
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <button
                         type="button"
                         onClick={buildCombinations}
-                        disabled={splitList(colorList).length === 0 || splitList(sizeList).length === 0}
+                        disabled={colorList.length === 0 || sizeList.length === 0}
                         className="rounded-lg bg-stone-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-700 disabled:opacity-40"
                       >
                         {variants.length ? 'Update combinations' : 'Create combinations'}
-                        {splitList(colorList).length > 0 && splitList(sizeList).length > 0 && ` (${splitList(colorList).length * splitList(sizeList).length})`}
+                        {colorList.length > 0 && sizeList.length > 0 && ` (${colorList.length} × ${sizeList.length} = ${colorList.length * sizeList.length})`}
                       </button>
-                      <span className="text-[11px] text-stone-500">Comma-separated. Existing options keep their stock, prices and SKUs.</span>
+                      <span className="text-[11px] text-stone-500">Add as many colors and sizes as you need — one option is made per pair. Existing options keep their stock, prices and SKUs.</span>
                     </div>
                     {variants.some((v) => !v.color.trim() || !v.size.trim()) && (
                       <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
