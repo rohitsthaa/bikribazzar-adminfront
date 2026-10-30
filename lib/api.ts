@@ -670,10 +670,10 @@ export function getStoreClearDataImpact(id: string) {
 }
 
 /** Clears store operations/content but preserves the store, team, settings, payment/courier setup, and billing. */
-export function clearStoreData(id: string, confirmationName: string) {
+export function clearStoreData(id: string, confirmationName: string, categories?: string[]) {
   return apiFetch<{ ok: true; id: string; name: string }>(
     `/stores/${encodeURIComponent(id)}/clear-data`,
-    { method: 'POST', body: JSON.stringify({ confirmationName }) }
+    { method: 'POST', body: JSON.stringify({ confirmationName, categories }) }
   );
 }
 
