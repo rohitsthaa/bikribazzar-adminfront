@@ -15,6 +15,12 @@ type Impact = {
   contentCount: number;
 };
 
+const CLEAR_OPTIONS = [
+  ['products', 'Products and categories'], ['orders', 'Orders'], ['payments', 'Customer payments'],
+  ['customers', 'Customer accounts'], ['reviews', 'Product reviews'], ['inventory', 'Inventory history'],
+  ['finance', 'Finance activity'], ['content', 'Other store content'],
+] as const;
+
 export default function ClearStoreDataSection({ storeId, storeName }: { storeId: string; storeName: string }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -23,6 +29,7 @@ export default function ClearStoreDataSection({ storeId, storeName }: { storeId:
   const [impactError, setImpactError] = useState('');
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState<string[]>(CLEAR_OPTIONS.map(([key]) => key));
   const matches = confirmation.trim() === storeName;
 
   useEffect(() => {
@@ -37,7 +44,7 @@ export default function ClearStoreDataSection({ storeId, storeName }: { storeId:
     if (!matches) return;
     setError('');
     startTransition(async () => {
-      const result = await clearStoreDataAction(storeId, confirmation.trim());
+      const result = await clearStoreDataAction(storeId, confirmation.trim(), selected);
       if ('error' in result) {
         setError(result.error);
         return;
@@ -52,8 +59,8 @@ export default function ClearStoreDataSection({ storeId, storeName }: { storeId:
   return (
     <section className="rounded-2xl border border-amber-300 bg-amber-50/60 px-6 py-5">
       <h2 className="text-sm font-semibold text-amber-950">Clear store data</h2>
-      <p className="mt-1 mb-4 text-xs text-amber-900/80">
-        Remove this store&apos;s products, orders, customers, reviews, inventory history, finance activity, and other store content.
+        <p className="mt-1 mb-4 text-xs text-amber-900/80">
+        Choose which store data to remove. Related records may also be removed to keep data consistent.
         The store, team accounts, settings and theme, payment/courier setup, and subscription billing history will remain.
         This cannot be undone.
       </p>
@@ -64,7 +71,7 @@ export default function ClearStoreDataSection({ storeId, storeName }: { storeId:
           onClick={() => setConfirming(true)}
           className="rounded-xl border border-amber-400 px-4 py-2 text-sm font-medium text-amber-950 transition-colors hover:bg-amber-100"
         >
-          Clear store data
+          Choose data to clear
         </button>
       ) : (
         <div className="space-y-3">
@@ -78,7 +85,16 @@ export default function ClearStoreDataSection({ storeId, storeName }: { storeId:
           ) : (
             <>
               <div className="rounded-xl border border-amber-200 bg-white/80 px-4 py-3">
-                <p className="text-xs font-medium text-stone-800">This reset will remove:</p>
+                <p className="text-xs font-medium text-stone-800">Select data to clear:</p>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {CLEAR_OPTIONS.map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-xs text-stone-700">
+                      <input type="checkbox" checked={selected.includes(key)} onChange={(event) => setSelected((old) => event.target.checked ? [...old, key] : old.filter((item) => item !== key))} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs font-medium text-stone-800">Current amounts:</p>
                 <ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-stone-600 sm:grid-cols-2">
                   <li>{impact.productCount} products and variants</li>
                   <li>{impact.orderCount} orders and {impact.paymentCount} customer payments</li>
@@ -111,7 +127,7 @@ export default function ClearStoreDataSection({ storeId, storeName }: { storeId:
                   disabled={pending || !matches}
                   className="rounded-lg bg-amber-800 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {pending ? 'Clearing…' : 'Yes, clear store data'}
+                  {pending ? 'Clearing…' : 'Yes, clear selected data'}
                 </button>
                 <button
                   type="button"

@@ -263,11 +263,12 @@ export async function getStoreClearDataImpactAction(
 
 export async function clearStoreDataAction(
   storeId: string,
-  storeName: string
+  storeName: string,
+  categories?: string[]
 ): Promise<{ ok: true } | { error: string }> {
   try {
     await assertSuper();
-    await clearStoreData(storeId, storeName);
+    await clearStoreData(storeId, storeName, categories);
     await revalidateStorefront(storeId);
     revalidatePath('/platform');
     revalidatePath('/platform/stores');
