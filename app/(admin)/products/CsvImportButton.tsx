@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useTransition } from 'react';
-import { getExistingProductSummaries, importProductsCsv, type ImportResult } from './actions';
+import { exportProductsCsv, getExistingProductSummaries, importProductsCsv, type ImportResult } from './actions';
 import ImportGrid from './ImportGrid';
 import {
   COLUMNS, MAX_ROWS, buildDraftRows, diffRow, effectiveId, hasError, templateCsv,
@@ -46,6 +46,19 @@ export default function CsvImportButton({
   const [existing, setExisting] = useState<Map<string, ExistingProduct> | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importing, startImport] = useTransition();
+  const [exportError, setExportError] = useState('');
+  const [exporting, startExport] = useTransition();
+
+  function handleExport() {
+    setExportError('');
+    startExport(async () => {
+      const result = await exportProductsCsv();
+      if (!result.ok) { setExportError(result.error); return; }
+      const url = URL.createObjectURL(new Blob([result.csv], { type: 'text/csv;charset=utf-8;' }));
+      const a = document.createElement('a'); a.href = url; a.download = 'products-export.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
 
   const categoryKeys = useMemo(
     () => new Set(categories.flatMap((c) => [categoryLookupKey(c.key), categoryLookupKey(c.label)])),
@@ -160,6 +173,9 @@ export default function CsvImportButton({
 
   return (
     <>
+      <button type="button" onClick={handleExport} disabled={exporting} className="rounded-xl border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50">
+        {exporting ? 'Exporting…' : 'Export products'}
+      </button>
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -170,6 +186,7 @@ export default function CsvImportButton({
         </svg>
         Import
       </button>
+      {exportError && <span role="alert" className="text-xs text-red-600">{exportError}</span>}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 sm:p-8" onClick={close}>

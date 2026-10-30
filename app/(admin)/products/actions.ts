@@ -7,12 +7,31 @@ import { getAdmin, can } from '@/lib/auth';
 import { friendlyApiError } from '@/lib/errors';
 import type { ExistingProduct, ImportRow } from '@/lib/product-import';
 import { categoryLookupKey } from '@/lib/product-import';
+import { toCsv, COLUMNS } from '@/lib/product-import';
 
 // ── CSV import ────────────────────────────────────────────────────────────────
 
 export type ImportResult =
   | { ok: true; created: number; updated: number; categoriesCreated: number }
   | { ok: false; error: string };
+
+/** Export the importer's supported fields in its own CSV format. */
+export async function exportProductsCsv(): Promise<{ ok: true; csv: string } | { ok: false; error: string }> {
+  const admin = await getAdmin();
+  if (!admin) return { ok: false, error: 'Please sign in again.' };
+  try {
+    const products = await getAllProducts();
+    const header = COLUMNS.map((column) => column.key);
+    const rows = products.map((product) => [
+      product.id, product.name, product.description, String(product.priceNpr),
+      product.categoryLabel || product.category || '', product.details || '', product.tag || '',
+      String(product.available), product.stockQty == null ? '' : String(product.stockQty), String(product.reorderPoint),
+    ]);
+    return { ok: true, csv: toCsv([header, ...rows]) };
+  } catch (error) {
+    return { ok: false, error: friendlyApiError(error, 'Could not export products.') };
+  }
+}
 
 /**
  * The columns a spreadsheet actually carries, as JSON property names the API understands.
